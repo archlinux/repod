@@ -22,7 +22,7 @@ managed by their maintainers::
 Following is an attempt to draw out a couple of potential designs for how to
 keep track of which version of which package is currently in which (binary
 package) repository.
-They all share a common design: Keep track of all available `PKGBUILD`_ files
+Some share a common design: Keep track of all available `PKGBUILD`_ files
 of all packages in a single (`architecture`_ specific, e.g. *x86_64*)
 repository (grouped by repository)::
 
@@ -37,6 +37,54 @@ repository (grouped by repository)::
     testing
     community
       package_c
+    community-debug
+    community-staging
+    community-testing
+    gnome-unstable
+    kde-unstable
+    multilib
+    multilib-debug
+    multilib-staging
+    multilib-testing
+
+Others follow a more minimalistic approach, in which tracking of the package
+repositories is only done indirectly. In these scenarios, *a)* per repository
+plaintext files keep track of the packages and their respective current
+versions, or *b)* per package plaintext files in repository directories keep
+track of their respective versions.
+
+a)::
+
+  x86_64
+    core.txt
+    core-debug.txt
+    extra.txt
+    extra-debug.txt
+    staging.txt
+    testing.txt
+    community.txt
+    community-debug.txt
+    community-staging.txt
+    community-testing.txt
+    gnome-unstable.txt
+    kde-unstable.txt
+    multilib.txt
+    multilib-debug.txt
+    multilib-staging.txt
+    multilib-testing.txt
+
+b)::
+
+  x86_64
+    core
+      package_a.txt
+    core-debug
+    extra
+      package_b.txt
+    extra-debug
+    staging
+    testing
+    community
     community-debug
     community-staging
     community-testing
@@ -99,6 +147,49 @@ The different packages are tracked using `git-submodule`_.
 - updating becomes potentially more complex
 - `git-log`_ only reflects to which commit a submodule was updated
 - needs ``submodule init --update --recursive`` to be fully functional
+
+Per-architecture repo with per-repo plaintext file
+==================================================
+
+The package names and versions are tracked in per-repository plaintext files
+(e.g. `x86_64/core.txt`)::
+
+  package_a 0.0.1
+  package_b 0.2.1
+
+**Pros**:
+
+- very simple
+- very fast
+- only few files
+- no additional git plumbing required
+- package moving (between repositories) requires operations on two files
+
+**Cons**:
+
+- intransparent (package details can not be retrieved in one place)
+- per package build scripts are held separately
+
+Per-architecture repo with per-package plaintext file in repo directories
+=========================================================================
+
+The package versions are tracked in per-package plaintext files in repository
+directory structures (e.g. `x86_64/core/package_a.txt`)::
+
+  0.0.1
+
+**Pros**:
+
+- very simple
+- very fast
+- as many plaintext files as there are packages
+- no additional git plumbing required
+- package moving (between repositories) requires one file move operation
+
+**Cons**:
+
+- intransparent (package details can not be retrieved in one place)
+- per package build scripts are held separately
 
 Binary repository layout
 ________________________
