@@ -99,10 +99,22 @@ async def main(_args) -> int:
 
                 lock_tag(pkggitdir, pkgver)
 
-                await run("git", "fetch", pkggitdir, f"refs/tags/{pkgver}")
+                tagref = "refs/last-tag"
+                cacherefs = f"refs/packages/{pkgbase}/*"
+
+                await run(
+                    "git",
+                    "fetch",
+                    "--no-tags",
+                    "--prune",
+                    f"--negotiation-tip={cacherefs}",
+                    pkggitdir,
+                    f"+refs/heads/*:{cacherefs}",
+                    f"+refs/tags/{pkgver}:{tagref}",
+                )
                 if pkgdir.exists():
                     await run("git", "rm", "-r", pkgdir)
-                await run("git", "read-tree", f"--prefix={pkgdir}", "-u", "FETCH_HEAD")
+                await run("git", "read-tree", f"--prefix={pkgdir}", "-u", tagref)
 
                 message.append(f"Released {pkgbase} {pkgver} to {repo}")
 
