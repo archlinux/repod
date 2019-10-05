@@ -1,0 +1,4 @@
+To test db-update:
+  - Run ./create-demodata to set up demo data
+  - Copy one of the *-1-2-* packages to staging/extra.
+  - Run db-update.

@@ -1,0 +1,141 @@
+#!/usr/bin/python
+# Based on 'update.sample' shell script
+
+import asyncio
+from argparse import ArgumentParser
+from asyncio.subprocess import PIPE
+from fcntl import LOCK_EX, flock
+from os import chdir
+from pathlib import Path
+from sys import argv, exit
+
+
+def parse_pkginfo(pkginfo: str) -> dict:
+    fields = {}
+    for line in pkginfo.splitlines():
+        line = line.strip()
+        if line.startswith("#"):
+            continue
+        key, value = line.split(" = ", 1)
+        fields.setdefault(key, []).append(value)
+    print(fields)
+    return fields
+
+
+async def run(*args):
+    args = [str(a) for a in args]
+    proc = await asyncio.create_subprocess_exec(*args)
+    if await proc.wait() != 0:
+        raise RuntimeError(f"Command failed: {args!r}")
+
+
+async def get_output(*args) -> str:
+    args = [str(a) for a in args]
+    proc = await asyncio.create_subprocess_exec(*args, stdout=PIPE)
+    stdout, _ = await proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError(f"Command failed: {args!r}")
+    return stdout.decode()
+
+
+async def put_input(*args, stdin: str):
+    args = [str(a) for a in args]
+    proc = await asyncio.create_subprocess_exec(*args, stdin=PIPE)
+    await proc.communicate(stdin.encode())
+    if proc.returncode != 0:
+        raise RuntimeError(f"Command failed: {args!r}")
+
+
+async def get_pkginfo(pkgfile: Path) -> dict:
+    return parse_pkginfo(await get_output("bsdtar", "-xOf", pkgfile, ".PKGINFO"))
+
+
+def lock_tag(pkggitdir: Path, tag: str):
+    with open(pkggitdir / "locked-tags", "a+") as f:
+        f.seek(0)
+        if tag in f.read().splitlines():
+            return
+        print(tag, file=f)
+
+
+async def main(_args) -> int:
+    workdir = (Path(argv[0]).parent / "workdirs/x86_64").resolve(strict=True)
+    pkgsdir = (Path(argv[0]).parent / "packages").resolve(strict=True)
+    staging = (Path(argv[0]).parent / "staging").resolve(strict=True)
+
+    chdir(workdir)
+
+    packages = {
+        r.name: {p: None for p in r.glob("*.pkg.tar.xz")} for r in staging.glob("*")
+    }
+
+    packages = {r: ps for r, ps in packages.items() if ps}
+    if not packages:
+        return
+
+    async def load(ps, p):
+        ps[p] = await get_pkginfo(p)
+
+    await asyncio.gather(
+        *(load(ps, p) for r, ps in packages.items() for p in ps.keys())
+    )
+
+    lockfile = open(str(workdir / ".git/dbscripts.lock"), "w")
+    flock(lockfile, LOCK_EX)
+
+    curstate = (await get_output("git", "rev-parse", "--verify", "HEAD")).strip()
+
+    try:
+        message = ["db-update title placeholder", ""]
+
+        for repo, ps in sorted(packages.items()):
+            Path(repo).mkdir(exist_ok=True)
+            for pkg, pkginfo in sorted(ps.items()):
+                pkgbase = pkginfo["pkgbase"][0]
+                pkgdir = Path(repo) / pkgbase
+
+                pkgver = pkginfo["pkgver"][0]
+                pkggitdir = pkgsdir / (pkgbase + ".git")
+
+                lock_tag(pkggitdir, pkgver)
+
+                tagref = "refs/last-tag"
+                cacherefs = f"refs/packages/{pkgbase}/*"
+
+                await run(
+                    "git",
+                    "fetch",
+                    "--no-tags",
+                    "--prune",
+                    f"--negotiation-tip={cacherefs}",
+                    pkggitdir,
+                    f"+refs/heads/*:{cacherefs}",
+                    f"+refs/tags/{pkgver}:{tagref}",
+                )
+                if pkgdir.exists():
+                    await run("git", "rm", "-r", pkgdir)
+                await run("git", "read-tree", f"--prefix={pkgdir}", "-u", tagref)
+
+                message.append(f"Released {pkgbase} {pkgver} to {repo}")
+
+        await put_input("git", "commit", "--file=-", stdin="\n".join(message))
+        await run("git", "push", "origin", "master:master")
+
+    except Exception:
+        await run("git", "reset", "--hard", curstate)
+        raise
+
+    finally:
+        await run("git", "clean", "-xfd")
+
+    for ps in packages.values():
+        for p in ps.keys():
+            p.unlink()
+
+    return 0
+
+
+parser = ArgumentParser(description="db-update mockup.")
+parser.add_argument("--debug", action="store_true", default=False, help="Debug mode")
+args = parser.parse_args()
+exit(asyncio.run(main(args), debug=args.debug))

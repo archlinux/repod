@@ -1,0 +1,43 @@
+#!/bin/bash -e
+
+rm -rf databases packages staging workdirs *.pkg.tar.xz
+mkdir -p databases packages staging/{extra,testing} workdirs
+
+for pkg in foo bar; do
+    git init --bare --template=templates/package packages/$pkg.git
+    git clone packages/$pkg.git workdirs/$pkg
+    pushd workdirs/$pkg
+    cat >PKGBUILD <<END
+pkgname=$pkg
+pkgver=1
+pkgrel=1
+pkgdesc="$pkg"
+url="https://www.example.com/"
+arch=(x86_64)
+license=(GPL3)
+
+package() {
+  echo "\$pkgver-\$pkgrel" > "\$pkgdir/$pkg"
+}
+END
+    for rel in 1 2; do
+        sed -i "/^pkgrel=/s/=.*/=$rel/" PKGBUILD
+        makepkg -c
+        [[ $rel == 1 ]] && cp $pkg-1-$rel-x86_64.pkg.tar.xz ../../staging/extra
+        mv -f $pkg-1-$rel-x86_64.pkg.tar.xz ../..
+        git add PKGBUILD
+        git commit -m "$pkg 1-$rel"
+        git tag -a -m "$pkg 1-$rel" 1-$rel HEAD
+    done
+    git push origin master --tags
+    popd
+    rm -rf workdirs/$pkg
+done
+
+git init --bare --template=templates/database databases/x86_64.git
+git clone databases/x86_64.git workdirs/x86_64
+pushd workdirs/x86_64
+git commit --allow-empty -m "Empty commit"
+popd
+
+./db-update
