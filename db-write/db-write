@@ -9,10 +9,12 @@ from sys import argv, exit
 
 
 def writefield(out: io.StringIO, name: str, field):
-    if isinstance(field, list):
-        print(f"%{name}%", *field, sep="\n", end="\n\n", file=out)
-    elif field is not None:
+    if field is None:
+        pass
+    elif not isinstance(field, list):
         print(f"%{name}%", field, sep="\n", end="\n\n", file=out)
+    elif field:
+        print(f"%{name}%", *field, sep="\n", end="\n\n", file=out)
 
 
 def descfile(base: str, version: str, data) -> bytes:
