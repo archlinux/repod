@@ -242,7 +242,7 @@ Adding a Package
 **Repository server/ package server**:
 
 .. important::
-   The following steps need to be atomic (reversable).
+   The following steps need to be atomic (reversible).
 
 #. Verify user permissions
 #. Lock package database and monorepo
@@ -273,7 +273,7 @@ Removing a Package
 **Repository server/ package server**:
 
 .. important::
-   The following steps need to be atomic (reversable).
+   The following steps need to be atomic (reversible).
 
 .. note::
    The remove command should be able to remove stale packages (e.g. leftover
@@ -297,7 +297,7 @@ Moving a Package
 **Repository server/ package server**:
 
 .. important:: 
-   The following steps need to be atomic (reversable).
+   The following steps need to be atomic (reversible).
 
 #. Verify user permissions
 #. Lock source and target package databases and monorepo
