@@ -1,0 +1,23 @@
+{
+    "version": "1-1",
+    "packages": [
+        {
+            "filename": "foo-1-1-x86_64.pkg.tar.xz",
+            "name": "foo",
+            "version": "1-1",
+            "desc": "Foo demo package",
+            "csize": 1234,
+            "isize": 12345,
+            "md5sum": "123456",
+            "sha256sum": "1234567",
+            "pgpsig": "some base64 data",
+            "url": "https://www.example.com/",
+            "licenses": ["foo", "bar"],
+            "arch": "any",
+            "builddate": 0,
+            "packager": "Bruce \"Batman\" Wayne",
+            "depends": ["bbq", "qux"],
+            "makedepends": ["something-else"]
+        }
+    ]
+}
