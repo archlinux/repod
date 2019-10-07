@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import asyncio
-import json
-import hashlib
 import base64
+import hashlib
+import json
 from asyncio.subprocess import PIPE
 from fcntl import LOCK_EX, flock
 from pathlib import Path
@@ -68,7 +68,7 @@ async def get_pkgfiles(pkgfile: Path) -> dict:
     return parse_pkgfiles(await get_output("bsdtar", "-tf", pkgfile))
 
 
-async def build_pkgmeta(pkgpath, pkginfo):
+def build_pkgmeta(pkgpath, pkginfo, pkgfiles):
     hash_md5 = hashlib.md5()
     hash_sha256 = hashlib.sha256()
     with pkgpath.open(mode="rb") as f:
@@ -103,7 +103,7 @@ async def build_pkgmeta(pkgpath, pkginfo):
             "replaces": pkginfo.get("replace"),
             "conflicts": pkginfo.get("conflict"),
             "provides": pkginfo.get("provides"),
-            "files": await get_pkgfiles(pkgpath),
+            "files": pkgfiles,
         }
     )
 
@@ -125,7 +125,7 @@ async def main() -> int:
 
     # load pkginfo
     async def load(ps, p):
-        ps[p] = await get_pkginfo(p)
+        ps[p] = await asyncio.gather(get_pkginfo(p), get_pkgfiles(p))
 
     await asyncio.gather(
         *(load(ps, p) for r, ps in packages.items() for p in ps.keys())
@@ -134,7 +134,7 @@ async def main() -> int:
     # prepare meta structure
     pkgbases = {r: {} for r in packages.keys()}
     for repo, ps in sorted(packages.items()):
-        for pkgpath, pkginfo in ps.items():
+        for pkgpath, (pkginfo, pkgfiles) in ps.items():
             pkgbase = pkginfo["pkgbase"][0]
             if pkgbase not in pkgbases[repo]:
                 pkgbases[repo][pkgbase] = {
@@ -142,7 +142,7 @@ async def main() -> int:
                     "packages": [],
                 }
             pkgbases[repo][pkgbase]["packages"].append(
-                await build_pkgmeta(pkgpath, pkginfo)
+                build_pkgmeta(pkgpath, pkginfo, pkgfiles)
             )
 
     # save meta info to json files
