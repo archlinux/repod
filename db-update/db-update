@@ -135,7 +135,10 @@ async def main() -> int:
     pkgbases = {r: {} for r in packages.keys()}
     for repo, ps in sorted(packages.items()):
         for pkgpath, (pkginfo, pkgfiles) in ps.items():
-            pkgbase = pkginfo["pkgbase"][0]
+            try:
+                pkgbase = pkginfo["pkgbase"][0]
+            except KeyError:
+                pkgbase = pkginfo["pkgname"][0]
             if pkgbase not in pkgbases[repo]:
                 pkgbases[repo][pkgbase] = {
                     "version": pkginfo["pkgver"][0],
