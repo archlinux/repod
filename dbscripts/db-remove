@@ -14,6 +14,10 @@ async def main(repo, pkgbases) -> int:
     lockfile = (metadir / "dbscripts.lock").open(mode="w")
     flock(lockfile, LOCK_EX)
 
+    # check that user has access to this repo
+    if not (metadir / repo).is_dir():
+        raise RuntimeError(f"repo '{repo}' is not allowed")
+
     # load existing repo metadata
     meta = {
         repo: {
@@ -36,8 +40,8 @@ async def main(repo, pkgbases) -> int:
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Remove pkgbase(s) from a database")
+    parser = ArgumentParser(description="Remove pkgbase(s) from a repo")
     parser.add_argument("repo", help="repository name")
-    parser.add_argument("pkgbase", help="pkgbases to remove", nargs="+")
+    parser.add_argument("pkgbase", help="pkgbase(s) to remove", nargs="+")
     args = parser.parse_args()
     exit(asyncio.run(main(args.repo, args.pkgbase)))
