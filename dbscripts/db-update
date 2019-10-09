@@ -34,6 +34,10 @@ def parse_pkgfiles(pkginfo: str) -> dict:
     return sorted(files)
 
 
+def parse_gpgstatus(status: str) -> list:
+    return [line.split() for line in status.splitlines()]
+
+
 def cleandict(obj):
     if not isinstance(obj, dict):
         return obj
@@ -70,6 +74,23 @@ async def get_pkginfo(pkgfile: Path) -> dict:
 
 async def get_pkgfiles(pkgfile: Path) -> dict:
     return parse_pkgfiles(await get_output("bsdtar", "-tf", pkgfile))
+
+
+async def verify_gpg(pkgfile: Path):
+    # verify PGP signature
+    return parse_gpgstatus(
+        await get_output(
+            "gpg",
+            "--quiet",
+            "--logger-file=/dev/null",
+            "--status-fd=1",
+            "--batch",
+            "--no-tty",
+            "--verify",
+            pkgfile.parent / f"{pkgfile.name}.sig",
+            pkgfile,
+        )
+    )
 
 
 def build_pkgmeta(pkgpath, pkginfo, pkgfiles):
@@ -126,9 +147,12 @@ async def main() -> int:
     if not packages:
         return
 
-    # load pkginfo
+    # load packages in parallel
     async def load(ps, p):
-        ps[p] = await asyncio.gather(get_pkginfo(p), get_pkgfiles(p))
+        pkginfo, pkgfiles, _ = await asyncio.gather(
+            get_pkginfo(p), get_pkgfiles(p), verify_gpg(p)
+        )
+        ps[p] = (pkginfo, pkgfiles)
 
     await asyncio.gather(
         *(load(ps, p) for r, ps in packages.items() for p in ps.keys())
@@ -175,11 +199,6 @@ async def main() -> int:
                 or pkgbases[repo][pkgbase]["checkdepends"] != pkginfo.get("checkdepend")
             ):
                 raise RuntimeError(f"Common fields differ in pkgbase='{pkgbase}'")
-
-            # verify PGP signature
-            await run(
-                "gpg", "--verify", pkgpath.parent / f"{pkgpath.name}.sig", pkgpath
-            )
 
             # load pkg metadata
             pkgbases[repo][pkgbase]["packages"].append(
