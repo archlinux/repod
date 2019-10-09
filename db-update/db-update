@@ -99,7 +99,6 @@ def build_pkgmeta(pkgpath, pkginfo, pkgfiles):
             "packager": pkginfo["packager"][0],
             "depends": pkginfo.get("depend"),
             "optdepends": pkginfo.get("optdepend"),
-            "makedepends": pkginfo.get("makedepend"),
             "replaces": pkginfo.get("replace"),
             "conflicts": pkginfo.get("conflict"),
             "provides": pkginfo.get("provides"),
@@ -142,6 +141,8 @@ async def main() -> int:
             if pkgbase not in pkgbases[repo]:
                 pkgbases[repo][pkgbase] = {
                     "version": pkginfo["pkgver"][0],
+                    "makedepends": pkginfo.get("makedepend"),
+                    "checkdepends": pkginfo.get("checkdepend"),
                     "packages": [],
                 }
             pkgbases[repo][pkgbase]["packages"].append(
