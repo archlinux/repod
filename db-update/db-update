@@ -4,6 +4,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import pyalpm
 from asyncio.subprocess import PIPE
 from fcntl import LOCK_EX, flock
 from pathlib import Path
@@ -130,6 +131,15 @@ async def main() -> int:
         *(load(ps, p) for r, ps in packages.items() for p in ps.keys())
     )
 
+    # load existing repo metadata
+    meta = {
+        repo: {
+            p.name[:-5]: json.load((metadir / repo / p).open())
+            for p in (metadir / repo).glob("*.json")
+        }
+        for repo in packages.keys()
+    }
+
     # prepare meta structure
     pkgbases = {r: {} for r in packages.keys()}
     for repo, ps in sorted(packages.items()):
@@ -146,6 +156,15 @@ async def main() -> int:
                     "packages": [],
                 }
 
+                # verify version is increasing
+                if pkgbase in meta[repo]:
+                    curver = meta[repo][pkgbase]["version"]
+                    newver = pkgbases[repo][pkgbase]["version"]
+                    if pyalpm.vercmp(curver, newver) < 1:
+                        raise RuntimeError(
+                            f"Cannot update package '{pkgbase}' from version '{curver}' to '{newver}', version is not increased"
+                        )
+
             # validate that common fields of every pkg have the same values within the same pkgbase
             if (
                 pkgbases[repo][pkgbase]["version"] != pkginfo["pkgver"][0]
@@ -159,6 +178,7 @@ async def main() -> int:
                 "gpg", "--verify", pkgpath.parent / f"{pkgpath.name}.sig", pkgpath
             )
 
+            # load pkg metadata
             pkgbases[repo][pkgbase]["packages"].append(
                 build_pkgmeta(pkgpath, pkginfo, pkgfiles)
             )
