@@ -183,13 +183,17 @@ async def main() -> int:
                 build_pkgmeta(pkgpath, pkginfo, pkgfiles)
             )
 
-    # save meta info to json files
+    # save meta info to json files and update `meta` object
     for repo, ps in pkgbases.items():
         Path(metadir / repo).mkdir(exist_ok=True)
         for pkgbase, pkgs in ps.items():
             metafile = metadir / repo / f"{pkgbase}.json"
             with metafile.open(mode="w", encoding="utf-8") as f:
                 json.dump(pkgs, f, ensure_ascii=False, indent=4, sort_keys=True)
+            meta[repo][pkgbase] = pkgs
+
+    # rebuild DB file using `meta` object
+    # TODO
 
     return 0
 
