@@ -11,7 +11,7 @@ from sys import argv, exit
 
 import pyalpm
 
-from .lib.dbwrite import generate_dbs
+from lib.dbwrite import generate_dbs
 
 
 def parse_pkginfo(pkginfo: str) -> dict:
