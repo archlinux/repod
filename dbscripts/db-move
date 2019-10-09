@@ -7,6 +7,8 @@ from fcntl import LOCK_EX, flock
 from pathlib import Path
 from sys import argv, exit
 
+from pyalpm import vercmp
+
 from lib.dbwrite import generate_dbs
 
 
@@ -45,9 +47,14 @@ async def main(repo_from, repo_to, pkgbases) -> int:
                 f"pkgbase '{pkgbase}' is not present in the source repo '{repo_from}'"
             )
         if pkgbase in meta[repo_to]:
-            raise RuntimeError(
-                f"pkgbase '{pkgbase}' is already present in the destination repo '{repo_to}'"
-            )
+            # verify version is increasing
+            curver = meta[repo_to][pkgbase]["version"]
+            newver = meta[repo_from][pkgbase]["version"]
+            if vercmp(newver, curver) < 1:
+                raise RuntimeError(
+                    f"Cannot move package '{pkgbase}' of version '{newver}'"
+                    + f" to override existing version '{curver}', version is not increased"
+                )
 
     # move package info within `meta` objects and update json files
     Path(metadir / repo_to).mkdir(exist_ok=True)
