@@ -130,8 +130,6 @@ def build_pkgmeta(pkgpath, pkginfo, pkgfiles):
     maybe("backup", "backup")
     maybe("depends", "depend")
     maybe("optdepends", "optdepend")
-    maybe("makedepends", "makedepend")
-    maybe("checkdepends", "checkdepend")
 
     return meta
 
