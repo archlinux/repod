@@ -1,0 +1,43 @@
+#!/usr/bin/python
+
+import asyncio
+import json
+from argparse import ArgumentParser
+from fcntl import LOCK_EX, flock
+from pathlib import Path
+from sys import argv, exit
+
+
+async def main(repo, pkgbases) -> int:
+    metadir = (Path(argv[0]).parent / "meta").resolve(strict=True)
+
+    lockfile = (metadir / "dbscripts.lock").open(mode="w")
+    flock(lockfile, LOCK_EX)
+
+    # load existing repo metadata
+    meta = {
+        repo: {
+            p.name[:-5]: json.load((metadir / repo / p).open())
+            for p in (metadir / repo).glob("*.json")
+        }
+    }
+
+    # remove packages from meta and corresponding json files
+    for pkgbase in pkgbases:
+        if pkgbase not in meta[repo]:
+            raise RuntimeError(f"pkgbase '{pkgbase}' is not present in '{repo}' repo")
+        del meta[repo][pkgbase]
+        (metadir / repo / f"{pkgbase}.json").unlink()
+
+    # rebuild DB file using `meta` object
+    # TODO
+
+    return 0
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description="Remove pkgbase(s) from a database")
+    parser.add_argument("repo", help="repository name")
+    parser.add_argument("pkgbase", help="pkgbases to remove", nargs="+")
+    args = parser.parse_args()
+    exit(asyncio.run(main(args.repo, args.pkgbase)))
