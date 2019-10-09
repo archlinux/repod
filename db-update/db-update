@@ -145,6 +145,15 @@ async def main() -> int:
                     "checkdepends": pkginfo.get("checkdepend"),
                     "packages": [],
                 }
+
+            # validate that common fields of every pkg have the same values within the same pkgbase
+            if (
+                pkgbases[repo][pkgbase]["version"] != pkginfo["pkgver"][0]
+                or pkgbases[repo][pkgbase]["makedepends"] != pkginfo.get("makedepend")
+                or pkgbases[repo][pkgbase]["checkdepends"] != pkginfo.get("checkdepend")
+            ):
+                raise RuntimeError(f"Common fields differ in pkgbase='{pkgbase}'")
+
             pkgbases[repo][pkgbase]["packages"].append(
                 build_pkgmeta(pkgpath, pkginfo, pkgfiles)
             )
