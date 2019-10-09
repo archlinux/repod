@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from fcntl import LOCK_EX, flock
 from pathlib import Path
 from sys import argv, exit
+from lib.dbwrite import generate_dbs
 
 
 async def main(repo, pkgbases) -> int:
@@ -34,7 +35,7 @@ async def main(repo, pkgbases) -> int:
         (metadir / repo / f"{pkgbase}.json").unlink()
 
     # rebuild DB file using `meta` object
-    # TODO
+    generate_dbs(meta)
 
     return 0
 

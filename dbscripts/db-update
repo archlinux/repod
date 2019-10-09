@@ -9,6 +9,7 @@ from asyncio.subprocess import PIPE
 from fcntl import LOCK_EX, flock
 from pathlib import Path
 from sys import argv, exit
+from lib.dbwrite import generate_dbs
 
 
 def parse_pkginfo(pkginfo: str) -> dict:
@@ -193,7 +194,7 @@ async def main() -> int:
             meta[repo][pkgbase] = pkgs
 
     # rebuild DB file using `meta` object
-    # TODO
+    generate_dbs(meta)
 
     return 0
 
