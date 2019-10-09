@@ -160,7 +160,7 @@ async def main() -> int:
                 if pkgbase in meta[repo]:
                     curver = meta[repo][pkgbase]["version"]
                     newver = pkgbases[repo][pkgbase]["version"]
-                    if pyalpm.vercmp(curver, newver) < 1:
+                    if pyalpm.vercmp(newver, curver) < 1:
                         raise RuntimeError(
                             f"Cannot update package '{pkgbase}' from version '{curver}' to '{newver}', version is not increased"
                         )
