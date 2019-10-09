@@ -13,6 +13,7 @@ from lib.dbwrite import generate_dbs
 async def main(repo, pkgbases) -> int:
     metadir = (Path(argv[0]).parent / "meta").resolve(strict=True)
 
+    # FIXME: Put this into metadir/.git/
     lockfile = (metadir / "dbscripts.lock").open(mode="w")
     flock(lockfile, LOCK_EX)
 
@@ -21,12 +22,15 @@ async def main(repo, pkgbases) -> int:
         raise RuntimeError(f"repo '{repo}' is not allowed")
 
     # load existing repo metadata
-    meta = {
-        repo: {
-            p.stem: json.load((metadir / repo / p).open())
-            for p in (metadir / repo).glob("*.json")
-        }
-    }
+    def json_load(path):
+        with path.open() as f:
+            return json.load(f)
+
+    def repo_load(repo):
+        repodir = metadir / repo
+        return {p.stem: json_load(repodir / p) for p in repodir.glob("*.json")}
+
+    meta = {repo: repo_load(repo)}
 
     # remove packages from meta and corresponding json files
     for pkgbase in pkgbases:

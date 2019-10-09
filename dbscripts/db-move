@@ -13,6 +13,7 @@ from lib.dbwrite import generate_dbs
 async def main(repo_from, repo_to, pkgbases) -> int:
     metadir = (Path(argv[0]).parent / "meta").resolve(strict=True)
 
+    # FIXME: Put this into metadir/.git/
     lockfile = (metadir / "dbscripts.lock").open(mode="w")
     flock(lockfile, LOCK_EX)
 
@@ -27,13 +28,15 @@ async def main(repo_from, repo_to, pkgbases) -> int:
         raise RuntimeError("repo_from and repo_to cannot be the same")
 
     # load existing repo metadata
-    meta = {
-        repo: {
-            p.stem: json.load((metadir / repo / p).open())
-            for p in (metadir / repo).glob("*.json")
-        }
-        for repo in [repo_from, repo_to]
-    }
+    def json_load(path):
+        with path.open() as f:
+            return json.load(f)
+
+    def repo_load(repo):
+        repodir = metadir / repo
+        return {p.stem: json_load(repodir / p) for p in repodir.glob("*.json")}
+
+    meta = {repo: repo_load(repo) for repo in [repo_from, repo_to]}
 
     # validate that the move is possible
     for pkgbase in pkgbases:
