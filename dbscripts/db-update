@@ -1,15 +1,15 @@
 #!/usr/bin/python
 
 import asyncio
-import base64
-import hashlib
 import json
 from asyncio.subprocess import PIPE
+from base64 import b64encode
 from fcntl import LOCK_EX, flock
+from hashlib import md5, sha256
 from pathlib import Path
 from sys import argv, exit
 
-import pyalpm
+from pyalpm import vercmp
 
 from lib.dbwrite import generate_dbs
 
@@ -36,12 +36,6 @@ def parse_pkgfiles(pkginfo: str) -> dict:
 
 def parse_gpgstatus(status: str) -> list:
     return [line.split() for line in status.splitlines()]
-
-
-def cleandict(obj):
-    if not isinstance(obj, dict):
-        return obj
-    return {k: cleandict(v) for k, v in obj.items() if v is not None}
 
 
 async def run(*args):
@@ -94,48 +88,97 @@ async def verify_gpg(pkgfile: Path):
 
 
 def build_pkgmeta(pkgpath, pkginfo, pkgfiles):
-    hash_md5 = hashlib.md5()
-    hash_sha256 = hashlib.sha256()
+    hash_md5 = md5()
+    hash_sha256 = sha256()
     with pkgpath.open(mode="rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
             hash_sha256.update(chunk)
 
-    pgpsig = None
     with (pkgpath.parent / f"{pkgpath.name}.sig").open(mode="rb") as f:
-        pgpsig = base64.b64encode(f.read())
-    pgpsig = pgpsig.decode()
+        pgpsig = b64encode(f.read()).decode()
 
-    return cleandict(
-        {
-            "filename": pkgpath.name,
-            "name": pkginfo["pkgname"][0],
-            "desc": pkginfo["pkgdesc"][0],
-            "groups": pkginfo.get("group"),
-            "csize": pkgpath.stat().st_size,
-            "isize": int(pkginfo["size"][0]),
-            "md5sum": hash_md5.hexdigest(),
-            "sha256sum": hash_sha256.hexdigest(),
-            "pgpsig": pgpsig,
-            "url": pkginfo["url"][0],
-            "licenses": pkginfo.get("license"),
-            "arch": pkginfo["arch"][0],
-            "builddate": int(pkginfo["builddate"][0]),
-            "packager": pkginfo["packager"][0],
-            "depends": pkginfo.get("depend"),
-            "optdepends": pkginfo.get("optdepend"),
-            "replaces": pkginfo.get("replace"),
-            "conflicts": pkginfo.get("conflict"),
-            "provides": pkginfo.get("provides"),
-            "files": pkgfiles,
-        }
-    )
+    meta = {
+        "files": pkgfiles,
+        # Calculated
+        "filename": pkgpath.name,
+        "csize": pkgpath.stat().st_size,
+        "md5sum": hash_md5.hexdigest(),
+        "sha256sum": hash_sha256.hexdigest(),
+        "pgpsig": pgpsig,
+        # Must-have fields
+        "name": pkginfo["pkgname"][0],
+        "desc": pkginfo["pkgdesc"][0],
+        "url": pkginfo["url"][0],
+        "builddate": int(pkginfo["builddate"][0]),
+        "packager": pkginfo["packager"][0],
+        "isize": int(pkginfo["size"][0]),
+        "arch": pkginfo["arch"][0],
+    }
+
+    # Arrays (may be empty)
+    def maybe(meta_field, info_field):
+        value = pkginfo.get(info_field)
+        if value:
+            meta[meta_field] = value
+
+    maybe("licenses", "license")
+    maybe("replaces", "replaces")
+    maybe("groups", "group")
+    maybe("conflicts", "conflict")
+    maybe("provides", "provides")
+    maybe("backup", "backup")
+    maybe("depends", "depend")
+    maybe("optdepends", "optdepend")
+    maybe("makedepends", "makedepend")
+    maybe("checkdepends", "checkdepend")
+
+    return meta
+
+
+def build_repometa(packages):
+    repo = {}
+
+    for pkgpath, (pkginfo, pkgfiles) in packages.items():
+        try:
+            pkgbase = pkginfo["pkgbase"][0]
+        except KeyError:
+            pkgbase = pkginfo["pkgname"][0]
+
+        pkgver = pkginfo["pkgver"][0]
+        makedepends = pkginfo.get("makedepend")
+        checkdepends = pkginfo.get("checkdepend")
+
+        baseinfo = repo.get(pkgbase)
+        if baseinfo is None:
+            baseinfo = repo[pkgbase] = {"version": pkgver, "packages": []}
+
+            if makedepends:
+                baseinfo["makedepends"] = makedepends
+            if checkdepends:
+                baseinfo["checkdepends"] = checkdepends
+        else:
+            # validate that common fields of every pkg have
+            # the same values within the same pkgbase
+            if baseinfo["version"] != pkgver:
+                raise RuntimeError(f"pkgvers differ for pkgbase='{pkgbase}'")
+            if baseinfo.get("makedepends") != makedepends:
+                raise RuntimeError(f"makedepends differ for pkgbase='{pkgbase}'")
+            if baseinfo.get("checkdepends") != checkdepends:
+                raise RuntimeError(f"checkdepends differ for pkgbase='{pkgbase}'")
+
+        # transform pkg metadata
+        pkgmeta = build_pkgmeta(pkgpath, pkginfo, pkgfiles)
+        baseinfo["packages"].append(pkgmeta)
+
+    return repo
 
 
 async def main() -> int:
     metadir = (Path(argv[0]).parent / "meta").resolve(strict=True)
     stagingdir = (Path(argv[0]).parent / "staging").resolve(strict=True)
 
+    # FIXME: Put this into metadir/.git/
     lockfile = (metadir / "dbscripts.lock").open(mode="w")
     flock(lockfile, LOCK_EX)
 
@@ -158,52 +201,36 @@ async def main() -> int:
         *(load(ps, p) for r, ps in packages.items() for p in ps.keys())
     )
 
+    # parse new packages into repo metadata
+    pkgbases = {repo: build_repometa(ps) for repo, ps in sorted(packages.items())}
+
     # load existing repo metadata
-    meta = {
-        repo: {
-            p.stem: json.load((metadir / repo / p).open())
-            for p in (metadir / repo).glob("*.json")
-        }
-        for repo in packages.keys()
-    }
+    def json_load(path):
+        with path.open() as f:
+            return json.load(f)
 
-    # prepare meta structure
-    pkgbases = {r: {} for r in packages.keys()}
-    for repo, ps in sorted(packages.items()):
-        for pkgpath, (pkginfo, pkgfiles) in ps.items():
-            try:
-                pkgbase = pkginfo["pkgbase"][0]
-            except KeyError:
-                pkgbase = pkginfo["pkgname"][0]
-            if pkgbase not in pkgbases[repo]:
-                pkgbases[repo][pkgbase] = {
-                    "version": pkginfo["pkgver"][0],
-                    "makedepends": pkginfo.get("makedepend"),
-                    "checkdepends": pkginfo.get("checkdepend"),
-                    "packages": [],
-                }
+    def repo_load(repo):
+        repodir = metadir / repo
+        return {p.stem: json_load(repodir / p) for p in repodir.glob("*.json")}
 
-                # verify version is increasing
-                if pkgbase in meta[repo]:
-                    curver = meta[repo][pkgbase]["version"]
-                    newver = pkgbases[repo][pkgbase]["version"]
-                    if pyalpm.vercmp(newver, curver) < 1:
-                        raise RuntimeError(
-                            f"Cannot update package '{pkgbase}' from version '{curver}' to '{newver}', version is not increased"
-                        )
+    meta = {repo: repo_load(repo) for repo in pkgbases.keys()}
 
-            # validate that common fields of every pkg have the same values within the same pkgbase
-            if (
-                pkgbases[repo][pkgbase]["version"] != pkginfo["pkgver"][0]
-                or pkgbases[repo][pkgbase]["makedepends"] != pkginfo.get("makedepend")
-                or pkgbases[repo][pkgbase]["checkdepends"] != pkginfo.get("checkdepend")
-            ):
-                raise RuntimeError(f"Common fields differ in pkgbase='{pkgbase}'")
+    # validate new packages against existing repo
+    for repo, ps in pkgbases.items():
+        metarepo = meta[repo]
+        for pkgbase, baseinfo in ps.items():
+            curbaseinfo = metarepo.get(pkgbase)
+            if curbaseinfo is None:
+                continue
 
-            # load pkg metadata
-            pkgbases[repo][pkgbase]["packages"].append(
-                build_pkgmeta(pkgpath, pkginfo, pkgfiles)
-            )
+            # verify version is increasing
+            curver = curbaseinfo["version"]
+            newver = baseinfo["version"]
+            if vercmp(newver, curver) < 1:
+                raise RuntimeError(
+                    f"Cannot update package '{pkgbase}' from version '{curver}'"
+                    + f" to '{newver}', version is not increased"
+                )
 
     # save meta info to json files and update `meta` object
     for repo, ps in pkgbases.items():
@@ -212,7 +239,7 @@ async def main() -> int:
             metafile = metadir / repo / f"{pkgbase}.json"
             with metafile.open(mode="w", encoding="utf-8") as f:
                 json.dump(pkgs, f, ensure_ascii=False, indent=4, sort_keys=True)
-            meta[repo][pkgbase] = pkgs
+        meta[repo].update(ps)
 
     # rebuild DB file using `meta` object
     generate_dbs(meta)
