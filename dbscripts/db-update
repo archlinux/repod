@@ -4,12 +4,14 @@ import asyncio
 import base64
 import hashlib
 import json
-import pyalpm
 from asyncio.subprocess import PIPE
 from fcntl import LOCK_EX, flock
 from pathlib import Path
 from sys import argv, exit
-from lib.dbwrite import generate_dbs
+
+import pyalpm
+
+from .lib.dbwrite import generate_dbs
 
 
 def parse_pkginfo(pkginfo: str) -> dict:

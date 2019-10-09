@@ -6,7 +6,8 @@ from argparse import ArgumentParser
 from fcntl import LOCK_EX, flock
 from pathlib import Path
 from sys import argv, exit
-from lib.dbwrite import generate_dbs
+
+from .lib.dbwrite import generate_dbs
 
 
 async def main(repo_from, repo_to, pkgbases) -> int:
