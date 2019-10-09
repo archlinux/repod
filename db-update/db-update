@@ -154,6 +154,11 @@ async def main() -> int:
             ):
                 raise RuntimeError(f"Common fields differ in pkgbase='{pkgbase}'")
 
+            # verify PGP signature
+            await run(
+                "gpg", "--verify", pkgpath.parent / f"{pkgpath.name}.sig", pkgpath
+            )
+
             pkgbases[repo][pkgbase]["packages"].append(
                 build_pkgmeta(pkgpath, pkginfo, pkgfiles)
             )
