@@ -9,78 +9,29 @@ host.
 The below implementational details need to be mocked and tested against each
 other.
 
+Previous discussion: https://conf.archlinux.org/reports/archconf_2019/
+
 Git repository layout
 _____________________
 
 The package repositories (one git repository for each `pkgbase`_) are
 managed by their maintainers::
 
-  package_a
-  package_b
-  package_c
+  pkgbase_a
+  pkgbase_b
+  pkgbase_c
 
-Following is an attempt to draw out a couple of potential designs for how to
-keep track of which version of which package is currently in which (binary
-package) repository.
-Some share a common design: Keep track of all available `PKGBUILD`_ files
-of all packages in a single (`architecture`_ specific, e.g. *x86_64*)
-repository (grouped by repository)::
+Tracking of the package repositories is done through package metadata
+files in repository directories. These files contain the metadata
+available in pacman(8) packages, and may be generated directly from
+them::
 
   x86_64
     core
-      package_a
+      pkgbase_a.json
     core-debug
     extra
-      package_b
-    extra-debug
-    staging
-    testing
-    community
-      package_c
-    community-debug
-    community-staging
-    community-testing
-    gnome-unstable
-    kde-unstable
-    multilib
-    multilib-debug
-    multilib-staging
-    multilib-testing
-
-Others follow a more minimalistic approach, in which tracking of the package
-repositories is only done indirectly. In these scenarios, *a)* per repository
-plaintext files keep track of the packages and their respective current
-versions, or *b)* per package plaintext files in repository directories keep
-track of their respective versions.
-
-a)::
-
-  x86_64
-    core.txt
-    core-debug.txt
-    extra.txt
-    extra-debug.txt
-    staging.txt
-    testing.txt
-    community.txt
-    community-debug.txt
-    community-staging.txt
-    community-testing.txt
-    gnome-unstable.txt
-    kde-unstable.txt
-    multilib.txt
-    multilib-debug.txt
-    multilib-staging.txt
-    multilib-testing.txt
-
-b)::
-
-  x86_64
-    core
-      package_a.txt
-    core-debug
-    extra
-      package_b.txt
+      pkgbase_b.json
     extra-debug
     staging
     testing
@@ -95,101 +46,98 @@ b)::
     multilib-staging
     multilib-testing
 
-Per-architecture monorepo using subtree
-=======================================
-
-The different packages are being tracked using `git-subtree`_.
-
-**Pros**:
-
-- low complexity operations with logging (e.g. `git-mv`_ to move packages from
-  one repo to the other)
-- `git-log`_ can carry all information of all packages
-- can manage the subtrees the same as the main repository
-
-**Cons**:
-
-- more features than required
-- potentially intransparent to use
-- potentially very slow over time
-- potentially convoluted `git-log`_ as it's harder to define messages
-  specifically
-
-Per-architecture monorepo using read-tree
-=========================================
-
-The different packages are merged in using `git-read-tree`_.
-
-**Pros**:
-
-- low complexity operations with logging (e.g. `git-mv`_ to move packages from
-  one repo to the other)
-- `git-log`_ messages can be defined more easily
-- higher transparency of what gets merged
-
-**Cons**:
-
-- potentially very slow over time
-
-Per-architecture monorepo using submodule
-=========================================
-
-The different packages are tracked using `git-submodule`_.
-
-**Pros**:
-
-- declarative syntax in `.gitmodules`_
-- transparent locking/ pinning
-
-**Cons**:
-
-- moving becomes potentially more complex (deinit/init)
-- updating becomes potentially more complex
-- `git-log`_ only reflects to which commit a submodule was updated
-- needs ``submodule init --update --recursive`` to be fully functional
-
-Per-architecture repo with per-repo plaintext file
-==================================================
-
-The package names and versions are tracked in per-repository plaintext files
-(e.g. `x86_64/core.txt`)::
-
-  package_a 0.0.1
-  package_b 0.2.1
-
-**Pros**:
-
-- very simple
-- very fast
-- only few files
-- no additional git plumbing required
-- package moving (between repositories) requires operations on two files
-
-**Cons**:
-
-- intransparent (package details can not be retrieved in one place)
-- per package build scripts are held separately
-
-Per-architecture repo with per-package plaintext file in repo directories
+Per-architecture repo with per-package metadata file in repo directories
 =========================================================================
 
-The package versions are tracked in per-package plaintext files in repository
-directory structures (e.g. `x86_64/core/package_a.txt`)::
+The package versions are tracked in per-package metadata files in repository
+directory structures (e.g. `x86_64/core/nmon.json`)::
 
-  0.0.1
+  {
+    "packages": [
+        {
+            "arch": "x86_64",
+            "builddate": 1569502151,
+            "csize": 66224,
+            "depends": [
+                "ncurses"
+            ],
+            "desc": "AIX & Linux Performance Monitoring tool",
+            "filename": "nmon-16m-1-x86_64.pkg.tar.xz",
+            "files": [
+                "usr/",
+                "usr/bin/",
+                "usr/bin/nmon"
+            ],
+            "isize": 184320,
+            "licenses": [
+                "GPL"
+            ],
+            "md5sum": "e19d219d24863eb67a301fdaec765ca4",
+            "name": "nmon",
+            "packager": "Massimiliano Torromeo <massimiliano.torromeo@gmail.com>",
+            "pgpsig": "iF0EABECAB0WIQQsEYxiDwLbmsHQ+fqU3SOT2i7kIwUCXYyz2QAKCRCU3SOT2i7kI8//AJ9578YSlZVWkdo41a9sjqgw1cOYOgCfcAYFaI19lgcC9Tws3jynEufvayA=",
+            "sha256sum": "b4757bfc682f3a1f178675be2c05f8c32047b3cf32da05fa97a2a4101696359f",
+            "url": "http://nmon.sourceforge.net"
+        }
+    ],
+    "version": "16m-1"
+  }
+
+File format with sorted keys JSON and fields::
+
+    version
+    makedepends (list)
+    checkdepends (list)
+    packages (list of objects with fields below)
+    filename
+    name
+    desc
+    groups (list)
+    csize (int)
+    isize (int)
+    md5sum
+    sha256sum
+    pgpsig
+    url
+    license (list)
+    arch (because can also be “any”)
+    builddate (int)
+    packager
+    replaces (list)
+    conflicts (list)
+    provides (list)
+    depends (list)
+    optdepends (list)
+    backup (list)
+    files (list)
+
+.. note::
+   If a key is not defined in a package (e.g. `checkdepends`) it is
+   not added to the metadata file.
 
 **Pros**:
 
 - very simple
 - very fast
-- as many plaintext files as there are packages
 - no additional git plumbing required
+- as many JSON files as there are packages
+
+  - all metadata (including file paths) can be included with reasonable file size
+
 - package moving (between repositories) requires one file move operation
+- generate DB files directly from repo state
+
+  - keep history of precise state of Arch Linux repositories at any given time
 
 **Cons**:
 
-- intransparent (package details can not be retrieved in one place)
 - per package build scripts are held separately
+- possible mismatches between repo-add and dbscripts-generated databases
+
+  - continuous integration/testing
+
+.. note::
+   JSON is chosen for ease-of-use with Python.
 
 Binary repository layout
 ________________________
@@ -235,6 +183,8 @@ Adding a Package
 #. Create repository
 #. Update, build *package* and commit changes in *package*'s `PKGBUILD`_
 #. Tag release
+   .. note::
+   Force pushing tags is disallowed.
 #. Sign *package*
 #. Upload built *package* and signature
 #. Call application on repository/ package server to add *package*
@@ -296,7 +246,7 @@ Moving a Package
 
 **Repository server/ package server**:
 
-.. important:: 
+.. important::
    The following steps need to be atomic (reversible).
 
 #. Verify user permissions
@@ -311,8 +261,96 @@ Moving a Package
 TODO
 ____
 
-Following are a set of proposed tests to derive the best possible
-implementation from this.
+dbscripts
+=========
+
+Add/Update
+----------
+
+Integrate new .pkg.tar.xz for one or multiple pkgbases into the DB.
+
+- **DONE** Collect packages from staging dir, parse .PKGINFO
+
+  - **DONE** Group by repo and pkgbase
+
+    - **DONE** `{'extra': {'foo': data, 'bar': data}, 'testing': { ... }}`
+    - **DONE** if pkgbase already seen but common fields (version, makedepends, checkdepends) differ, error out
+    - **DONE** do GPG verification?
+
+- **DONE** For each repo to process:
+
+  - **DONE** Load repo JSON data
+
+- For each pkgbase:
+
+  - **DONE** Ensure version is increasing (pyalpm vercmp)
+  - Shallow clone tag named "$version" from package repository named "$pkgbase" to get PKGBUILD
+  - GPG-verify tag?
+  - Run `makepkg --packagelist` to get list of expected packages
+
+    - Verify against packages collected
+
+  - Do other verification checks between `PKGBUILD` and packages? Check current dbscripts
+  - Get rid of clone
+  - Copy the packages into the FTP pool
+
+    - Existing file is an error
+
+  - Link the packages from the FTP repo dir
+
+    - Existing file is an error
+
+  - Copy package data into repo data
+
+- **DONE** Write out JSON
+- **DONE** Write out DB files
+- git commit
+- Remove old symlinks
+
+Remove
+------
+
+Remove existing pkgbases.
+
+- **DONE** For each repo to process: (existing db-remove operates on a single repo)
+
+  - **DONE** Load repo JSON data
+
+- **DONE** For each pkgbase:
+
+  - **DONE** Remove pkgbase from data
+
+- **DONE** Delete JSON files
+- **DONE** Write out DB files
+- `git commit`
+- Remove old symlinks
+
+  - Move (move existing pkgbases from e.g. testing to extra)
+
+- **DONE** For each repo to process:
+
+  - **DONE** Load repo JSON data
+
+- For each pkgbase:
+
+  - **DONE** Move data
+  - Add new symlinks
+
+- **DONE** Write out JSON
+- **DONE** Write out DB files
+- `git commit`
+- Remove old symlinks
+
+Tasks
+-----
+
+- Code to load JSON and stream out a database - heftig
+
+  - Generates a tar written to the `foo.db.tar.gz`
+
+- Code to load packages and write out JSON - maximbaz
+- **DONE** For testing purposes, code to convert a `foo.db.tar.gz` into JSON - alad
+- Rewrite devtools' commitpkg to use git instead of svn
 
 Unit Tests
 ==========
