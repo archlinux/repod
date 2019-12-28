@@ -12,6 +12,9 @@ from lib.dbwrite import generate_dbs
 
 async def main(repo, pkgbases) -> int:
     metadir = (Path(argv[0]).parent / "meta").resolve(strict=True)
+    # XXX stating and meta need not have the same parent directory (/srv, /srv/ftp)
+    stagingdir = (Path(argv[0]).parent / "staging").resolve(strict=True)
+    pooldir = (Path(argv[0]).parent / "pool").resolve(strict=True)
 
     # FIXME: Put this into metadir/.git/
     lockfile = (metadir / "dbscripts.lock").open(mode="w")
@@ -31,16 +34,29 @@ async def main(repo, pkgbases) -> int:
         return {p.stem: json_load(repodir / p) for p in repodir.glob("*.json")}
 
     meta = {repo: repo_load(repo)}
+    removals = ()
 
     # remove packages from meta and corresponding json files
     for pkgbase in pkgbases:
         if pkgbase not in meta[repo]:
             raise RuntimeError(f"pkgbase '{pkgbase}' is not present in '{repo}' repo")
+        # old package files
+        for package in meta[repo][pkgbase]["packages"]:
+            removals.append(package["filename"])
+        # remove database entry
         del meta[repo][pkgbase]
         (metadir / repo / f"{pkgbase}.json").unlink()
 
     # rebuild DB file using `meta` object
     generate_dbs(meta)
+    # XXX git commit
+
+    # remove old symlinks
+    for p in removals:
+        (stagingdir / p).unlink()
+        (stagingdir / p + ".sig").unlink()
+        (pooldir / p).unlink()
+        (pooldir / p + ".sig").unlink()
 
     return 0
 

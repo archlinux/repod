@@ -26,25 +26,32 @@ files in repository directories. These files contain the metadata
 available in pacman(8) packages, and may be generated directly from
 them::
 
-  x86_64
-    core
-      pkgbase_a.json
-    core-debug
-    extra
-      pkgbase_b.json
-    extra-debug
-    staging
-    testing
-    community
-    community-debug
-    community-staging
-    community-testing
-    gnome-unstable
-    kde-unstable
-    multilib
-    multilib-debug
-    multilib-staging
-    multilib-testing
+  .
+  └── meta
+      └── x86_64
+          ├── core
+          │   └── pkgbase_a.json
+          ├── core-debug
+          └── extra
+              └── pkgbase_b.json
+          ├── extra-debug
+          ├── staging
+          ├── testing
+          ├── community
+          ├── community-debug
+          ├── community-staging
+          ├── community-testing
+          ├── gnome-unstable
+          ├── kde-unstable
+          ├── multilib
+          ├── multilib-debug
+          ├── multilib-staging
+          └── multilib-testing
+
+.. note::
+   Unlike svn, there is no distinction between repositories, in
+   particular between `community` and packages in other repositories
+   such as `extra`.
 
 Per-architecture repo with per-package metadata file in repo directories
 =========================================================================
@@ -155,19 +162,20 @@ If *package_a* in version *1:2-3* is in::
 
 its binary package will be symlinked from the pool to the respective location::
 
-  core
-    os
-      x86_64
-        core.db
-        [..]
-        package_a-1:2-3-x86_64.pkg.tar.xz -> ../../../pool/package_a-1:2-3-x86_64.pkg.tar.xz
-        package_a-1:2-3-x86_64.pkg.tar.xz.sig -> ../../../pool/package_a-1:2-3-x86_64.pkg.tar.xz.sig
-        [..]
-  pool
-    [..]
-    package_a-1:2-3-x86_64.pkg.tar.xz
-    package_a-1:2-3-x86_64.pkg.tar.xz.sig
-    [..]
+  .
+  ├── /srv/ftp/core
+  │   └── os
+  │       └── x86_64
+  │           ├── core.db
+  │           ├── [..]
+  │           ├── package_a-1:2-3-x86_64.pkg.tar.xz -> ../../../pool/package_a-1:2-3-x86_64.pkg.tar.xz
+  │           ├── package_a-1:2-3-x86_64.pkg.tar.xz.sig -> ../../../pool/package_a-1:2-3-x86_64.pkg.tar.xz.sig
+  │           └── [..]
+  └── /srv/ftp/pool
+      ├── [..]
+      ├── package_a-1:2-3-x86_64.pkg.tar.xz
+      ├── package_a-1:2-3-x86_64.pkg.tar.xz.sig
+      └── [..]
 
 Workflows
 _________
@@ -323,9 +331,11 @@ Remove existing pkgbases.
 - **DONE** Delete JSON files
 - **DONE** Write out DB files
 - `git commit`
-- Remove old symlinks
+- **DONE** Remove old symlinks
 
-  - Move (move existing pkgbases from e.g. testing to extra)
+Move
+----
+Move packages from one repository (e.g. testing) to another (e.g. extra).
 
 - **DONE** For each repo to process:
 
