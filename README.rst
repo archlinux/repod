@@ -100,7 +100,7 @@ File format with sorted keys JSON and fields::
     pgpsig
     url
     license (list)
-    arch (because can also be “any”)
+    arch (because can also be "any")
     builddate (int)
     packager
     replaces (list)
