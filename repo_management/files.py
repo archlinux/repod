@@ -1,7 +1,10 @@
+import io
 import re
 import tarfile
 from pathlib import Path
 from typing import Iterator
+
+from repo_management import defaults, models
 
 
 def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
@@ -32,9 +35,30 @@ def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
     return tarfile.open(name=db_path, mode=f"r:{compression}")
 
 
-def _read_db_file_member(db_file: tarfile.TarFile, regex: str = "(/desc|/files)$") -> Iterator[tarfile.TarInfo]:
-    """Read the members of a database file, represented by an instance of tarfile.TarFile and yield the members as
-    instances of tarfile.TarInfo
+def _extract_db_member_package_name(name: str) -> str:
+    """Extract and return the package name from a repository database member name
+
+    Parameters
+    ----------
+    name: str
+        The name of a member of a repository database (i.e. one of tarfile.Tarfile.getnames())
+
+    Returns
+    str
+        The package name extracted from name
+    """
+
+    return "".join(re.split("(-)", re.sub("(/desc|/files)$", "", name))[:-4])
+
+
+def _db_file_member_as_model(
+    db_file: tarfile.TarFile, regex: str = "(/desc|/files)$"
+) -> Iterator[models.RepoDbMemberData]:
+    """Iterate over the members of a database file, represented by an instance of tarfile.TarFile and yield the members
+    as instances of models.RepoDbMemberData
+
+    The method filters the list of evaluated members using a regular expression. Depending on member name one of
+    defaults.RepoDbMemberType is chosen.
 
     Paramaters
     ----------
@@ -46,4 +70,20 @@ def _read_db_file_member(db_file: tarfile.TarFile, regex: str = "(/desc|/files)$
     """
 
     for name in [name for name in db_file.getnames() if re.search(regex, name)]:
-        yield db_file.getmember(name)
+        file_type = defaults.RepoDbMemberType.UNKNOWN
+        if re.search("(/desc)$", name):
+            file_type = defaults.RepoDbMemberType.DESC
+        if re.search("(/files)$", name):
+            file_type = defaults.RepoDbMemberType.FILES
+
+        yield models.RepoDbMemberData(
+            member_type=file_type,
+            name=_extract_db_member_package_name(name=name),
+            data=io.StringIO(
+                io.BytesIO(
+                    db_file.extractfile(name).read(),  # type: ignore
+                )
+                .read()
+                .decode("utf-8"),
+            ),
+        )
