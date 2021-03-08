@@ -2,6 +2,12 @@ from enum import IntEnum
 from typing import Dict, Union
 
 
+class RepoDbMemberType(IntEnum):
+    UNKNOWN = 0
+    DESC = 1
+    FILES = 2
+
+
 class FieldType(IntEnum):
     STRING = 0
     INT = 1
