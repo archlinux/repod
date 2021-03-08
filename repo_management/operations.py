@@ -1,5 +1,8 @@
+from os.path import join
 from pathlib import Path
 from typing import Dict, Iterator, Tuple
+
+import orjson
 
 from repo_management import convert, defaults, files, models
 
@@ -54,3 +57,33 @@ def db_file_as_models(db_path: Path, compression: str = "gz") -> Iterator[Tuple[
 
     for (name, package) in packages.items():
         yield (name, package)
+
+
+def dump_db_to_json_files(input_path: Path, output_path: Path) -> None:
+    """Read a repository database file and dump each pkgbase contained in it to a separate JSON file below a defined
+    output directory
+
+    Parameters
+    ----------
+    input_path: Path
+        The input file to read and parse
+    output_path: Path
+        A directory in which to
+    """
+
+    if not input_path.exists():
+        raise RuntimeError(f"The input file does not exist: {input_path}")
+    if not input_path.is_file():
+        raise RuntimeError(f"The input file is not a file: {input_path}")
+    if not output_path.exists():
+        raise RuntimeError(f"The provided output path does not exist: {output_path}")
+    if not output_path.is_dir():
+        raise RuntimeError(f"The provided output path is not a directory: {output_path}")
+
+    for name, model in db_file_as_models(db_path=input_path):
+        with open(join(output_path, f"{name}.json"), "wb") as output_file:
+            output_file.write(
+                orjson.dumps(
+                    model.dict(), option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE | orjson.OPT_SORT_KEYS
+                )
+            )
