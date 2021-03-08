@@ -1,5 +1,7 @@
+import re
 import tarfile
 from pathlib import Path
+from typing import Iterator
 
 
 def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
@@ -28,3 +30,20 @@ def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
     """
 
     return tarfile.open(name=db_path, mode=f"r:{compression}")
+
+
+def _read_db_file_member(db_file: tarfile.TarFile, regex: str = "(/desc|/files)$") -> Iterator[tarfile.TarInfo]:
+    """Read the members of a database file, represented by an instance of tarfile.TarFile and yield the members as
+    instances of tarfile.TarInfo
+
+    Paramaters
+    ----------
+    tarfile.TarFile
+        An instance of TarFile representing a repository database
+    regex: str
+        A regular expression used to filter the names of the members contained in db_file (defaults to
+        '(/desc|/files)$')
+    """
+
+    for name in [name for name in db_file.getnames() if re.search(regex, name)]:
+        yield db_file.getmember(name)
