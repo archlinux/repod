@@ -1,41 +1,14 @@
 import os
-import shutil
 import tarfile
-import tempfile
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-from typing import Iterator, List
+from typing import Iterator
 
 from pytest import fixture, mark, raises
 
 from repo_management import files, models
 
-
-def create_db_file(compression: str = "gz", remove_db: bool = False) -> Path:
-    (file_number, db_file) = tempfile.mkstemp(suffix=".db")
-    temp_dirs = [
-        tempfile.mkdtemp(),
-        tempfile.mkdtemp(),
-        tempfile.mkdtemp(),
-        tempfile.mkdtemp(),
-    ]
-
-    files: List[str] = []
-    for tmp_dir in temp_dirs:
-        for file_name in ["desc", "files"]:
-            with open(f"{tmp_dir}/{file_name}", "x"):
-                files += [f"{tmp_dir}/{file_name}"]
-
-    with tarfile.open(db_file, f"w:{compression}") as db_tar:
-        for name in temp_dirs + files:
-            db_tar.add(name)
-
-    for name in temp_dirs:
-        shutil.rmtree(name)
-    if remove_db:
-        os.remove(db_file)
-
-    return Path(db_file)
+from .fixtures import create_db_file
 
 
 @fixture(scope="function")
