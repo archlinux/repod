@@ -1,6 +1,9 @@
+import io
 from typing import List, Optional
 
 from pydantic import BaseModel
+
+from repo_management import defaults
 
 
 class Base(BaseModel):
@@ -178,6 +181,10 @@ class Files(BaseModel):
     files: Optional[List[str]]
 
 
+class PackageFiles(Name, Files):
+    pass
+
+
 class PackageDesc(
     Arch,
     Backup,
@@ -208,3 +215,61 @@ class PackageDesc(
     not"""
 
     pass
+
+
+class RepoDbMemberType(BaseModel):
+    """A model describing an attribute used to identify/ distinguish different types of repo database file types (e.g.
+    'desc' and 'files' files, which are contained in a repository database file).
+    The file types are distinguished with the help of the IntEnum defaults.REpoDbFileType
+    """
+
+    member_type: defaults.RepoDbMemberType
+
+
+class RepoDbMemberData(Name, RepoDbMemberType):
+    data: io.StringIO
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class OutputPackage(
+    Arch,
+    Backup,
+    BuildDate,
+    Conflicts,
+    CSize,
+    Depends,
+    Desc,
+    CheckDepends,
+    FileName,
+    Files,
+    Groups,
+    ISize,
+    License,
+    Md5Sum,
+    Name,
+    OptDepends,
+    PgpSig,
+    Provides,
+    Replaces,
+    Sha256Sum,
+    Url,
+):
+    """A model describing all required attributes for a package in the context of an output file, that describes a
+    (potential) list of packages based upon its pkgbase
+    """
+
+    pass
+
+
+class OutputPackageBase(
+    MakeDepends,
+    Packager,
+    Version,
+):
+    """A model describing all required attributes for an output file, that describes a list of packages based upon a
+    pkgbase
+    """
+
+    packages: List[OutputPackage]
