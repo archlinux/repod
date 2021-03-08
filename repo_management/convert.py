@@ -1,5 +1,5 @@
 import io
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from repo_management import defaults, models
 
@@ -94,3 +94,34 @@ def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
     data.close()
     merged_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
     return models.PackageDesc(**merged_dict)
+
+
+def _transform_package_desc_to_output_package(
+    desc: models.PackageDesc, files: Optional[models.Files]
+) -> models.OutputPackage:
+    """Transform a PackageDesc model and an accompanying Files model to an OutputPackage model
+
+    Parameters
+    ----------
+    desc: models.PackageDesc
+        A pydantic model, that has all required attributes (apart from the list of files) to create an OutputPackage
+        model
+    files: models.Files:
+        A pydantic model, that represents the list of files, that belong to the package described by desc
+
+    Returns
+    -------
+    models.OutputPackage
+        A pydantic model, that describes a package and its list of files
+    """
+
+    desc_dict = desc.dict()
+    # remove attributes, that are represented on the pkgbase level
+    for name in ["base", "makedepends", "packager", "version"]:
+        if desc_dict.get(name):
+            del desc_dict[name]
+
+    if files:
+        return models.OutputPackage(**desc_dict, **files.dict())
+    else:
+        return models.OutputPackage(**desc_dict)

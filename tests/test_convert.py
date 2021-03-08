@@ -6,7 +6,7 @@ from typing import ContextManager
 from pydantic.error_wrappers import ValidationError
 from pytest import mark, raises
 
-from repo_management import convert
+from repo_management import convert, models
 
 RESOURCES = join(dirname(realpath(__file__)), "resources")
 
@@ -106,3 +106,60 @@ def test__desc_data_to_dict(
 ) -> None:
     with expectation:
         assert convert._desc_data_to_model(data=io.StringIO(file_data))
+
+
+@mark.parametrize(
+    "desc, files",
+    [
+        (
+            models.PackageDesc(
+                arch="foo",
+                base="foo",
+                builddate=1,
+                csize=1,
+                desc="foo",
+                filename="foo",
+                isize=1,
+                licenses=["foo"],
+                md5sum="foo",
+                name="foo",
+                packager="foo",
+                pgpsig="foo",
+                sha256sum="foo",
+                url="foo",
+                version="foo",
+            ),
+            models.Files(files=["foo", "bar"]),
+        ),
+        (
+            models.PackageDesc(
+                arch="foo",
+                base="foo",
+                builddate=1,
+                csize=1,
+                desc="foo",
+                filename="foo",
+                isize=1,
+                licenses=["foo"],
+                md5sum="foo",
+                name="foo",
+                packager="foo",
+                pgpsig="foo",
+                sha256sum="foo",
+                url="foo",
+                version="foo",
+            ),
+            None,
+        ),
+    ],
+)
+def test__transform_package_desc_to_output_package(
+    desc: models.PackageDesc,
+    files: models.Files,
+) -> None:
+    output = convert._transform_package_desc_to_output_package(desc=desc, files=files)
+    assert isinstance(output, models.OutputPackage)
+    if files:
+        assert output.files
+    else:
+        assert not output.files
