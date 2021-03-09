@@ -4,8 +4,7 @@ import tempfile
 from pathlib import Path
 from typing import Iterator
 
-from mock import Mock
-from pytest import fixture, raises
+from pytest import fixture
 
 from repo_management import models, operations
 
@@ -37,20 +36,3 @@ def test_dump_db_to_json_files(
     create_dir_path: Path,
 ) -> None:
     operations.dump_db_to_json_files(input_path=create_gz_db_file, output_path=create_dir_path)
-
-
-def test_dump_db_to_json_files_raises() -> None:
-    input_path = Mock(
-        exists=Mock(side_effect=[False, True, True, True]),
-        is_file=Mock(side_effect=[False, True, True]),
-    )
-    output_path = Mock(
-        exists=Mock(side_effect=[False, True]),
-        is_dir=Mock(side_effect=[False]),
-    )
-
-    counter = 0
-    while counter < 4:
-        with raises(RuntimeError):
-            operations.dump_db_to_json_files(input_path=input_path, output_path=output_path)
-        counter += 1
