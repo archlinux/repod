@@ -3,10 +3,9 @@ from contextlib import nullcontext as does_not_raise
 from os.path import dirname, join, realpath
 from typing import ContextManager
 
-from pydantic.error_wrappers import ValidationError
 from pytest import mark, raises
 
-from repo_management import convert, models
+from repo_management import convert, errors, models
 
 RESOURCES = join(dirname(realpath(__file__)), "resources")
 
@@ -84,7 +83,7 @@ def test__files_data_to_dict(
             ),
             raises(ValueError),
         ),
-        ("%FOO%\nbar\n", raises(ValidationError)),
+        ("%FOO%\nbar\n", raises(errors.RepoManagementValidationError)),
         (
             (
                 "%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
@@ -96,7 +95,7 @@ def test__files_data_to_dict(
                 "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
                 "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
             ),
-            raises(ValidationError),
+            raises(errors.RepoManagementValidationError),
         ),
     ],
 )
@@ -163,3 +162,47 @@ def test__transform_package_desc_to_output_package(
         assert output.files
     else:
         assert not output.files
+
+
+def test_repodbfile__init() -> None:
+    assert convert.RepoDbFile()
+
+
+def test_repodbfile_render_desc_template() -> None:
+    repodbfile = convert.RepoDbFile()
+    assert repodbfile
+    output = io.StringIO()
+    assert not output.getvalue()
+    repodbfile.render_desc_template(
+        model=models.PackageDesc(
+            arch="foo",
+            base="foo",
+            builddate=1,
+            csize=1,
+            desc="foo",
+            filename="foo",
+            isize=1,
+            licenses=["foo"],
+            md5sum="foo",
+            name="foo",
+            packager="foo",
+            pgpsig="foo",
+            sha256sum="foo",
+            url="foo",
+            version="foo",
+        ),
+        output=output,
+    )
+    assert output.getvalue()
+
+
+def test_repodbfile_render_files_template() -> None:
+    repodbfile = convert.RepoDbFile()
+    assert repodbfile
+    output = io.StringIO()
+    assert not output.getvalue()
+    repodbfile.render_files_template(
+        model=models.Files(files=["foo", "bar"]),
+        output=output,
+    )
+    assert output.getvalue()
