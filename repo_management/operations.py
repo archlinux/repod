@@ -36,21 +36,16 @@ def db_file_as_models(db_path: Path, compression: str = "gz") -> Iterator[Tuple[
 
     for (name, package_desc) in package_descs.items():
         if packages.get(package_desc.base):
-            packages[package_desc.base].packages += [
-                convert._transform_package_desc_to_output_package(desc=package_desc, files=package_files.get(name))
-            ]
+            packages[package_desc.base].packages += [package_desc.get_output_package(files=package_files.get(name))]
         else:
             packages.update(
                 {
                     package_desc.base: models.OutputPackageBase(
+                        base=package_desc.base,
                         makedepends=package_desc.makedepends,
                         packager=package_desc.packager,
                         version=package_desc.version,
-                        packages=[
-                            convert._transform_package_desc_to_output_package(
-                                desc=package_desc, files=package_files.get(name)
-                            )
-                        ],
+                        packages=[package_desc.get_output_package(files=package_files.get(name))],
                     )
                 }
             )
@@ -78,3 +73,32 @@ def dump_db_to_json_files(input_path: Path, output_path: Path) -> None:
                     model.dict(), option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE | orjson.OPT_SORT_KEYS
                 )
             )
+
+
+def create_db_from_json_files(
+    input_path: Path, output_path: Path, db_type: defaults.RepoDbType = defaults.RepoDbType.DEFAULT
+) -> None:
+    """Create a repository database from a list of JSON files found in a directory
+
+    Parameters
+    ----------
+    input_path: Path
+        A directory from which to read JSON files
+    output_path: Path
+        A file to which to write a repository database
+    db_type: defaults.RepoDbType
+        A member of the defaults.RepoDbType IntEnum to define what type of repository database to create:
+        Either defaults.RepoDbType.DEFAULT for the default .db database or defaults.RepoDbType.FILES for the .files
+        database (defaults to defaults.RepoDbType.DEFAULT)
+    """
+
+    repodbfile = convert.RepoDbFile()
+    database = files._write_db_file(path=output_path)
+    for path in files._json_files_in_directory(path=input_path):
+        model = files._read_pkgbase_json_file(path)
+        files._stream_package_base_to_db(
+            db=database,
+            model=model,
+            repodbfile=repodbfile,
+            db_type=db_type,
+        )

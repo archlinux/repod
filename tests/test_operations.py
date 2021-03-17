@@ -8,7 +8,7 @@ from pytest import fixture
 
 from repo_management import models, operations
 
-from .fixtures import create_db_file
+from .fixtures import create_db_file, create_json_files
 
 
 @fixture(scope="function")
@@ -25,6 +25,19 @@ def create_dir_path() -> Iterator[Path]:
     shutil.rmtree(temp_dir)
 
 
+@fixture(scope="function")
+def dummy_json_files_in_dir() -> Iterator[Path]:
+    temp_dir = create_json_files()
+    yield temp_dir
+    shutil.rmtree(temp_dir)
+
+
+@fixture(scope="function")
+def empty_file() -> Iterator[Path]:
+    [foo, file_name] = tempfile.mkstemp()
+    yield Path(file_name)
+
+
 def test_db_file_as_models(create_gz_db_file: Path) -> None:
     for (name, model) in operations.db_file_as_models(db_path=create_gz_db_file):
         assert isinstance(name, str)
@@ -36,3 +49,7 @@ def test_dump_db_to_json_files(
     create_dir_path: Path,
 ) -> None:
     operations.dump_db_to_json_files(input_path=create_gz_db_file, output_path=create_dir_path)
+
+
+def test_create_db_from_json_files(dummy_json_files_in_dir: Path, empty_file: Path) -> None:
+    operations.create_db_from_json_files(input_path=dummy_json_files_in_dir, output_path=empty_file)
