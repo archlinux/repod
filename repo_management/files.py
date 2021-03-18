@@ -1,10 +1,14 @@
 import io
 import re
 import tarfile
+import time
 from pathlib import Path
 from typing import Iterator
 
-from repo_management import defaults, models
+import orjson
+from pydantic.error_wrappers import ValidationError
+
+from repo_management import convert, defaults, errors, models
 
 
 def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
@@ -87,3 +91,139 @@ def _db_file_member_as_model(
                 .decode("utf-8"),
             ),
         )
+
+
+def _json_files_in_directory(path: Path) -> Iterator[Path]:
+    """Yield JSON files found in a directory
+
+    Parameters
+    ----------
+    path: Path
+        A Path to search in for JSON files
+
+    Raises
+    ------
+    errors.RepoManagementFileNotFoundError
+        If there are no JSON files found below
+
+    Returns
+    -------
+    Iterator[Path]
+        An iterator over the files found in the directory defined by path
+    """
+
+    file_list = sorted(path.glob("*.json"))
+    if not file_list:
+        raise errors.RepoManagementFileNotFoundError(f"There are no JSON files in {path}!")
+
+    for json_file in file_list:
+        yield json_file
+
+
+def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
+    """Read a JSON file that represents a pkgbase and return it as models.OutputPackageBase
+
+    Parameters
+    ----------
+    path: Path
+        A Path to to a JSON file
+
+    Raises
+    ------
+    errors.RepoManagementFileError
+        If the JSON file can not be decoded
+    errors.RepoManagementValidationError
+        If the JSON file can not be validated using models.OutputPackageBase
+
+    Returns
+    -------
+    models.OutputPackageBase
+        A pydantic model representing a pkgbase
+    """
+
+    with open(path, "r") as input_file:
+        try:
+            return models.OutputPackageBase(**orjson.loads(input_file.read()))
+        except orjson.JSONDecodeError as e:
+            raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
+        except ValidationError as e:
+            raise errors.RepoManagementValidationError(f"The JSON file '{path}' could not be validated!\n{e}")
+
+
+def _write_db_file(path: Path, compression: str = "gz") -> tarfile.TarFile:
+    """Open a repository database file for writing
+
+    Parameters
+    ----------
+    db_path: Path
+        A pathlib.Path instance, representing the location of the database file
+    compression: str
+        The compression used for the database file (defaults to 'gz')
+
+    Raises
+    ------
+    ValueError
+        If the file represented by db_path does not exist
+    tarfile.ReadError
+        If the file could not be opened
+    tarfile.CompressionError
+        If the provided compression does not match the compression of the file or if the compression type is unknown
+
+    Returns
+    -------
+    tarfile.Tarfile
+        An instance of Tarfile
+    """
+
+    return tarfile.open(name=path, mode=f"w:{compression}")
+
+
+def _stream_package_base_to_db(
+    db: tarfile.TarFile,
+    model: models.OutputPackageBase,
+    repodbfile: convert.RepoDbFile,
+    db_type: defaults.RepoDbType,
+) -> None:
+    """Stream descriptor files for packages of a pkgbase to a repository database
+
+    Allows streaming to a default repository database or a files database
+
+    Parameters
+    ----------
+    db: tarfile.TarFile
+        The repository database to stream to
+    model: models.OutputPackageBase
+        The model to use for streaming descriptor files to the repository database
+    db_type: defaults.RepoDbType
+        The type of database to stream to
+    """
+
+    for (desc_model, files_model) in model.get_packages_as_models():
+        dirname = f"{desc_model.name}-{model.version}"
+        directory = tarfile.TarInfo(dirname)
+        directory.type = tarfile.DIRTYPE
+        directory.mtime = int(time.time())
+        directory.uname = defaults.DB_USER
+        directory.gname = defaults.DB_GROUP
+        directory.mode = int(defaults.DB_DIR_MODE, base=8)
+        db.addfile(directory)
+
+        desc_content = io.StringIO()
+        repodbfile.render_desc_template(model=desc_model, output=desc_content)
+        desc_file = tarfile.TarInfo(f"{dirname}/desc")
+        desc_file.size = len(desc_content.getvalue().encode())
+        desc_file.mtime = int(time.time())
+        desc_file.uname = defaults.DB_USER
+        desc_file.gname = defaults.DB_GROUP
+        desc_file.mode = int(defaults.DB_FILE_MODE, base=8)
+        db.addfile(desc_file, io.BytesIO(desc_content.getvalue().encode()))
+        if db_type == defaults.RepoDbType.FILES:
+            files_content = io.StringIO()
+            repodbfile.render_files_template(model=files_model, output=files_content)
+            files_file = tarfile.TarInfo(f"{dirname}/files")
+            files_file.size = len(files_content.getvalue().encode())
+            files_file.mtime = int(time.time())
+            files_file.uname = defaults.DB_USER
+            files_file.gname = defaults.DB_GROUP
+            files_file.mode = int(defaults.DB_FILE_MODE, base=8)
+            db.addfile(files_file, io.BytesIO(files_content.getvalue().encode()))

@@ -1,0 +1,105 @@
+%FILENAME%
+{{ filename }}
+
+%NAME%
+{{ name }}
+
+%BASE%
+{{ base }}
+
+%VERSION%
+{{ version }}
+
+%DESC%
+{{ desc }}
+
+{% if groups %}
+%GROUPS%
+{% for group in groups %}
+{{ group }}
+{% endfor %}
+
+{% endif %}
+%CSIZE%
+{{ csize }}
+
+%ISIZE%
+{{ isize }}
+
+%MD5SUM%
+{{ md5sum }}
+
+%SHA256SUM%
+{{ sha256sum }}
+
+%PGPSIG%
+{{ pgpsig }}
+
+%URL%
+{{ url }}
+
+{% if license %}
+%LICENSE%
+{% for license_ in license %}
+{{ license_ }}
+{% endfor %}
+
+{% endif %}
+%ARCH%
+{{ arch }}
+
+%BUILDDATE%
+{{ builddate }}
+
+%PACKAGER%
+{{ packager }}
+
+{% if replaces %}
+%REPLACES%
+{% for replace in replaces %}
+{{ replace }}
+{% endfor %}
+
+{% endif %}
+{% if conflicts %}
+%CONFLICTS%
+{% for conflict in conflicts %}
+{{ conflict }}
+{% endfor %}
+
+{% endif %}
+{% if provides %}
+%PROVIDES%
+{% for provide in provides %}
+{{ provide }}
+{% endfor %}
+
+{% endif %}
+{% if depends %}
+%DEPENDS%
+{% for depend in depends %}
+{{ depend }}
+{% endfor %}
+
+{% endif %}
+{% if optdepends %}
+%OPTDEPENDS%
+{% for optdepend in optdepends %}
+{{ optdepend }}
+{% endfor %}
+
+{% endif %}
+{% if makedepends %}
+%MAKEDEPENDS%
+{% for makedepend in makedepends %}
+{{ makedepend }}
+{% endfor %}
+
+{% endif %}
+{% if checkdepends %}
+%CHECKDEPENDS%
+{% for checkdepend in checkdepends %}
+{{ checkdepend }}
+{% endfor %}
+
+{% endif %}

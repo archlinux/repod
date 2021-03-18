@@ -1,7 +1,10 @@
 import io
 from typing import Dict, List, Optional, Union
 
-from repo_management import defaults, models
+from jinja2 import Environment, PackageLoader
+from pydantic.error_wrappers import ValidationError
+
+from repo_management import defaults, errors, models
 
 
 def _files_data_to_model(data: io.StringIO) -> models.Files:
@@ -43,6 +46,43 @@ def _files_data_to_model(data: io.StringIO) -> models.Files:
     return models.Files(**output)
 
 
+def _desc_data_line_to_dicts(
+    current_header: str,
+    current_type: defaults.FieldType,
+    line: str,
+    string_list_types: Dict[str, List[str]],
+    string_types: Dict[str, str],
+    int_types: Dict[str, int],
+) -> None:
+    """Add data retrieved from a line in a 'desc' file in a repository database to respective dicts for specific types
+
+    Parameters
+    ----------
+    current_header: str
+        The current header under which the line is found
+    current_type: str
+        The type by which the header is defined by
+    line: str
+        The data
+    string_list_types: Dict[str, List[str]]
+        A dict for instances of type list string
+    string_types: Dict[str, str]
+        A dict for instances of type string
+    int_types: Dict[str, int]
+        A dict for instances of type int
+    """
+
+    if current_type == defaults.FieldType.STRING_LIST:
+        if current_header in string_list_types.keys():
+            string_list_types[current_header] += [line]
+        else:
+            string_list_types[current_header] = [line]
+    if current_type == defaults.FieldType.STRING:
+        string_types[current_header] = line
+    if current_type == defaults.FieldType.INT:
+        int_types[current_header] = int(line)
+
+
 def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
     """Read the contents of a 'desc' file (represented as an instance of io.StringIO) and convert it to a pydantic model
 
@@ -81,19 +121,22 @@ def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
             continue
 
         if current_header:
-            if current_type == defaults.FieldType.STRING_LIST:
-                if current_header in string_list_types.keys():
-                    string_list_types[current_header] += [line]
-                else:
-                    string_list_types[current_header] = [line]
-            if current_type == defaults.FieldType.STRING:
-                string_types[current_header] = line
-            if current_type == defaults.FieldType.INT:
-                int_types[current_header] = int(line)
+            _desc_data_line_to_dicts(
+                current_header=current_header,
+                current_type=current_type,
+                line=line,
+                string_list_types=string_list_types,
+                string_types=string_types,
+                int_types=int_types,
+            )
 
-    data.close()
     merged_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
-    return models.PackageDesc(**merged_dict)
+    try:
+        return models.PackageDesc(**merged_dict)
+    except ValidationError as e:
+        raise errors.RepoManagementValidationError(
+            f"An error occured while validating the file: {data.getvalue()}\n{e}"
+        )
 
 
 def _transform_package_desc_to_output_package(
@@ -125,3 +168,58 @@ def _transform_package_desc_to_output_package(
         return models.OutputPackage(**desc_dict, **files.dict())
     else:
         return models.OutputPackage(**desc_dict)
+
+
+class RepoDbFile:
+    """A class for handling templates for files used in repository database files (such as 'desc' or 'files')
+
+    Attributes
+    ----------
+    env: jinja2.Environment
+        A jinja2 Environment, that makes the templates available
+
+    """
+
+    def __init__(self, enable_async: bool = False) -> None:
+        """Initialize an instance of RepDbFile
+
+        Parameters
+        ----------
+        enable_async: bool
+            A bool indicating whether the jinja2.Environment is instantiated with enable_async (defaults to False)
+        """
+
+        self.env = Environment(
+            loader=PackageLoader("repo_management", "templates"),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            enable_async=enable_async,
+        )
+
+    def render_desc_template(self, model: models.PackageDesc, output: io.StringIO) -> None:
+        """Use the 'desc' template to write a string to an output stream based on a model
+
+        Parameters
+        ----------
+        model: models.PackageDesc
+            A pydantic model with the required attributes to properly render a template for a 'desc' file
+        output: io.StringIO
+            An output stream to write to
+        """
+
+        template = self.env.get_template("desc.j2")
+        output.write(template.render(model.dict()))
+
+    def render_files_template(self, model: models.Files, output: io.StringIO) -> None:
+        """Use the 'files' template to write a string to an output stream based on a model
+
+        Parameters
+        ----------
+        model: models.Files
+            A pydantic model with the required attributes to properly render a template for a 'files' file
+        output: io.StringIO
+            An output stream to write to
+        """
+
+        template = self.env.get_template("files.j2")
+        output.write(template.render(model.dict()))

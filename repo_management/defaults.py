@@ -1,10 +1,30 @@
 from enum import IntEnum
 from typing import Dict, Union
 
+DB_USER = "root"
+DB_GROUP = "root"
+DB_FILE_MODE = "0644"
+DB_DIR_MODE = "0755"
+
 
 class RepoDbMemberType(IntEnum):
     UNKNOWN = 0
     DESC = 1
+    FILES = 2
+
+
+class RepoDbType(IntEnum):
+    """An IntEnum to distinguish types of binary repository database files
+
+    Attributes
+    ----------
+    DEFAULT: int
+        Use this to identify .db files
+    FILES: int
+        Use this to identify .files files
+    """
+
+    DEFAULT = 0
     FILES = 2
 
 
@@ -30,7 +50,7 @@ DESC_JSON: Dict[str, Dict[str, Union[str, FieldType]]] = {
     "%SHA256SUM%": {"name": "sha256sum", "type": FieldType.STRING},
     "%PGPSIG%": {"name": "pgpsig", "type": FieldType.STRING},
     "%URL%": {"name": "url", "type": FieldType.STRING},
-    "%LICENSE%": {"name": "licenses", "type": FieldType.STRING_LIST},
+    "%LICENSE%": {"name": "license", "type": FieldType.STRING_LIST},
     "%ARCH%": {"name": "arch", "type": FieldType.STRING},
     "%BUILDDATE%": {"name": "builddate", "type": FieldType.INT},
     "%PACKAGER%": {"name": "packager", "type": FieldType.STRING},
