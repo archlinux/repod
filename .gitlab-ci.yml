@@ -6,19 +6,25 @@ default:
   image: "archlinux:latest"
 
 stages:
-  - lint
+  - test
 
-.unit_test:
-  stage: lint
+.test:
+  stage: test
   before_script:
+    - pacman --noconfirm -Fy
     - pacman --noconfirm -Syu --needed base-devel python-poetry python-tox
 
 linter:
-  extends: .unit_test
+  extends: .test
   script:
     - tox -e linter
 
 coverage:
-  extends: .unit_test
+  extends: .test
   script:
     - tox -e coverage
+
+integration:
+  extends: .test
+  script:
+    - tox -e integration
