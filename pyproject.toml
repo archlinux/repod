@@ -31,6 +31,9 @@ mock = "^4.0.3"
 db2json = "repo_management.cli:db2json"
 json2db = "repo_management.cli:json2db"
 
+[tool.pytest.ini_options]
+markers = ["integration"]
+
 [tool.black]
 line-length = 120
 exclude = '''
