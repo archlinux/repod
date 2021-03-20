@@ -81,7 +81,7 @@ def test__files_data_to_dict(
                 "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
                 "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
             ),
-            raises(ValueError),
+            raises(errors.RepoManagementValidationError),
         ),
         ("%FOO%\nbar\n", raises(errors.RepoManagementValidationError)),
         (
