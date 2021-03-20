@@ -6,194 +6,353 @@ from pydantic import BaseModel
 from repo_management import defaults
 
 
-class Base(BaseModel):
-    """A model describing the %BASE% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    base: str
-
-
-class Version(BaseModel):
-    """A model describing the %VERSION% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    version: str
-
-
-class MakeDepends(BaseModel):
-    """A model describing the %MAKEDEPENDS% header in a 'desc' file, which type it represents and whether it is required
-    or not"""
-
-    makedepends: Optional[List[str]]
-
-
-class CheckDepends(BaseModel):
-    """A model describing the %CHECKDEPENDS% header in a 'desc' file, which type it represents and whether it is
-    required or not"""
-
-    checkdepends: Optional[List[str]]
-
-
-class FileName(BaseModel):
-    """A model describing the %FILENAME% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    filename: str
-
-
-class Name(BaseModel):
-    """A model describing the %NAME% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    name: str
-
-
-class Desc(BaseModel):
-    """A model describing the %DESC% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    desc: str
-
-
-class Groups(BaseModel):
-    """A model describing the %GROUPS% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    groups: Optional[List[str]]
-
-
-class CSize(BaseModel):
-    """A model describing the %CSIZE% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    csize: int
-
-
-class ISize(BaseModel):
-    """A model describing the %ISIZE% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    isize: int
-
-
-class Md5Sum(BaseModel):
-    """A model describing the %MD5SUM% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    md5sum: str
-
-
-class Sha256Sum(BaseModel):
-    """A model describing the %SHA256SUM% header in a 'desc' file, which type it represents and whether it is required
-    or not"""
-
-    sha256sum: str
-
-
-class PgpSig(BaseModel):
-    """A model describing the %PGPSIG% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    pgpsig: str
-
-
-class Url(BaseModel):
-    """A model describing the %URL% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    url: str
-
-
-class License(BaseModel):
-    """A model describing the %LICENSE% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    license: Optional[List[str]]
-
-
 class Arch(BaseModel):
-    """A model describing the %ARCH% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
+    """A model describing a single 'arch' attribute
+
+    Attributes
+    ----------
+    arch: str
+        The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
+        identifies a package's architecture
+    """
 
     arch: str
 
 
-class BuildDate(BaseModel):
-    """A model describing the %BUILDDATE% header in a 'desc' file, which type it represents and whether it is required
-    or not"""
-
-    builddate: int
-
-
-class Packager(BaseModel):
-    """A model describing the %PACKAGER% header in a 'desc' file, which type it represents and whether it is required
-    or not"""
-
-    packager: str
-
-
-class Replaces(BaseModel):
-    """A model describing the %REPLACES% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    replaces: Optional[List[str]]
-
-
-class Conflicts(BaseModel):
-    """A model describing the %CONFLICTS% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    conflicts: Optional[List[str]]
-
-
-class Provides(BaseModel):
-    """A model describing the %PROVIDES% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    provides: Optional[List[str]]
-
-
-class Depends(BaseModel):
-    """A model describing the %DEPENDS% header in a 'desc' file, which type it represents and whether it is required or
-    not"""
-
-    depends: Optional[List[str]]
-
-
-class OptDepends(BaseModel):
-    """A model describing the %OPTDEPENDS% header in a 'desc' file, which type it represents and whether it is required
-    or not"""
-
-    optdepends: Optional[List[str]]
-
-
 class Backup(BaseModel):
-    """A model describing the %BACKUP% header in a 'desc' file, which type it represents and whether it is required
-    or not"""
+    """A model describing a single 'backup' attribute
+
+    Attributes
+    ----------
+    backup: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
+        identifies which file(s) of a package pacman will create backups for
+    """
 
     backup: Optional[List[str]]
 
 
+class Base(BaseModel):
+    """A model describing a single 'base' attribute
+
+    Attributes
+    ----------
+    base: str
+        The attribute can be used to describe the (required) data below a %BASE% identifier in a 'desc' file, which
+        identifies a package's pkgbase
+    """
+
+    base: str
+
+
+class BuildDate(BaseModel):
+    """A model describing a single 'builddate' attribute
+
+    Attributes
+    ----------
+    builddate: int
+        The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
+        which identifies a package's build date (represented in seconds since the epoch)
+    """
+
+    builddate: int
+
+
+class CheckDepends(BaseModel):
+    """A model describing a single 'checkdepends' attribute
+
+    Attributes
+    ----------
+    checkdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
+        which identifies a package's checkdepends
+    """
+
+    checkdepends: Optional[List[str]]
+
+
+class Conflicts(BaseModel):
+    """A model describing a single 'conflicts' attribute
+
+    Attributes
+    ----------
+    conflicts: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
+        identifies what other package(s) a package conflicts with
+    """
+
+    conflicts: Optional[List[str]]
+
+
+class CSize(BaseModel):
+    """A model describing a single 'csize' attribute
+
+    Attributes
+    ----------
+    csize: int
+        The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
+        identifies a package's size
+    """
+
+    csize: int
+
+
+class Depends(BaseModel):
+    """A model describing a single 'depends' attribute
+
+    Attributes
+    ----------
+    depends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
+        identifies what other package(s) a package depends on
+    """
+
+    depends: Optional[List[str]]
+
+
+class Desc(BaseModel):
+    """A model describing a single 'desc' attribute
+
+    Attributes
+    ----------
+    desc: str
+        The attribute can be used to describe the (required) data below a %DESC% identifier in a 'desc' file, which
+        identifies a package's description
+    """
+
+    desc: str
+
+
+class FileName(BaseModel):
+    """A model describing a single 'filename' attribute
+
+    Attributes
+    ----------
+    filename: str
+        The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
+        identifies a package's file name
+    """
+
+    filename: str
+
+
 class Files(BaseModel):
-    """A model describing the %FILES% header in a 'files' file, which type it represents and whether it is required or
-    not"""
+    """A model describing a single 'files' attribute
+
+    Attributes
+    ----------
+    files: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %FILES% identifier in a 'files' file, which
+        identifies which file(s) belong to a package
+    """
 
     files: Optional[List[str]]
 
 
-class PackageFiles(Name, Files):
-    pass
+class Groups(BaseModel):
+    """A model describing a single 'groups' attribute
+
+    Attributes
+    ----------
+    groups: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
+        identifies a package's groups
+    """
+
+    groups: Optional[List[str]]
+
+
+class ISize(BaseModel):
+    """A model describing a single 'isize' attribute
+
+    Attributes
+    ----------
+    isize: int
+        The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
+        identifies a package's size
+    """
+
+    isize: int
+
+
+class License(BaseModel):
+    """A model describing a single 'license' attribute
+
+    Attributes
+    ----------
+    license: List[str]
+        The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
+        identifies a package's license(s)
+    """
+
+    license: List[str]
+
+
+class MakeDepends(BaseModel):
+    """A model describing a single 'makedepends' attribute
+
+    Attributes
+    ----------
+    makedepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
+        which identifies a package's makedepends
+    """
+
+    makedepends: Optional[List[str]]
+
+
+class Md5Sum(BaseModel):
+    """A model describing a single 'md5sum' attribute
+
+    Attributes
+    ----------
+    md5sum: str
+        The attribute can be used to describe the (required) data below an %MD5SUM% identifier in a 'desc' file, which
+        identifies a package's md5 checksum
+    """
+
+    md5sum: str
+
+
+class Name(BaseModel):
+    """A model describing a single 'name' attribute
+
+    Attributes
+    ----------
+    name: str
+        The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
+        identifies a package's name
+    """
+
+    name: str
+
+
+class Packager(BaseModel):
+    """A model describing a single 'packager' attribute
+
+    Attributes
+    ----------
+    packager: str
+        The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
+        identifies a package's packager
+    """
+
+    packager: str
+
+
+class PgpSig(BaseModel):
+    """A model describing a single 'pgpsig' attribute
+
+    Attributes
+    ----------
+    pgpsig: str
+        The attribute can be used to describe the (required) data below a %PGPSIG% identifier in a 'desc' file, which
+        identifies a package's PGP signature
+    """
+
+    pgpsig: str
+
+
+class Provides(BaseModel):
+    """A model describing a single 'provides' attribute
+
+    Attributes
+    ----------
+    provides: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
+        identifies what other package(s) a package provides
+    """
+
+    provides: Optional[List[str]]
+
+
+class Replaces(BaseModel):
+    """A model describing a single 'replaces' attribute
+
+    Attributes
+    ----------
+    replaces: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
+        identifies what other package(s) a package replaces
+    """
+
+    replaces: Optional[List[str]]
+
+
+class RepoDbMemberType(BaseModel):
+    """A model describing a single 'member_type' attribute, which is used to identify/ distinguish different types of
+    repository database file types (e.g. 'desc' and 'files' files, which are contained in a repository database file).
+
+    Attributes
+    ----------
+    member_type: defaults.RepoDbMemberType
+        A member of the IntEnum defaults.RepoDbMemberType
+    """
+
+    member_type: defaults.RepoDbMemberType
+
+
+class Sha256Sum(BaseModel):
+    """A model describing a single 'sha256sum' attribute
+
+    Attributes
+    ----------
+    sha256sum: str
+        The attribute can be used to describe the (required) data below an %SHA256SUM% identifier in a 'desc' file,
+        which identifies a package's sha256 checksum
+    """
+
+    sha256sum: str
+
+
+class OptDepends(BaseModel):
+    """A model describing a single 'optdepends' attribute
+
+    Attributes
+    ----------
+    optdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
+        which identifies what other package(s) a package optionally depends on
+    """
+
+    optdepends: Optional[List[str]]
+
+
+class Url(BaseModel):
+    """A model describing a single 'url' attribute
+
+    Attributes
+    ----------
+    url: str
+        The attribute can be used to describe the (required) data below a %URL% identifier in a 'desc' file, which
+        identifies a package's URL
+    """
+
+    url: str
+
+
+class Version(BaseModel):
+    """A model describing a single 'version' attribute
+
+    Attributes
+    ----------
+    version: str
+        The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
+        identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
+    """
+
+    version: str
 
 
 class OutputPackage(
     Arch,
     Backup,
     BuildDate,
+    CheckDepends,
     Conflicts,
     CSize,
     Depends,
     Desc,
-    CheckDepends,
     FileName,
     Files,
     Groups,
@@ -208,8 +367,73 @@ class OutputPackage(
     Sha256Sum,
     Url,
 ):
-    """A model describing all required attributes for a package in the context of an output file, that describes a
-    (potential) list of packages based upon its pkgbase
+    """A model describing all required attributes that define a package in the context of an output file
+
+    Attributes
+    ----------
+    arch: str
+        The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
+        identifies a package's architecture
+    backup: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
+        identifies which file(s) of a package pacman will create backups for
+    builddate: int
+        The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
+        which identifies a package's build date (represented in seconds since the epoch)
+    checkdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
+        which identifies a package's checkdepends
+    conflicts: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
+        identifies what other package(s) a package conflicts with
+    csize: int
+        The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
+        identifies a package's size
+    depends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
+        identifies what other package(s) a package depends on
+    desc: str
+        The attribute can be used to describe the (required) data below a %DESC% identifier in a 'desc' file, which
+        identifies a package's description
+    filename: str
+        The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
+        identifies a package's file name
+    files: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %FILES% identifier in a 'files' file, which
+        identifies which file(s) belong to a package
+    groups: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
+        identifies a package's groups
+    isize: int
+        The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
+        identifies a package's size
+    license: List[str]
+        The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
+        identifies a package's license(s)
+    md5sum: str
+        The attribute can be used to describe the (required) data below an %MD5SUM% identifier in a 'desc' file, which
+        identifies a package's md5 checksum
+    name: str
+        The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
+        identifies a package's name
+    optdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
+        which identifies what other package(s) a package optionally depends on
+    pgpsig: str
+        The attribute can be used to describe the (required) data below a %PGPSIG% identifier in a 'desc' file, which
+        identifies a package's PGP signature
+    provides: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
+        identifies what other package(s) a package provides
+    replaces: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
+        identifies what other package(s) a package replaces
+    sha256sum: str
+        The attribute can be used to describe the (required) data below an %SHA256SUM% identifier in a 'desc' file,
+        which identifies a package's sha256 checksum
+    url: str
+        The attribute can be used to describe the (required) data below a %URL% identifier in a 'desc' file, which
+        identifies a package's URL
     """
 
     pass
@@ -220,11 +444,11 @@ class PackageDesc(
     Backup,
     Base,
     BuildDate,
+    CheckDepends,
     Conflicts,
     CSize,
     Depends,
     Desc,
-    CheckDepends,
     FileName,
     Groups,
     ISize,
@@ -241,8 +465,83 @@ class PackageDesc(
     Url,
     Version,
 ):
-    """A model describing all headers in a 'desc' file, which type they represent and whether they are required or
-    not"""
+    """A model describing all identifiers in a 'desc' file
+
+    Attributes
+    ----------
+    arch: str
+        The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
+        identifies a package's architecture
+    backup: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
+        identifies which file(s) of a package pacman will create backups for
+    base: str
+        The attribute can be used to describe the (required) data below a %BASE% identifier in a 'desc' file, which
+        identifies a package's pkgbase
+    builddate: int
+        The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
+        which identifies a package's build date (represented in seconds since the epoch)
+    checkdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
+        which identifies a package's checkdepends
+    conflicts: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
+        identifies what other package(s) a package conflicts with
+    csize: int
+        The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
+        identifies a package's size
+    depends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
+        identifies what other package(s) a package depends on
+    desc: str
+        The attribute can be used to describe the (required) data below a %DESC% identifier in a 'desc' file, which
+        identifies a package's description
+    filename: str
+        The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
+        identifies a package's file name
+    groups: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
+        identifies a package's groups
+    isize: int
+        The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
+        identifies a package's size
+    license: List[str]
+        The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
+        identifies a package's license(s)
+    makedepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
+        which identifies a package's makedepends
+    md5sum: str
+        The attribute can be used to describe the (required) data below an %MD5SUM% identifier in a 'desc' file, which
+        identifies a package's md5 checksum
+    name: str
+        The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
+        identifies a package's name
+    optdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
+        which identifies what other package(s) a package optionally depends on
+    packager: str
+        The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
+        identifies a package's packager
+    pgpsig: str
+        The attribute can be used to describe the (required) data below a %PGPSIG% identifier in a 'desc' file, which
+        identifies a package's PGP signature
+    provides: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
+        identifies what other package(s) a package provides
+    replaces: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
+        identifies what other package(s) a package replaces
+    sha256sum: str
+        The attribute can be used to describe the (required) data below an %SHA256SUM% identifier in a 'desc' file,
+        which identifies a package's sha256 checksum
+    url: str
+        The attribute can be used to describe the (required) data below a %URL% identifier in a 'desc' file, which
+        identifies a package's URL
+    version: str
+        The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
+        identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
+    """
 
     def get_output_package(self, files: Optional[Files]) -> OutputPackage:
         """Transform the PackageDesc model and an optional Files model into an OutputPackage model
@@ -270,16 +569,19 @@ class PackageDesc(
             return OutputPackage(**desc_dict)
 
 
-class RepoDbMemberType(BaseModel):
-    """A model describing an attribute used to identify/ distinguish different types of repo database file types (e.g.
-    'desc' and 'files' files, which are contained in a repository database file).
-    The file types are distinguished with the help of the IntEnum defaults.REpoDbFileType
+class RepoDbMemberData(Name, RepoDbMemberType):
+    """A model describing a set of attributes to provide the data of a 'desc' or 'files' file
+
+    Attributes
+    ----------
+    name: str
+        A package name
+    member_type: defaults.RepoDbMemberType
+        A member of the IntEnum defaults.RepoDbMemberType
+    data: io.StringIO
+        The contents of a 'desc' or 'files' file provided as a StringIO instance
     """
 
-    member_type: defaults.RepoDbMemberType
-
-
-class RepoDbMemberData(Name, RepoDbMemberType):
     data: io.StringIO
 
     class Config:
@@ -294,6 +596,23 @@ class OutputPackageBase(
 ):
     """A model describing all required attributes for an output file, that describes a list of packages based upon a
     pkgbase
+
+    Attributes
+    ----------
+    base: str
+        The attribute can be used to describe the (required) data below a %BASE% identifier in a 'desc' file, which
+        identifies a package's pkgbase
+    makedepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
+        which identifies a package's makedepends
+    packager: str
+        The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
+        identifies a package's packager
+    packages: List[OutputPackage]
+        A list of OutputPackage instances that belong to the pkgbase identified by base
+    version: str
+        The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
+        identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
 
     packages: List[OutputPackage]
