@@ -1,7 +1,8 @@
 import io
 from typing import List, Optional, Tuple
 
-from pydantic import BaseModel
+from pyalpm import vercmp
+from pydantic import BaseModel, validator
 
 from repo_management import defaults
 
@@ -57,6 +58,13 @@ class BuildDate(BaseModel):
 
     builddate: int
 
+    @validator("builddate")
+    def builddate_greater_zero(cls, builddate: int) -> int:
+        if builddate < 0:
+            raise ValueError("The build date must be greater than zero.")
+
+        return builddate
+
 
 class CheckDepends(BaseModel):
     """A model describing a single 'checkdepends' attribute
@@ -95,6 +103,13 @@ class CSize(BaseModel):
     """
 
     csize: int
+
+    @validator("csize")
+    def csize_greater_equal_zero(cls, csize: int) -> int:
+        if csize < 0:
+            raise ValueError("The csize must be greater than or equal zero.")
+
+        return csize
 
 
 class Depends(BaseModel):
@@ -169,10 +184,17 @@ class ISize(BaseModel):
     ----------
     isize: int
         The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
-        identifies a package's size
+        identifies a package's installed size
     """
 
     isize: int
+
+    @validator("isize")
+    def isize_greater_equal_zero(cls, isize: int) -> int:
+        if isize < 0:
+            raise ValueError("The isize must be greater than or equal zero.")
+
+        return isize
 
 
 class License(BaseModel):
@@ -225,6 +247,26 @@ class Name(BaseModel):
     """
 
     name: str
+
+    @validator("name")
+    def name_contains_only_allowed_chars(cls, name: str) -> str:
+        disallowed_start_chars = [".", "-"]
+        for char in disallowed_start_chars:
+            if name.startswith(char):
+                raise ValueError(f"The package name '{name}' can not start with any of '{disallowed_start_chars}'.")
+
+        allowed_chars = ["@", ".", "_", "+", "-"]
+        remaining_chars: List[str] = []
+        for char in name:
+            if (not char.isalnum() or (not char.isdigit() and not char.islower())) and char not in allowed_chars:
+                remaining_chars += [char]
+        if remaining_chars:
+            raise ValueError(
+                f"The package name '{name}' can not contain '{remaining_chars}' but must consist only of alphanumeric "
+                f"chars and any of '{allowed_chars}'."
+            )
+
+        return name
 
 
 class Packager(BaseModel):
@@ -343,6 +385,64 @@ class Version(BaseModel):
 
     version: str
 
+    @validator("version")
+    def version_is_valid(cls, version: str) -> str:
+        allowed_chars = [":", ".", "_", "+", "-"]
+
+        if version.endswith("-0"):
+            raise ValueError("The first pkgrel of a package release always needs to start at 1.")
+        for char in allowed_chars:
+            if version.startswith(char):
+                raise ValueError("The first character of a package version must not be '{char}'.")
+
+        remaining_chars: List[str] = []
+        for char in version:
+            if not char.isalnum() and char not in allowed_chars:
+                remaining_chars += [char]
+        if remaining_chars:
+            raise ValueError(
+                f"Package versions can not contain '{remaining_chars}' but must consist of alphanumeric chars and any "
+                f"of '{allowed_chars}'."
+            )
+
+        return version
+
+    def is_older_than(self, version: str) -> bool:
+        """Check whether the version is older than a provided version
+
+        Parameters
+        ----------
+        version: str
+            Another version string to compare that of self to
+
+        Returns
+        -------
+        True if self.version is older than the provided version, False otherwise.
+        """
+
+        if vercmp(self.version, version) < 0:
+            return True
+        else:
+            return False
+
+    def is_newer_than(self, version: str) -> bool:
+        """Check whether the version is newer than a provided version
+
+        Parameters
+        ----------
+        version: str
+            Another version string to compare that of self to
+
+        Returns
+        -------
+        True if self.version is newer than the provided version, False otherwise.
+        """
+
+        if vercmp(self.version, version) > 0:
+            return True
+        else:
+            return False
+
 
 class OutputPackage(
     Arch,
@@ -406,7 +506,7 @@ class OutputPackage(
         identifies a package's groups
     isize: int
         The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
-        identifies a package's size
+        identifies a package's installed size
     license: List[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
@@ -504,7 +604,7 @@ class PackageDesc(
         identifies a package's groups
     isize: int
         The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
-        identifies a package's size
+        identifies a package's installed size
     license: List[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
