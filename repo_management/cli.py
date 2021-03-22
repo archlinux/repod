@@ -1,4 +1,7 @@
-from repo_management import argparse, defaults, operations
+from argparse import ArgumentTypeError
+from sys import exit
+
+from repo_management import argparse, defaults, errors, operations
 
 
 def db2json() -> None:
@@ -8,11 +11,15 @@ def db2json() -> None:
     repository database file.
     """
 
-    args = argparse.ArgParseFactory.db2json().parse_args()
-    operations.dump_db_to_json_files(
-        input_path=args.db_file,
-        output_path=args.output_dir,
-    )
+    try:
+        args = argparse.ArgParseFactory.db2json().parse_args()
+        operations.dump_db_to_json_files(
+            input_path=args.db_file,
+            output_path=args.output_dir,
+        )
+    except (errors.RepoManagementError, ArgumentTypeError) as e:
+        print(e)
+        exit(1)
 
 
 def json2db() -> None:
@@ -22,9 +29,13 @@ def json2db() -> None:
     in a directory.
     """
 
-    args = argparse.ArgParseFactory.json2db().parse_args()
-    operations.create_db_from_json_files(
-        input_path=args.input_dir,
-        output_path=args.db_file,
-        db_type=defaults.RepoDbType.FILES if args.files else defaults.RepoDbType.DEFAULT,
-    )
+    try:
+        args = argparse.ArgParseFactory.json2db().parse_args()
+        operations.create_db_from_json_files(
+            input_path=args.input_dir,
+            output_path=args.db_file,
+            db_type=defaults.RepoDbType.FILES if args.files else defaults.RepoDbType.DEFAULT,
+        )
+    except (errors.RepoManagementError, ArgumentTypeError) as e:
+        print(e)
+        exit(1)

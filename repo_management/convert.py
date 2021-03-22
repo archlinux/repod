@@ -70,6 +70,11 @@ def _desc_data_line_to_dicts(
         A dict for instances of type string
     int_types: Dict[str, int]
         A dict for instances of type int
+
+    Raises
+    ------
+    ValueError
+        If a string is provided for a field of type int, that can not be cast to type int
     """
 
     if current_type == defaults.FieldType.STRING_LIST:
@@ -93,10 +98,9 @@ def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
 
     Raises
     ------
-    ValueError
-        If a string is provided for a field of type int, that can not be cast to type int
-    pydantic.error_wrappers.ValidationError
-        If a required field is missing
+    errors.RepoManagementValidationError
+        If a pydantic.error_wrappers.ValidationError is raised (e.g. due to a missing attribute) or if a ValueError is
+        raised when converting data (e.g. when calling _desc_data_line_to_dicts())
 
     Returns
     -------
@@ -121,21 +125,26 @@ def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
             continue
 
         if current_header:
-            _desc_data_line_to_dicts(
-                current_header=current_header,
-                current_type=current_type,
-                line=line,
-                string_list_types=string_list_types,
-                string_types=string_types,
-                int_types=int_types,
-            )
+            try:
+                _desc_data_line_to_dicts(
+                    current_header=current_header,
+                    current_type=current_type,
+                    line=line,
+                    string_list_types=string_list_types,
+                    string_types=string_types,
+                    int_types=int_types,
+                )
+            except ValueError as e:
+                raise errors.RepoManagementValidationError(
+                    f"A validation error occured while creating the file:\n\n{data.getvalue()}\n{e}"
+                )
 
     merged_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
     try:
         return models.PackageDesc(**merged_dict)
     except ValidationError as e:
         raise errors.RepoManagementValidationError(
-            f"An error occured while validating the file: {data.getvalue()}\n{e}"
+            f"A validation error occured while creating the file:\n\n{data.getvalue()}\n{e}"
         )
 
 
