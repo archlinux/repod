@@ -5,8 +5,10 @@ description = "Tools for package repository management"
 authors = ["Arch Linux <arch-projects@lists.archlinux.org>"]
 license = "GPL-3.0-or-later"
 packages = [
-  {include = 'repo_management'},
-  {include = 'tests', format = 'sdist'},
+  {include = 'repo_management'}
+]
+include = [
+  {path = 'tests/*', format = 'sdist'}
 ]
 
 [tool.poetry.dependencies]
