@@ -20,12 +20,13 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
         ("usr/%FILES%\nusr/lib/\n", raises(RuntimeError)),
     ],
 )
-def test__files_data_to_dict(
+@mark.asyncio
+async def test__files_data_to_model(
     file_data: str,
     expectation: ContextManager[str],
 ) -> None:
     with expectation:
-        assert convert._files_data_to_model(data=io.StringIO(file_data))
+        assert await convert._files_data_to_model(data=io.StringIO(file_data))
 
 
 @mark.parametrize(
@@ -99,81 +100,26 @@ def test__files_data_to_dict(
         ),
     ],
 )
-def test__desc_data_to_dict(
+@mark.asyncio
+async def test__desc_data_to_model(
     file_data: str,
     expectation: ContextManager[str],
 ) -> None:
     with expectation:
-        assert convert._desc_data_to_model(data=io.StringIO(file_data))
-
-
-@mark.parametrize(
-    "desc, files",
-    [
-        (
-            models.PackageDesc(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="foo",
-            ),
-            models.Files(files=["foo", "bar"]),
-        ),
-        (
-            models.PackageDesc(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="foo",
-            ),
-            None,
-        ),
-    ],
-)
-def test__transform_package_desc_to_output_package(
-    desc: models.PackageDesc,
-    files: models.Files,
-) -> None:
-    output = convert._transform_package_desc_to_output_package(desc=desc, files=files)
-    assert isinstance(output, models.OutputPackage)
-    if files:
-        assert output.files
-    else:
-        assert not output.files
+        assert await convert._desc_data_to_model(data=io.StringIO(file_data))
 
 
 def test_repodbfile__init() -> None:
     assert convert.RepoDbFile()
 
 
-def test_repodbfile_render_desc_template() -> None:
+@mark.asyncio
+async def test_repodbfile_render_desc_template() -> None:
     repodbfile = convert.RepoDbFile()
     assert repodbfile
     output = io.StringIO()
     assert not output.getvalue()
-    repodbfile.render_desc_template(
+    await repodbfile.render_desc_template(
         model=models.PackageDesc(
             arch="foo",
             base="foo",
@@ -196,12 +142,13 @@ def test_repodbfile_render_desc_template() -> None:
     assert output.getvalue()
 
 
-def test_repodbfile_render_files_template() -> None:
+@mark.asyncio
+async def test_repodbfile_render_files_template() -> None:
     repodbfile = convert.RepoDbFile()
     assert repodbfile
     output = io.StringIO()
     assert not output.getvalue()
-    repodbfile.render_files_template(
+    await repodbfile.render_files_template(
         model=models.Files(files=["foo", "bar"]),
         output=output,
     )

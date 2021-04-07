@@ -68,28 +68,33 @@ def invalid_json_file() -> Iterator[Path]:
     yield Path(json_file)
 
 
-def test__read_db_file(create_gz_db_file: Path) -> None:
+@mark.asyncio
+async def test__read_db_file(create_gz_db_file: Path) -> None:
     with does_not_raise():
-        assert files._read_db_file(create_gz_db_file)
+        assert await files._read_db_file(create_gz_db_file)
 
 
-def test__read_db_file_wrong_compression(create_gz_db_file: Path) -> None:
+@mark.asyncio
+async def test__read_db_file_wrong_compression(create_gz_db_file: Path) -> None:
     with raises(tarfile.CompressionError):
-        assert files._read_db_file(create_gz_db_file, compression="foo")
+        assert await files._read_db_file(create_gz_db_file, compression="foo")
 
 
-def test__read_db_file_does_not_exist(create_null_db_file: Path) -> None:
+@mark.asyncio
+async def test__read_db_file_does_not_exist(create_null_db_file: Path) -> None:
     with raises(FileNotFoundError):
-        assert files._read_db_file(create_null_db_file)
+        assert await files._read_db_file(create_null_db_file)
 
 
-def test__read_db_file_wrong_db_compression(create_bzip_db_file: Path) -> None:
+@mark.asyncio
+async def test__read_db_file_wrong_db_compression(create_bzip_db_file: Path) -> None:
     with raises(tarfile.ReadError):
-        assert files._read_db_file(create_bzip_db_file)
+        assert await files._read_db_file(create_bzip_db_file)
 
 
-def test__read_db_file_member_as_model(create_gz_db_file: Path) -> None:
-    for member in files._db_file_member_as_model(db_file=files._read_db_file(create_gz_db_file)):
+@mark.asyncio
+async def test__read_db_file_member_as_model(create_gz_db_file: Path) -> None:
+    async for member in files._db_file_member_as_model(db_file=await files._read_db_file(create_gz_db_file)):
         assert isinstance(member, models.RepoDbMemberData)
 
 
@@ -104,31 +109,35 @@ def test__read_db_file_member_as_model(create_gz_db_file: Path) -> None:
         ("foobar-1.0.0-42/files", "foobar"),
     ],
 )
-def test__extract_db_member_package_name(
+@mark.asyncio
+async def test__extract_db_member_package_name(
     member_name: str,
     result: str,
 ) -> None:
-    assert files._extract_db_member_package_name(name=member_name) == result
+    assert await files._extract_db_member_package_name(name=member_name) == result
 
 
-def test__json_files_in_directory(empty_json_files_in_dir: Path, empty_dir: Path) -> None:
-    for json_file in files._json_files_in_directory(path=empty_json_files_in_dir):
+@mark.asyncio
+async def test__json_files_in_directory(empty_json_files_in_dir: Path, empty_dir: Path) -> None:
+    async for json_file in files._json_files_in_directory(path=empty_json_files_in_dir):
         assert isinstance(json_file, Path)
 
     with raises(errors.RepoManagementFileNotFoundError):
-        for json_file in files._json_files_in_directory(path=empty_dir):
+        async for json_file in files._json_files_in_directory(path=empty_dir):
             assert isinstance(json_file, Path)
 
 
-def test__read_pkgbase_json_file(broken_json_file: Path, invalid_json_file: Path) -> None:
+@mark.asyncio
+async def test__read_pkgbase_json_file(broken_json_file: Path, invalid_json_file: Path) -> None:
     with raises(errors.RepoManagementFileError):
-        files._read_pkgbase_json_file(path=broken_json_file)
+        await files._read_pkgbase_json_file(path=broken_json_file)
     with raises(errors.RepoManagementValidationError):
-        files._read_pkgbase_json_file(path=invalid_json_file)
+        await files._read_pkgbase_json_file(path=invalid_json_file)
 
 
-def test__write_db_file(empty_dir: Path) -> None:
-    assert isinstance(files._write_db_file(empty_dir / Path("foo.db")), tarfile.TarFile)
+@mark.asyncio
+async def test__write_db_file(empty_dir: Path) -> None:
+    assert isinstance(await files._write_db_file(empty_dir / Path("foo.db")), tarfile.TarFile)
 
 
 @mark.parametrize(
@@ -186,13 +195,14 @@ def test__write_db_file(empty_dir: Path) -> None:
         ),
     ],
 )
-def test__stream_package_base_to_db(
+@mark.asyncio
+async def test__stream_package_base_to_db(
     model: models.OutputPackageBase,
     db_type: defaults.RepoDbType,
     empty_file: Path,
 ) -> None:
-    files._stream_package_base_to_db(
-        db=files._write_db_file(path=empty_file),
+    await files._stream_package_base_to_db(
+        db=await files._write_db_file(path=empty_file),
         model=model,
         repodbfile=convert.RepoDbFile(),
         db_type=db_type,

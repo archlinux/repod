@@ -1,3 +1,4 @@
+import asyncio
 from argparse import ArgumentTypeError
 from sys import exit
 
@@ -13,9 +14,11 @@ def db2json() -> None:
 
     try:
         args = argparse.ArgParseFactory.db2json().parse_args()
-        operations.dump_db_to_json_files(
-            input_path=args.db_file,
-            output_path=args.output_dir,
+        asyncio.run(
+            operations.dump_db_to_json_files(
+                input_path=args.db_file,
+                output_path=args.output_dir,
+            )
         )
     except (errors.RepoManagementError, ArgumentTypeError) as e:
         print(e)
@@ -31,10 +34,12 @@ def json2db() -> None:
 
     try:
         args = argparse.ArgParseFactory.json2db().parse_args()
-        operations.create_db_from_json_files(
-            input_path=args.input_dir,
-            output_path=args.db_file,
-            db_type=defaults.RepoDbType.FILES if args.files else defaults.RepoDbType.DEFAULT,
+        asyncio.run(
+            operations.create_db_from_json_files(
+                input_path=args.input_dir,
+                output_path=args.db_file,
+                db_type=defaults.RepoDbType.FILES if args.files else defaults.RepoDbType.DEFAULT,
+            )
         )
     except (errors.RepoManagementError, ArgumentTypeError) as e:
         print(e)

@@ -139,11 +139,12 @@ def test_package_desc_get_output_package(
         ),
     ],
 )
-def test_output_package_base_get_packages_as_models(
+@mark.asyncio
+async def test_output_package_base_get_packages_as_models(
     models_list: List[Tuple[models.PackageDesc, models.Files]],
     output_package_base: models.OutputPackageBase,
 ) -> None:
-    assert models_list == output_package_base.get_packages_as_models()
+    assert models_list == await output_package_base.get_packages_as_models()
 
 
 @mark.parametrize(

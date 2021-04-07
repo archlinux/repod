@@ -1,5 +1,5 @@
 import io
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 from jinja2 import Environment, PackageLoader
 from pydantic.error_wrappers import ValidationError
@@ -7,7 +7,7 @@ from pydantic.error_wrappers import ValidationError
 from repo_management import defaults, errors, models
 
 
-def _files_data_to_model(data: io.StringIO) -> models.Files:
+async def _files_data_to_model(data: io.StringIO) -> models.Files:
     """Read the contents of a 'files' file (represented as an instance of
     io.StringIO) and convert it to a pydantic model
 
@@ -46,7 +46,7 @@ def _files_data_to_model(data: io.StringIO) -> models.Files:
     return models.Files(**output)
 
 
-def _desc_data_line_to_dicts(
+async def _desc_data_line_to_dicts(
     current_header: str,
     current_type: defaults.FieldType,
     line: str,
@@ -88,7 +88,7 @@ def _desc_data_line_to_dicts(
         int_types[current_header] = int(line)
 
 
-def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
+async def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
     """Read the contents of a 'desc' file (represented as an instance of io.StringIO) and convert it to a pydantic model
 
     Parameters
@@ -126,7 +126,7 @@ def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
 
         if current_header:
             try:
-                _desc_data_line_to_dicts(
+                await _desc_data_line_to_dicts(
                     current_header=current_header,
                     current_type=current_type,
                     line=line,
@@ -148,37 +148,6 @@ def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
         )
 
 
-def _transform_package_desc_to_output_package(
-    desc: models.PackageDesc, files: Optional[models.Files]
-) -> models.OutputPackage:
-    """Transform a PackageDesc model and an accompanying Files model to an OutputPackage model
-
-    Parameters
-    ----------
-    desc: models.PackageDesc
-        A pydantic model, that has all required attributes (apart from the list of files) to create an OutputPackage
-        model
-    files: models.Files:
-        A pydantic model, that represents the list of files, that belong to the package described by desc
-
-    Returns
-    -------
-    models.OutputPackage
-        A pydantic model, that describes a package and its list of files
-    """
-
-    desc_dict = desc.dict()
-    # remove attributes, that are represented on the pkgbase level
-    for name in ["base", "makedepends", "packager", "version"]:
-        if desc_dict.get(name):
-            del desc_dict[name]
-
-    if files:
-        return models.OutputPackage(**desc_dict, **files.dict())
-    else:
-        return models.OutputPackage(**desc_dict)
-
-
 class RepoDbFile:
     """A class for handling templates for files used in repository database files (such as 'desc' or 'files')
 
@@ -189,7 +158,7 @@ class RepoDbFile:
 
     """
 
-    def __init__(self, enable_async: bool = False) -> None:
+    def __init__(self, enable_async: bool = True) -> None:
         """Initialize an instance of RepDbFile
 
         Parameters
@@ -205,7 +174,7 @@ class RepoDbFile:
             enable_async=enable_async,
         )
 
-    def render_desc_template(self, model: models.PackageDesc, output: io.StringIO) -> None:
+    async def render_desc_template(self, model: models.PackageDesc, output: io.StringIO) -> None:
         """Use the 'desc' template to write a string to an output stream based on a model
 
         Parameters
@@ -217,9 +186,9 @@ class RepoDbFile:
         """
 
         template = self.env.get_template("desc.j2")
-        output.write(template.render(model.dict()))
+        output.write(await template.render_async(model.dict()))
 
-    def render_files_template(self, model: models.Files, output: io.StringIO) -> None:
+    async def render_files_template(self, model: models.Files, output: io.StringIO) -> None:
         """Use the 'files' template to write a string to an output stream based on a model
 
         Parameters
@@ -231,4 +200,4 @@ class RepoDbFile:
         """
 
         template = self.env.get_template("files.j2")
-        output.write(template.render(model.dict()))
+        output.write(await template.render_async(model.dict()))
