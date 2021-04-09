@@ -717,7 +717,7 @@ class OutputPackageBase(
 
     packages: List[OutputPackage]
 
-    def get_packages_as_models(self) -> List[Tuple[PackageDesc, Files]]:
+    async def get_packages_as_models(self) -> List[Tuple[PackageDesc, Files]]:
         """Return the list of packages as tuples of PackageDesc and Files models
 
         Returns

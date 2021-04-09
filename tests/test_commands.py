@@ -21,6 +21,7 @@ def test__print_env(env: Optional[Dict[str, str]]) -> None:
         (["cd", "-f"], {"FOO": "BAR"}, True, False, False, True, None, raises(CalledProcessError)),
     ],
 )
+@mark.asyncio
 def test_run_command(
     cmd: Union[str, List[str]],
     env: Optional[Dict[str, str]],

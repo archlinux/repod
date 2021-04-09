@@ -3,15 +3,16 @@ import re
 import tarfile
 import time
 from pathlib import Path
-from typing import Iterator
+from typing import AsyncIterator
 
+import aiofiles
 import orjson
 from pydantic.error_wrappers import ValidationError
 
 from repo_management import convert, defaults, errors, models
 
 
-def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
+async def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
     """Read a repository database file
 
     Parameters
@@ -39,7 +40,7 @@ def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:
     return tarfile.open(name=db_path, mode=f"r:{compression}")
 
 
-def _extract_db_member_package_name(name: str) -> str:
+async def _extract_db_member_package_name(name: str) -> str:
     """Extract and return the package name from a repository database member name
 
     Parameters
@@ -55,9 +56,9 @@ def _extract_db_member_package_name(name: str) -> str:
     return "".join(re.split("(-)", re.sub("(/desc|/files)$", "", name))[:-4])
 
 
-def _db_file_member_as_model(
+async def _db_file_member_as_model(
     db_file: tarfile.TarFile, regex: str = "(/desc|/files)$"
-) -> Iterator[models.RepoDbMemberData]:
+) -> AsyncIterator[models.RepoDbMemberData]:
     """Iterate over the members of a database file, represented by an instance of tarfile.TarFile and yield the members
     as instances of models.RepoDbMemberData
 
@@ -82,7 +83,7 @@ def _db_file_member_as_model(
 
         yield models.RepoDbMemberData(
             member_type=file_type,
-            name=_extract_db_member_package_name(name=name),
+            name=await _extract_db_member_package_name(name=name),
             data=io.StringIO(
                 io.BytesIO(
                     db_file.extractfile(name).read(),  # type: ignore
@@ -93,7 +94,7 @@ def _db_file_member_as_model(
         )
 
 
-def _json_files_in_directory(path: Path) -> Iterator[Path]:
+async def _json_files_in_directory(path: Path) -> AsyncIterator[Path]:
     """Yield JSON files found in a directory
 
     Parameters
@@ -108,7 +109,7 @@ def _json_files_in_directory(path: Path) -> Iterator[Path]:
 
     Returns
     -------
-    Iterator[Path]
+    AsyncIterator[Path]
         An iterator over the files found in the directory defined by path
     """
 
@@ -120,7 +121,7 @@ def _json_files_in_directory(path: Path) -> Iterator[Path]:
         yield json_file
 
 
-def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
+async def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
     """Read a JSON file that represents a pkgbase and return it as models.OutputPackageBase
 
     Parameters
@@ -141,16 +142,16 @@ def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
         A pydantic model representing a pkgbase
     """
 
-    with open(path, "r") as input_file:
+    async with aiofiles.open(path, "r") as input_file:
         try:
-            return models.OutputPackageBase(**orjson.loads(input_file.read()))
+            return models.OutputPackageBase(**orjson.loads(await input_file.read()))
         except orjson.JSONDecodeError as e:
             raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
         except ValidationError as e:
             raise errors.RepoManagementValidationError(f"The JSON file '{path}' could not be validated!\n{e}")
 
 
-def _write_db_file(path: Path, compression: str = "gz") -> tarfile.TarFile:
+async def _write_db_file(path: Path, compression: str = "gz") -> tarfile.TarFile:
     """Open a repository database file for writing
 
     Parameters
@@ -178,7 +179,7 @@ def _write_db_file(path: Path, compression: str = "gz") -> tarfile.TarFile:
     return tarfile.open(name=path, mode=f"w:{compression}")
 
 
-def _stream_package_base_to_db(
+async def _stream_package_base_to_db(
     db: tarfile.TarFile,
     model: models.OutputPackageBase,
     repodbfile: convert.RepoDbFile,
@@ -198,7 +199,7 @@ def _stream_package_base_to_db(
         The type of database to stream to
     """
 
-    for (desc_model, files_model) in model.get_packages_as_models():
+    for (desc_model, files_model) in await model.get_packages_as_models():
         dirname = f"{desc_model.name}-{model.version}"
         directory = tarfile.TarInfo(dirname)
         directory.type = tarfile.DIRTYPE
@@ -209,7 +210,7 @@ def _stream_package_base_to_db(
         db.addfile(directory)
 
         desc_content = io.StringIO()
-        repodbfile.render_desc_template(model=desc_model, output=desc_content)
+        await repodbfile.render_desc_template(model=desc_model, output=desc_content)
         desc_file = tarfile.TarInfo(f"{dirname}/desc")
         desc_file.size = len(desc_content.getvalue().encode())
         desc_file.mtime = int(time.time())
@@ -219,7 +220,7 @@ def _stream_package_base_to_db(
         db.addfile(desc_file, io.BytesIO(desc_content.getvalue().encode()))
         if db_type == defaults.RepoDbType.FILES:
             files_content = io.StringIO()
-            repodbfile.render_files_template(model=files_model, output=files_content)
+            await repodbfile.render_files_template(model=files_model, output=files_content)
             files_file = tarfile.TarInfo(f"{dirname}/files")
             files_file.size = len(files_content.getvalue().encode())
             files_file.mtime = int(time.time())
