@@ -31,7 +31,7 @@ async def db_file_as_models(
     packages: Dict[str, models.OutputPackageBase] = {}
     package_descs: Dict[str, models.PackageDesc] = {}
     package_files: Dict[str, models.Files] = {}
-    async for member in files._db_file_member_as_model(
+    async for member in files._db_file_member_as_model(  # pragma: no cover
         db_file=await files._read_db_file(db_path=db_path, compression=compression)
     ):
         if member.member_type == defaults.RepoDbMemberType.DESC:
@@ -99,7 +99,7 @@ async def create_db_from_json_files(
 
     repodbfile = convert.RepoDbFile()
     database = await files._write_db_file(path=output_path)
-    async for path in files._json_files_in_directory(path=input_path):
+    async for path in files._json_files_in_directory(path=input_path):  # pragma: no cover
         model = await files._read_pkgbase_json_file(path)
         await files._stream_package_base_to_db(
             db=database,
