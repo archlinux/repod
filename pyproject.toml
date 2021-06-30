@@ -19,6 +19,7 @@ orjson = "^3.5.1"
 Jinja2 = "^2.11.3"
 subprocess-tee = "^0.2.0"
 aiofiles = "^0.6.0"
+toml = "^0.10.2"
 
 [tool.poetry.dev-dependencies]
 tox = "^3.23.0"
