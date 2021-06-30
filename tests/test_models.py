@@ -1,9 +1,20 @@
+import shutil
+import tempfile
 from contextlib import nullcontext as does_not_raise
-from typing import ContextManager, List, Optional, Tuple
+from pathlib import Path
+from typing import ContextManager, Iterator, List, Optional, Tuple
+from unittest.mock import Mock, patch
 
-from pytest import mark, raises
+from pytest import fixture, mark, raises
 
-from repo_management import models
+from repo_management import defaults, models
+
+
+@fixture(scope="function")
+def empty_dir() -> Iterator[Path]:
+    directory = tempfile.mkdtemp()
+    yield Path(directory)
+    shutil.rmtree(directory)
 
 
 @mark.parametrize(
@@ -239,3 +250,127 @@ def test_version_is_older_than(version: str, other_version: str, expectation: bo
 def test_version_is_newer_than(version: str, other_version: str, expectation: bool) -> None:
     model = models.Version(version=version)
     assert model.is_newer_than(other_version) is expectation
+
+
+def test_architecture_validate_architecture() -> None:
+    for arch in [None] + defaults.ARCHITECTURES:  # type:ignore
+        assert models.Architecture(architecture=arch)
+
+    with raises(ValueError):
+        models.Architecture(architecture="foo")
+
+
+@mark.parametrize(
+    "url, expectation",
+    [
+        ("https://foo.bar", does_not_raise()),
+        ("ssh://git@foo.bar", does_not_raise()),
+        ("ssh://foo.bar", raises(ValueError)),
+        ("http://foo.bar", raises(ValueError)),
+    ],
+)
+def test_mangement_repo(
+    url: str,
+    expectation: ContextManager[str],
+    empty_dir: Path,
+) -> None:
+    with expectation:
+        assert models.ManagementRepo(
+            directory=empty_dir,
+            url=url,
+        )
+
+
+@patch(
+    "os.access",
+    Mock(side_effect=[False, False, True, True]),
+)
+@patch("repo_management.models.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
+@patch("repo_management.models.Path.is_dir", Mock(side_effect=[False, True, True]))
+@patch("repo_management.models.Path.parent", return_value=Mock())
+def test_directory_validate_directory(parent_mock: Mock) -> None:
+    parent_mock.exists.side_effect = [False, True, True, True]
+    parent_mock.is_dir.side_effect = [False, True, True]
+    with raises(ValueError):
+        models.Directory(directory="foo")
+    for _ in range(5):
+        with raises(ValueError):
+            models.Directory(directory="/foo")
+    assert models.Directory(directory="/foo")
+    assert models.Directory(directory="/foo")
+
+
+@mark.parametrize(
+    "name, staging, testing, package_pool, source_pool, management_repo, url, expectation",
+    [
+        (Path("foo"), None, None, False, False, False, None, does_not_raise()),
+        (Path("foo"), Path("bar"), None, False, False, False, None, does_not_raise()),
+        (Path("foo"), Path("bar"), Path("baz"), False, False, False, None, does_not_raise()),
+        ("foo", None, None, False, False, False, None, does_not_raise()),
+        ("foo", "bar", None, False, False, False, None, does_not_raise()),
+        ("foo", "bar", "baz", False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), None, None, False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), None, False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), None, None, False, False, True, "https://foo.bar", does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), None, False, False, True, "https://foo.bar", does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), False, False, True, "https://foo.bar", does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), True, False, True, "https://foo.bar", raises(ValueError)),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), False, True, True, "https://foo.bar", raises(ValueError)),
+        (Path(" foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path(" bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar "), Path(" baz"), False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path("foo"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, Path("foo"), False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, None, True, True, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar"), None, True, True, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar"), Path("baz"), True, True, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar"), Path("bar"), False, False, False, None, raises(ValueError)),
+        (Path("FOO"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("FOO"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("FOO"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("/foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("/foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("/foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path(".foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path(".foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path(".foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("-foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("-foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("-foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("foo/bar"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo/bar"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo/bar"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("."), None, None, False, False, False, None, raises(ValueError)),
+        (Path("."), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("."), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+    ],
+)
+def test_package_repo(
+    name: Path,
+    staging: Optional[Path],
+    testing: Optional[Path],
+    package_pool: bool,
+    source_pool: bool,
+    management_repo: bool,
+    url: Optional[str],
+    expectation: ContextManager[str],
+    empty_dir: Path,
+) -> None:
+    with expectation:
+        assert models.PackageRepo(
+            name=name,
+            testing=testing,
+            staging=staging,
+            package_pool=empty_dir if package_pool else None,
+            source_pool=empty_dir if source_pool else None,
+            management_repo=models.ManagementRepo(
+                directory=empty_dir,
+                url=url,
+            )
+            if management_repo
+            else None,
+        )
