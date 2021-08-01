@@ -65,7 +65,7 @@ async def _db_file_member_as_model(
     The method filters the list of evaluated members using a regular expression. Depending on member name one of
     defaults.RepoDbMemberType is chosen.
 
-    Paramaters
+    Parameters
     ----------
     tarfile.TarFile
         An instance of TarFile representing a repository database
