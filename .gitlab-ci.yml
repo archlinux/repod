@@ -12,7 +12,7 @@ stages:
   stage: test
   before_script:
     - pacman --noconfirm -Fy
-    - pacman --noconfirm -Syu --needed base-devel git python-poetry python-tox
+    - pacman --noconfirm -Syu --needed base-devel git python-tox
 
 linter:
   extends: .test
@@ -22,7 +22,7 @@ linter:
 coverage:
   extends: .test
   script:
-    - tox -e coverage
+    - tox -e py39,coverage
 
 integration:
   extends: .test
