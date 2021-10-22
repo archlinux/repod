@@ -98,12 +98,12 @@ async def create_db_from_json_files(
     """
 
     repodbfile = convert.RepoDbFile()
-    database = await files._write_db_file(path=output_path)
-    async for path in files._json_files_in_directory(path=input_path):  # pragma: no cover
-        model = await files._read_pkgbase_json_file(path)
-        await files._stream_package_base_to_db(
-            db=database,
-            model=model,
-            repodbfile=repodbfile,
-            db_type=db_type,
-        )
+    with files._write_db_file(path=output_path) as database:
+        async for path in files._json_files_in_directory(path=input_path):  # pragma: no cover
+            model = await files._read_pkgbase_json_file(path)
+            await files._stream_package_base_to_db(
+                db=database,
+                model=model,
+                repodbfile=repodbfile,
+                db_type=db_type,
+            )
