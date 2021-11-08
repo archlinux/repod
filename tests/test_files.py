@@ -1,11 +1,9 @@
-import os
-import shutil
 import tarfile
 import tempfile
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-from typing import Iterator
 
+import py
 from pytest import fixture, mark, raises
 
 from repo_management import convert, defaults, errors, files, models
@@ -14,58 +12,53 @@ from .fixtures import create_db_file, create_empty_json_files
 
 
 @fixture(scope="function")
-def create_gz_db_file() -> Iterator[Path]:
-    db_file = create_db_file()
-    yield db_file
-    os.remove(db_file)
+def create_gz_db_file(tmpdir: py.path.local) -> Path:
+    return create_db_file(tmpdir)
 
 
 @fixture(scope="function")
-def create_bzip_db_file() -> Iterator[Path]:
-    db_file = create_db_file(compression="bz2")
-    yield db_file
-    os.remove(db_file)
+def create_bzip_db_file(tmpdir: py.path.local) -> Path:
+    return create_db_file(tmpdir, compression="bz2")
 
 
 @fixture(scope="function")
-def create_null_db_file() -> Iterator[Path]:
-    yield create_db_file(remove_db=True)
+def create_null_db_file(tmpdir: py.path.local) -> Path:
+    return create_db_file(tmpdir, remove_db=True)
 
 
 @fixture(scope="function")
-def empty_json_files_in_dir() -> Iterator[Path]:
-    directory = create_empty_json_files()
-    yield directory
-    shutil.rmtree(directory)
+def empty_json_files_in_dir(tmpdir: py.path.local) -> Path:
+    create_empty_json_files(tmpdir)
+    return Path(tmpdir)
 
 
 @fixture(scope="function")
-def empty_dir() -> Iterator[Path]:
-    directory = tempfile.mkdtemp()
-    yield Path(directory)
-    shutil.rmtree(directory)
+def empty_dir(tmpdir: py.path.local) -> Path:
+    directory = Path(tmpdir) / "empty"
+    directory.mkdir()
+    return directory
 
 
 @fixture(scope="function")
-def empty_file() -> Iterator[Path]:
-    [foo, file_name] = tempfile.mkstemp()
-    yield Path(file_name)
+def empty_file(tmpdir: py.path.local) -> Path:
+    [foo, file_name] = tempfile.mkstemp(dir=tmpdir)
+    return Path(file_name)
 
 
 @fixture(scope="function")
-def broken_json_file() -> Iterator[Path]:
-    [foo, json_file] = tempfile.mkstemp(suffix=".json")
+def broken_json_file(tmpdir: py.path.local) -> Path:
+    [foo, json_file] = tempfile.mkstemp(suffix=".json", dir=tmpdir)
     with open(json_file, "w") as input_file:
         input_file.write("garbage")
-    yield Path(json_file)
+    return Path(json_file)
 
 
 @fixture(scope="function")
-def invalid_json_file() -> Iterator[Path]:
-    [foo, json_file] = tempfile.mkstemp(suffix=".json")
+def invalid_json_file(tmpdir: py.path.local) -> Path:
+    [foo, json_file] = tempfile.mkstemp(suffix=".json", dir=tmpdir)
     with open(json_file, "w") as input_file:
         input_file.write('{"foo": "bar"}')
-    yield Path(json_file)
+    return Path(json_file)
 
 
 @mark.asyncio
@@ -137,7 +130,7 @@ async def test__read_pkgbase_json_file(broken_json_file: Path, invalid_json_file
 
 @mark.asyncio
 async def test__write_db_file(empty_dir: Path) -> None:
-    assert isinstance(await files._write_db_file(empty_dir / Path("foo.db")), tarfile.TarFile)
+    assert isinstance(await files._write_db_file(empty_dir / "foo.db"), tarfile.TarFile)
 
 
 @mark.parametrize(

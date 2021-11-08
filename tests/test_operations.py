@@ -1,9 +1,7 @@
-import os
-import shutil
 import tempfile
 from pathlib import Path
-from typing import Iterator
 
+import py
 from pytest import fixture, mark
 
 from repo_management import models, operations
@@ -12,30 +10,25 @@ from .fixtures import create_db_file, create_json_files
 
 
 @fixture(scope="function")
-def create_gz_db_file() -> Iterator[Path]:
-    db_file = create_db_file()
-    yield db_file
-    os.remove(db_file)
+def create_gz_db_file(tmpdir: py.path.local) -> Path:
+    return create_db_file(tmpdir)
 
 
 @fixture(scope="function")
-def create_dir_path() -> Iterator[Path]:
-    temp_dir = tempfile.mkdtemp()
-    yield Path(temp_dir)
-    shutil.rmtree(temp_dir)
+def create_dir_path(tmpdir: py.path.local) -> Path:
+    return Path(tempfile.mkdtemp(dir=tmpdir))
 
 
 @fixture(scope="function")
-def dummy_json_files_in_dir() -> Iterator[Path]:
-    temp_dir = create_json_files()
-    yield temp_dir
-    shutil.rmtree(temp_dir)
+def dummy_json_files_in_dir(tmpdir: py.path.local) -> Path:
+    create_json_files(tmpdir)
+    return Path(tmpdir)
 
 
 @fixture(scope="function")
-def empty_file() -> Iterator[Path]:
-    [foo, file_name] = tempfile.mkstemp()
-    yield Path(file_name)
+def empty_file(tmpdir: py.path.local) -> Path:
+    [foo, file_name] = tempfile.mkstemp(dir=tmpdir)
+    return Path(file_name)
 
 
 @mark.asyncio
