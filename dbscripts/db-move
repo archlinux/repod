@@ -7,9 +7,8 @@ from fcntl import LOCK_EX, flock
 from pathlib import Path
 from sys import argv, exit
 
-from pyalpm import vercmp
-
 from lib.dbwrite import generate_dbs
+from pyalpm import vercmp
 
 
 async def main(repo_from, repo_to, pkgbases) -> int:

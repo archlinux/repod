@@ -130,7 +130,8 @@ async def test__read_pkgbase_json_file(broken_json_file: Path, invalid_json_file
 
 @mark.asyncio
 async def test__write_db_file(empty_dir: Path) -> None:
-    assert isinstance(await files._write_db_file(empty_dir / "foo.db"), tarfile.TarFile)
+    with files._write_db_file(empty_dir / "foo.db") as database:
+        assert isinstance(database, tarfile.TarFile)
 
 
 @mark.parametrize(
@@ -194,9 +195,10 @@ async def test__stream_package_base_to_db(
     db_type: defaults.RepoDbType,
     empty_file: Path,
 ) -> None:
-    await files._stream_package_base_to_db(
-        db=await files._write_db_file(path=empty_file),
-        model=model,
-        repodbfile=convert.RepoDbFile(),
-        db_type=db_type,
-    )
+    with files._write_db_file(path=empty_file) as database:
+        await files._stream_package_base_to_db(
+            db=database,
+            model=model,
+            repodbfile=convert.RepoDbFile(),
+            db_type=db_type,
+        )

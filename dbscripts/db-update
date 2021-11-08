@@ -9,9 +9,8 @@ from hashlib import md5, sha256
 from pathlib import Path
 from sys import argv, exit
 
-from pyalpm import vercmp
-
 from lib.dbwrite import generate_dbs
+from pyalpm import vercmp
 
 
 def parse_pkginfo(pkginfo: str) -> dict:

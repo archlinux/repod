@@ -1,9 +1,10 @@
+import contextlib
 import io
 import re
 import tarfile
 import time
 from pathlib import Path
-from typing import AsyncIterator
+from typing import AsyncIterator, Iterator
 
 import aiofiles
 import orjson
@@ -151,7 +152,8 @@ async def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
             raise errors.RepoManagementValidationError(f"The JSON file '{path}' could not be validated!\n{e}")
 
 
-async def _write_db_file(path: Path, compression: str = "gz") -> tarfile.TarFile:
+@contextlib.contextmanager
+def _write_db_file(path: Path, compression: str = "gz") -> Iterator[tarfile.TarFile]:
     """Open a repository database file for writing
 
     Parameters
@@ -176,7 +178,8 @@ async def _write_db_file(path: Path, compression: str = "gz") -> tarfile.TarFile
         An instance of Tarfile
     """
 
-    return tarfile.open(name=path, mode=f"w:{compression}")
+    with tarfile.open(name=path, mode=f"w:{compression}") as t:
+        yield t
 
 
 async def _stream_package_base_to_db(
