@@ -134,32 +134,32 @@ def test_transform_databases(db: str, empty_dir: Path, empty_file: Path) -> None
 def test_transform_databases_and_use_with_pacman(empty_dir: Path) -> None:
     dbs = ["core", "extra", "community"]
     json_paths: Dict[str, Path] = {}
-    pacman_path = Path(empty_dir / Path("pacman"))
+    pacman_path = empty_dir / "pacman"
     pacman_path.mkdir(parents=True)
-    db_path = Path(empty_dir / Path("pacman/db_path"))
+    db_path = empty_dir / "pacman/db_path"
     db_path.mkdir(parents=True)
-    sync_path = Path(empty_dir / Path("pacman/db_path/sync"))
+    sync_path = empty_dir / "pacman/db_path/sync"
     sync_path.mkdir(parents=True)
-    cache_path = Path(empty_dir / Path("pacman/cache_path"))
+    cache_path = empty_dir / "pacman/cache_path"
     cache_path.mkdir(parents=True)
     for db in dbs:
-        json_path = Path(empty_dir / Path(db))
+        json_path = empty_dir / db
         json_path.mkdir()
         json_paths[db] = json_path
 
     for (name, json_path) in json_paths.items():
         commands.run_command(
-            cmd=["db2json", f"/var/lib/pacman/sync/{name}.files", json_path.as_posix()],
+            cmd=["db2json", f"/var/lib/pacman/sync/{name}.files", str(json_path)],
             debug=True,
             check=True,
         )
         commands.run_command(
-            cmd=["json2db", json_path.as_posix(), f"{sync_path.as_posix()}/{name}.db"],
+            cmd=["json2db", str(json_path), f"{sync_path}/{name}.db"],
             debug=True,
             check=True,
         )
         commands.run_command(
-            cmd=["json2db", "-f", json_path.as_posix(), f"{sync_path.as_posix()}/{name}.files"],
+            cmd=["json2db", "-f", str(json_path), f"{sync_path}/{name}.files"],
             debug=True,
             check=True,
         )
@@ -168,11 +168,11 @@ def test_transform_databases_and_use_with_pacman(empty_dir: Path) -> None:
         cmd=[
             "pacman",
             "--cache",
-            cache_path.as_posix(),
+            str(cache_path),
             "--logfile",
-            f"{pacman_path.as_posix()}/pacman.log",
+            f"{pacman_path}/pacman.log",
             "--dbpath",
-            db_path.as_posix(),
+            str(db_path),
             "-Ss",
             "linux",
         ],
@@ -183,11 +183,11 @@ def test_transform_databases_and_use_with_pacman(empty_dir: Path) -> None:
         cmd=[
             "pacman",
             "--cache",
-            cache_path.as_posix(),
+            str(cache_path),
             "--logfile",
-            f"{pacman_path.as_posix()}/pacman.log",
+            f"{pacman_path}/pacman.log",
             "--dbpath",
-            db_path.as_posix(),
+            str(db_path),
             "-Fl",
             "linux",
         ],
