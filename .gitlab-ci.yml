@@ -22,7 +22,7 @@ linter:
 coverage:
   extends: .test
   script:
-    - tox -e py39,coverage
+    - tox -e coverage
 
 integration:
   extends: .test
