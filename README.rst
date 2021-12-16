@@ -376,13 +376,13 @@ The tests should be able to cover use-case in which a couple of thousand
 operations can be mocked in sequence to track and measure the eventual required
 turnaround time of each approach.
 
-.. _pkgbase: https://jlk.fjfi.cvut.cz/arch/manpages/man/core/pacman/PKGBUILD.5.en#PACKAGE_SPLITTING
-.. _PKGBUILD: https://jlk.fjfi.cvut.cz/arch/manpages/man/core/pacman/PKGBUILD.5.en
-.. _git-subtree: https://jlk.fjfi.cvut.cz/arch/manpages/man/extra/git/git-subtree.1.en
-.. _git-read-tree: https://jlk.fjfi.cvut.cz/arch/manpages/man/extra/git/git-read-tree.1.en
-.. _git-submodule: https://jlk.fjfi.cvut.cz/arch/manpages/man/extra/git/git-submodule.1.en
-.. _.gitmodules: https://jlk.fjfi.cvut.cz/arch/manpages/man/extra/git/gitmodules.5.en
-.. _git-mv: https://jlk.fjfi.cvut.cz/arch/manpages/man/extra/git/git-mv.1.en
-.. _git-log: https://jlk.fjfi.cvut.cz/arch/manpages/man/extra/git/git-log.1.en
-.. _architecture: https://jlk.fjfi.cvut.cz/arch/manpages/man/core/pacman/PKGBUILD.5.en#OPTIONS_AND_DIRECTIVES
+.. _pkgbase: https://man.archlinux.org/man/pacman/PKGBUILD.5.en#PACKAGE_SPLITTING
+.. _PKGBUILD: https://man.archlinux.org/man/pacman/PKGBUILD.5.en
+.. _git-subtree: https://man.archlinux.org/man/git/git-subtree.1.en
+.. _git-read-tree: https://man.archlinux.org/man/git/git-read-tree.1.en
+.. _git-submodule: https://man.archlinux.org/man/git/git-submodule.1.en
+.. _.gitmodules: https://man.archlinux.org/man/git/gitmodules.5.en
+.. _git-mv: https://man.archlinux.org/man/git/git-mv.1.en
+.. _git-log: https://man.archlinux.org/man/git/git-log.1.en
+.. _architecture: https://man.archlinux.org/man/pacman/PKGBUILD.5.en#OPTIONS_AND_DIRECTIVES
 
