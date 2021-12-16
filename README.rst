@@ -362,20 +362,6 @@ Tasks
 - **DONE** For testing purposes, code to convert a `foo.db.tar.gz` into JSON - alad
 - Rewrite devtools' commitpkg to use git instead of svn
 
-Unit Tests
-==========
-
-All submitted code should have 100% unit test coverage and be documented.
-
-Integration Tests
-=================
-
-The different repository layout approaches need to be mockable, by creating
-fixtures from scratch in a test run (for reproducibility).
-The tests should be able to cover use-case in which a couple of thousand
-operations can be mocked in sequence to track and measure the eventual required
-turnaround time of each approach.
-
 .. _pkgbase: https://man.archlinux.org/man/pacman/PKGBUILD.5.en#PACKAGE_SPLITTING
 .. _PKGBUILD: https://man.archlinux.org/man/pacman/PKGBUILD.5.en
 .. _git-subtree: https://man.archlinux.org/man/git/git-subtree.1.en
