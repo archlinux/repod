@@ -121,7 +121,7 @@ async def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
 
         if line in defaults.DESC_JSON.keys():
             current_header = str(defaults.DESC_JSON[line]["name"])
-            current_type = defaults.FieldType(defaults.DESC_JSON[line]["type"])
+            current_type = defaults.FieldType(int(defaults.DESC_JSON[line]["type"]))
             continue
 
         if current_header:

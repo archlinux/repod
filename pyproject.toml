@@ -12,8 +12,8 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-pyalpm = {git = "https://gitlab.archlinux.org/archlinux/pyalpm", rev = "8985cce6a0aea7bdc0ac7f634c4a922875f44883"}
+python = "^3.10"
+pyalpm = "^0.10.6"
 pydantic = "^1.8.1"
 orjson = "^3.5.1"
 Jinja2 = "^2.11.3"
@@ -22,15 +22,15 @@ aiofiles = "^0.6.0"
 toml = "^0.10.2"
 
 [tool.poetry.dev-dependencies]
-tox = "^3.23.0"
+tox = "^3.24.0"
 pytest = "^6.2.2"
-isort = "^5.7.0"
-mypy = "^0.812"
-flake8 = "^3.8.4"
-black = "^20.8b1"
-coverage = "^5.5"
+isort = "^5.10.0"
+mypy = "^0.910"
+flake8 = "^4.0.0"
+black = "^21.12b0"
+coverage = "^6.1"
 mock = "^4.0.3"
-pytest-asyncio = "^0.14.0"
+pytest-asyncio = "^0.16.0"
 
 [tool.poetry.scripts]
 db2json = "repo_management.cli:db2json"
@@ -79,6 +79,24 @@ omit = ["tests/*", ".tox/*", "db-write/*", "db2json/*", "dbscripts/*"]
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[tool.mypy]
+ignore_missing_imports = true
+follow_imports = "silent"
+follow_imports_for_stubs = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = true
+warn_incomplete_stub = true
+warn_redundant_casts = true
+warn_unused_configs = true
+no_implicit_optional = true
+warn_unreachable = true
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
