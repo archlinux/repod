@@ -58,18 +58,17 @@ The below features are defined in the scope of this project.
   - [x] Describe staging and testing repositories for each stable repository
   - [x] Allow global default and per repository override of settings
 
-- [ ] Documented example of configuration file
-- [ ] Handle state of binary repository database in the context of a VCS management repository
-- [ ] Handle binary package files and signatures in the context of package pool and repository directories
-- [ ] Handle stable locations of binary package files depending on (remote) package source location
-- [ ] Add package to binary repository as atomic and revertable action
-- [ ] Verify binary package file signature against predefined PGP keyring
-- [ ] Remove package from binary repository as atomic and revertable action
-- [ ] Move binary package file between repositories as atomic and revertable action
-- [ ] Move set of binary package files between repositories as atomic and revertable action
-- [ ] API for accepting package files and signatures
-- [ ] Systemd service running a service
-- [ ] Sign binary repository database (locally and/ or with the help of a remote signing service)
+- [ ] Documented example of configuration file `#27 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/27>`_
+- [ ] Handle state of binary repository database in the context of a VCS management repository `#12 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/12>`_
+- [ ] Handle stable locations of binary package files depending on (remote) package source location `#25 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/25>`_
+- [ ] Access Control List for packagers `#26 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/26>`_
+- [ ] Package actions in binary repository/pool as atomic and revertable action `#14 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/14>`_
+- [ ] Verify binary package file signature against predefined PGP keyring `#28 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/28>`_
+- [ ] Package group actions in binary repositories as atomic and revertable action `#30 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/30>`_
+- [ ] API for accepting package files and signatures `#31 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/31>`_
+- [ ] Systemd service running a service `#33 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/33>`_
+- [ ] Create client application for packagers `#34 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/34>`_
+- [ ] Sign binary repository database (locally and/ or with the help of a remote signing service) `#32 <https://gitlab.archlinux.org/archlinux/arch-repo-management/-/issues/32>`_
 
 Installation
 ============
