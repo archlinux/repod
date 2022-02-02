@@ -2,7 +2,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import toml
+import tomli
 from pydantic import BaseSettings, root_validator, validator
 from pydantic.env_settings import SettingsSourceCallable
 
@@ -107,8 +107,9 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
     if defaults.SETTINGS_OVERRIDE_LOCATION.exists():
         config_files += sorted(defaults.SETTINGS_OVERRIDE_LOCATION.glob("*.toml"))
 
-    if config_files:
-        output_dict = toml.load(config_files)  # type: ignore
+    for config_file in config_files:
+        with open(config_file, "rb") as file:
+            output_dict | tomli.load(file)
     return output_dict
 
 

@@ -3,7 +3,7 @@ import tempfile
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterator, Tuple
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from pytest import fixture, raises
 
@@ -30,7 +30,7 @@ def empty_toml_file() -> Iterator[Path]:
     yield Path(toml_file)
 
 
-@patch("toml.load", return_value={})
+@patch("tomli.load", return_value={})
 def test_read_toml_configuration_settings(
     toml_load_mock: Mock,
     empty_toml_file: Path,
@@ -40,7 +40,7 @@ def test_read_toml_configuration_settings(
         config.read_toml_configuration_settings(Mock())
         with patch("repo_management.defaults.SETTINGS_OVERRIDE_LOCATION", empty_toml_files_in_dir):
             config.read_toml_configuration_settings(Mock())
-            toml_load_mock.assert_called_with([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml")))
+            toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
 
 
 @fixture(
