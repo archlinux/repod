@@ -3,8 +3,8 @@ import tempfile
 from argparse import ArgumentTypeError, Namespace
 from pathlib import Path
 from typing import Dict, Iterator
+from unittest.mock import Mock, patch
 
-from mock import Mock, patch
 from pytest import fixture, mark
 
 from repo_management import cli, commands, defaults, errors

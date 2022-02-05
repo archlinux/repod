@@ -1,6 +1,6 @@
 import argparse
+from unittest.mock import Mock, patch
 
-from mock import Mock, patch
 from pytest import raises
 
 from repo_management import argparse as repo_argparse
