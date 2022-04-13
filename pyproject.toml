@@ -23,7 +23,7 @@ tomli = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 tox = "^3.24.5"
-pytest = "^6.2.5"
+pytest = "^7.0.0"
 isort = "^5.10.0"
 mypy = "^0.942"
 flake8 = "^4.0.1"
