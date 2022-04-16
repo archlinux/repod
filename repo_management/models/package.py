@@ -25,13 +25,14 @@ from .common import (
     PgpSig,
     Provides,
     Replaces,
+    SchemaVersionV1,
     Sha256Sum,
     Url,
     Version,
 )
 
 
-class OutputPackage(
+class OutputPackageV1(
     Arch,
     Backup,
     BuildDate,
@@ -51,10 +52,11 @@ class OutputPackage(
     PgpSig,
     Provides,
     Replaces,
+    SchemaVersionV1,
     Sha256Sum,
     Url,
 ):
-    """A model describing all required attributes that define a package in the context of an output file
+    """A model describing all required attributes that define a package in the context of an output file (version 1)
 
     Attributes
     ----------
@@ -115,6 +117,8 @@ class OutputPackage(
     replaces: Optional[List[str]]
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
+    schema_version: PositiveInt
+        A positive integer - 1 - identifying the schema version of the object
     sha256sum: str
         The attribute can be used to describe the (required) data below an %SHA256SUM% identifier in a 'desc' file,
         which identifies a package's sha256 checksum
@@ -126,14 +130,15 @@ class OutputPackage(
     pass
 
 
-class OutputPackageBase(
+class OutputPackageBaseV1(
     Base,
     MakeDepends,
     Packager,
+    SchemaVersionV1,
     Version,
 ):
     """A model describing all required attributes for an output file, that describes a list of packages based upon a
-    pkgbase
+    pkgbase (version 1)
 
     Attributes
     ----------
@@ -146,27 +151,29 @@ class OutputPackageBase(
     packager: str
         The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
         identifies a package's packager
-    packages: List[OutputPackage]
-        A list of OutputPackage instances that belong to the pkgbase identified by base
+    packages: List[OutputPackageV1]
+        A list of OutputPackageV1 instances that belong to the pkgbase identified by base
+    schema_version: PositiveInt
+        A positive integer - 1 - identifying the schema version of the object
     version: str
         The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
 
-    packages: List[OutputPackage]
+    packages: List[OutputPackageV1]
 
-    async def get_packages_as_models(self) -> List[Tuple[PackageDesc, Files]]:
-        """Return the list of packages as tuples of PackageDesc and Files models
+    async def get_packages_as_models(self) -> List[Tuple[PackageDescV1, Files]]:
+        """Return the list of packages as tuples of PackageDescV1 and Files models
 
         Returns
         -------
-        List[Tuple[PackageDesc, Files]]
-            A list of tuples with one PackageDesc and one Files each
+        List[Tuple[PackageDescV1, Files]]
+            A list of tuples with one PackageDescV1 and one Files each
         """
 
         return [
             (
-                PackageDesc(
+                PackageDescV1(
                     arch=package.arch,
                     backup=package.backup,
                     base=self.base,
@@ -198,7 +205,7 @@ class OutputPackageBase(
         ]
 
 
-class PackageDesc(
+class PackageDescV1(
     Arch,
     Backup,
     Base,
@@ -220,11 +227,12 @@ class PackageDesc(
     PgpSig,
     Provides,
     Replaces,
+    SchemaVersionV1,
     Sha256Sum,
     Url,
     Version,
 ):
-    """A model describing all identifiers in a 'desc' file
+    """A model describing all identifiers in a 'desc' file (version 1)
 
     Attributes
     ----------
@@ -291,6 +299,8 @@ class PackageDesc(
     replaces: Optional[List[str]]
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
+    schema_version: PositiveInt
+        A positive integer - 1 - identifying the schema version of the object
     sha256sum: str
         The attribute can be used to describe the (required) data below an %SHA256SUM% identifier in a 'desc' file,
         which identifies a package's sha256 checksum
@@ -302,8 +312,8 @@ class PackageDesc(
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
 
-    def get_output_package(self, files: Optional[Files]) -> OutputPackage:
-        """Transform the PackageDesc model and an optional Files model into an OutputPackage model
+    def get_output_package(self, files: Optional[Files]) -> OutputPackageV1:
+        """Transform the PackageDescV1 model and an optional Files model into an OutputPackageV1 model
 
         Parameters
         ----------
@@ -312,7 +322,7 @@ class PackageDesc(
 
         Returns
         -------
-        OutputPackage
+        OutputPackageV1
             A pydantic model, that describes a package and its list of files
         """
 
@@ -323,6 +333,6 @@ class PackageDesc(
                 del desc_dict[name]
 
         if files:
-            return OutputPackage(**desc_dict, **files.dict())
+            return OutputPackageV1(**desc_dict, **files.dict())
         else:
-            return OutputPackage(**desc_dict)
+            return OutputPackageV1(**desc_dict)

@@ -7,5 +7,5 @@ from .config import (  # noqa: F401
     PackageRepo,
     SourcePool,
 )
-from .package import OutputPackage, OutputPackageBase, PackageDesc  # noqa: F401
+from .package import OutputPackageBaseV1, OutputPackageV1, PackageDescV1  # noqa: F401
 from .repo import RepoDbMemberData, RepoDbMemberType  # noqa: F401

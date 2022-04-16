@@ -21,7 +21,7 @@ def empty_dir() -> Iterator[Path]:
     "output_package, package_desc, files",
     [
         (
-            models.OutputPackage(
+            models.OutputPackageV1(
                 arch="foo",
                 builddate=1,
                 csize=1,
@@ -36,7 +36,7 @@ def empty_dir() -> Iterator[Path]:
                 sha256sum="foo",
                 url="foo",
             ),
-            models.PackageDesc(
+            models.PackageDescV1(
                 arch="foo",
                 base="foo",
                 builddate=1,
@@ -56,7 +56,7 @@ def empty_dir() -> Iterator[Path]:
             models.Files(files=["foo", "bar"]),
         ),
         (
-            models.OutputPackage(
+            models.OutputPackageV1(
                 arch="foo",
                 builddate=1,
                 csize=1,
@@ -70,7 +70,7 @@ def empty_dir() -> Iterator[Path]:
                 sha256sum="foo",
                 url="foo",
             ),
-            models.PackageDesc(
+            models.PackageDescV1(
                 arch="foo",
                 base="foo",
                 builddate=1,
@@ -92,8 +92,8 @@ def empty_dir() -> Iterator[Path]:
     ],
 )
 def test_package_desc_get_output_package(
-    output_package: models.OutputPackage,
-    package_desc: models.PackageDesc,
+    output_package: models.OutputPackageV1,
+    package_desc: models.PackageDescV1,
     files: Optional[models.Files],
 ) -> None:
     assert output_package == package_desc.get_output_package(files)
@@ -105,7 +105,7 @@ def test_package_desc_get_output_package(
         (
             [
                 (
-                    models.PackageDesc(
+                    models.PackageDescV1(
                         arch="foo",
                         base="foo",
                         builddate=1,
@@ -125,12 +125,12 @@ def test_package_desc_get_output_package(
                     models.Files(files=["foo", "bar"]),
                 ),
             ],
-            models.OutputPackageBase(
+            models.OutputPackageBaseV1(
                 base="foo",
                 packager="foo",
                 version="foo",
                 packages=[
-                    models.OutputPackage(
+                    models.OutputPackageV1(
                         arch="foo",
                         builddate=1,
                         csize=1,
@@ -152,8 +152,8 @@ def test_package_desc_get_output_package(
 )
 @mark.asyncio
 async def test_output_package_base_get_packages_as_models(
-    models_list: List[Tuple[models.PackageDesc, models.Files]],
-    output_package_base: models.OutputPackageBase,
+    models_list: List[Tuple[models.PackageDescV1, models.Files]],
+    output_package_base: models.OutputPackageBaseV1,
 ) -> None:
     assert models_list == await output_package_base.get_packages_as_models()
 

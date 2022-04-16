@@ -38,12 +38,12 @@ def create_empty_json_files(path: py.path.local) -> None:
 
 def create_json_files(path: py.path.local) -> None:
     for name in ["foo", "bar", "baz"]:
-        model = models.OutputPackageBase(
+        model = models.OutputPackageBaseV1(
             base=name,
             packager="someone",
             version="1.0.0-1",
             packages=[
-                models.OutputPackage(
+                models.OutputPackageV1(
                     arch="foo",
                     builddate=1,
                     csize=0,

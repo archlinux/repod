@@ -10,9 +10,9 @@ from repo_management import convert, defaults, files, models
 
 async def db_file_as_models(
     db_path: Path, compression: str = "gz"
-) -> AsyncIterator[Tuple[str, models.OutputPackageBase]]:
+) -> AsyncIterator[Tuple[str, models.OutputPackageBaseV1]]:
     """Read a repository database and yield the name of each pkgbase and the respective data (represented as an instance
-    of models.OutputPackageBase) in a Tuple.
+    of models.OutputPackageBaseV1) in a Tuple.
 
     Parameters
     ----------
@@ -24,12 +24,12 @@ async def db_file_as_models(
 
     Returns
     -------
-    Iterator[Tuple[str, models.OutputPackageBase]]:
-        A Tuple holding the name of a pkgbase and its accompanying data in an instance of models.OutputPackageBase
+    Iterator[Tuple[str, models.OutputPackageBaseV1]]:
+        A Tuple holding the name of a pkgbase and its accompanying data in an instance of models.OutputPackageBaseV1
     """
 
-    packages: Dict[str, models.OutputPackageBase] = {}
-    package_descs: Dict[str, models.PackageDesc] = {}
+    packages: Dict[str, models.OutputPackageBaseV1] = {}
+    package_descs: Dict[str, models.PackageDescV1] = {}
     package_files: Dict[str, models.Files] = {}
     async for member in files._db_file_member_as_model(  # pragma: no cover
         db_file=await files._read_db_file(db_path=db_path, compression=compression)
@@ -45,7 +45,7 @@ async def db_file_as_models(
         else:
             packages.update(
                 {
-                    package_desc.base: models.OutputPackageBase(
+                    package_desc.base: models.OutputPackageBaseV1(
                         base=package_desc.base,
                         makedepends=package_desc.makedepends,
                         packager=package_desc.packager,

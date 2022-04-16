@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from pyalpm import vercmp
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, PositiveInt, validator
 
 
 class Arch(BaseModel):
@@ -316,6 +316,18 @@ class Replaces(BaseModel):
     """
 
     replaces: Optional[List[str]]
+
+
+class SchemaVersionV1(BaseModel):
+    """A model describing a schema version 1
+
+    Attributes
+    ----------
+    schema_version: PositiveInt
+        A schema version - 1 - for a model
+    """
+
+    schema_version: PositiveInt = 1
 
 
 class Sha256Sum(BaseModel):

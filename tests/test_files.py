@@ -138,12 +138,12 @@ async def test__write_db_file(empty_dir: Path) -> None:
     "model, db_type",
     [
         (
-            models.OutputPackageBase(
+            models.OutputPackageBaseV1(
                 base="foo",
                 packager="foobar",
                 version="1.0.0-1",
                 packages=[
-                    models.OutputPackage(
+                    models.OutputPackageV1(
                         arch="foo",
                         builddate=1,
                         csize=1,
@@ -163,12 +163,12 @@ async def test__write_db_file(empty_dir: Path) -> None:
             defaults.RepoDbType.DEFAULT,
         ),
         (
-            models.OutputPackageBase(
+            models.OutputPackageBaseV1(
                 base="foo",
                 packager="foobar",
                 version="1.0.0-1",
                 packages=[
-                    models.OutputPackage(
+                    models.OutputPackageV1(
                         arch="foo",
                         builddate=1,
                         csize=1,
@@ -191,7 +191,7 @@ async def test__write_db_file(empty_dir: Path) -> None:
 )
 @mark.asyncio
 async def test__stream_package_base_to_db(
-    model: models.OutputPackageBase,
+    model: models.OutputPackageBaseV1,
     db_type: defaults.RepoDbType,
     empty_file: Path,
 ) -> None:

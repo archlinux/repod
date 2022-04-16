@@ -88,7 +88,7 @@ async def _desc_data_line_to_dicts(
         int_types[current_header] = int(line)
 
 
-async def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
+async def _desc_data_to_model(data: io.StringIO) -> models.PackageDescV1:
     """Read the contents of a 'desc' file (represented as an instance of io.StringIO) and convert it to a pydantic model
 
     Parameters
@@ -104,7 +104,7 @@ async def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
 
     Returns
     -------
-    models.PackageDesc
+    models.PackageDescV1
         A pydantic model, representing a package
     """
 
@@ -141,7 +141,7 @@ async def _desc_data_to_model(data: io.StringIO) -> models.PackageDesc:
 
     merged_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
     try:
-        return models.PackageDesc(**merged_dict)
+        return models.PackageDescV1(**merged_dict)
     except ValidationError as e:
         raise errors.RepoManagementValidationError(
             f"A validation error occured while creating the file:\n\n{data.getvalue()}\n{e}"
@@ -175,18 +175,20 @@ class RepoDbFile:
             autoescape=True,
         )
 
-    async def render_desc_template(self, model: models.PackageDesc, output: io.StringIO) -> None:
-        """Use the 'desc' template to write a string to an output stream based on a model
+    async def render_desc_template(self, model: models.PackageDescV1, output: io.StringIO) -> None:
+        """Use the 'desc_v*' template to write a string to an output stream based on a model
+
+        The specific desc template is chosen based upon the model's schema_version attribute.
 
         Parameters
         ----------
-        model: models.PackageDesc
+        model: models.PackageDescV1
             A pydantic model with the required attributes to properly render a template for a 'desc' file
         output: io.StringIO
             An output stream to write to
         """
 
-        template = self.env.get_template("desc.j2")
+        template = self.env.get_template(f"desc_v{model.schema_version}.j2")
         output.write(await template.render_async(model.dict()))
 
     async def render_files_template(self, model: models.Files, output: io.StringIO) -> None:

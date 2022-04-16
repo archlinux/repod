@@ -120,7 +120,7 @@ async def test_repodbfile_render_desc_template() -> None:
     output = io.StringIO()
     assert not output.getvalue()
     await repodbfile.render_desc_template(
-        model=models.PackageDesc(
+        model=models.PackageDescV1(
             arch="foo",
             base="foo",
             builddate=1,
