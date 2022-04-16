@@ -169,7 +169,7 @@ async def test_output_package_base_get_packages_as_models(
 )
 def test_name(name: str, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert name == models.Name(name=name).name
+        assert name == models.common.Name(name=name).name
 
 
 @mark.parametrize(
@@ -181,7 +181,7 @@ def test_name(name: str, expectation: ContextManager[str]) -> None:
 )
 def test_builddate(builddate: int, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert builddate == models.BuildDate(builddate=builddate).builddate
+        assert builddate == models.common.BuildDate(builddate=builddate).builddate
 
 
 @mark.parametrize(
@@ -193,7 +193,7 @@ def test_builddate(builddate: int, expectation: ContextManager[str]) -> None:
 )
 def test_csize(csize: int, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert csize == models.CSize(csize=csize).csize
+        assert csize == models.common.CSize(csize=csize).csize
 
 
 @mark.parametrize(
@@ -205,7 +205,7 @@ def test_csize(csize: int, expectation: ContextManager[str]) -> None:
 )
 def test_isize(isize: int, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert isize == models.ISize(isize=isize).isize
+        assert isize == models.common.ISize(isize=isize).isize
 
 
 @mark.parametrize(
@@ -225,7 +225,7 @@ def test_isize(isize: int, expectation: ContextManager[str]) -> None:
 )
 def test_version_version_is_valid(version: str, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert version == models.Version(version=version).version
+        assert version == models.common.Version(version=version).version
 
 
 @mark.parametrize(
@@ -236,7 +236,7 @@ def test_version_version_is_valid(version: str, expectation: ContextManager[str]
     ],
 )
 def test_version_is_older_than(version: str, other_version: str, expectation: bool) -> None:
-    model = models.Version(version=version)
+    model = models.common.Version(version=version)
     assert model.is_older_than(other_version) is expectation
 
 
@@ -248,7 +248,7 @@ def test_version_is_older_than(version: str, other_version: str, expectation: bo
     ],
 )
 def test_version_is_newer_than(version: str, other_version: str, expectation: bool) -> None:
-    model = models.Version(version=version)
+    model = models.common.Version(version=version)
     assert model.is_newer_than(other_version) is expectation
 
 
@@ -285,9 +285,9 @@ def test_mangement_repo(
     "os.access",
     Mock(side_effect=[False, False, True, True]),
 )
-@patch("repo_management.models.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
-@patch("repo_management.models.Path.is_dir", Mock(side_effect=[False, True, True]))
-@patch("repo_management.models.Path.parent", return_value=Mock())
+@patch("repo_management.models.config.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
+@patch("repo_management.models.config.Path.is_dir", Mock(side_effect=[False, True, True]))
+@patch("repo_management.models.config.Path.parent", return_value=Mock())
 def test_directory_validate_directory(parent_mock: Mock) -> None:
     parent_mock.exists.side_effect = [False, True, True, True]
     parent_mock.is_dir.side_effect = [False, True, True]
