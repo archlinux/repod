@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 from jinja2 import Environment, PackageLoader
 from pydantic.error_wrappers import ValidationError
 
-from repo_management import defaults, errors, models
+from repo_management import errors, models
 
 
 async def _files_data_to_model(data: io.StringIO) -> models.Files:
@@ -29,16 +29,16 @@ async def _files_data_to_model(data: io.StringIO) -> models.Files:
         A pydantic model representing the list of files of a package
     """
 
-    name = str(defaults.FILES_JSON["%FILES%"]["name"])
+    name = models.get_files_json_name("%FILES%")
     output: Dict[str, List[str]] = {name: []}
     line_counter = 0
 
     for line in data:
         line = line.strip()
-        if line_counter == 0 and line not in defaults.FILES_JSON.keys():
+        if line_counter == 0 and line not in models.get_files_json_keys():
             data.close()
             raise RuntimeError(f"The 'files' data misses its header: '{line}' was provided.")
-        if line_counter > 0 and line not in defaults.FILES_JSON.keys() and line:
+        if line_counter > 0 and line not in models.get_files_json_keys() and line:
             output[name] += [line]
         line_counter += 1
 
@@ -48,7 +48,7 @@ async def _files_data_to_model(data: io.StringIO) -> models.Files:
 
 async def _desc_data_line_to_dicts(
     current_header: str,
-    current_type: defaults.FieldType,
+    current_type: models.FieldTypeEnum,
     line: str,
     string_list_types: Dict[str, List[str]],
     string_types: Dict[str, str],
@@ -77,14 +77,14 @@ async def _desc_data_line_to_dicts(
         If a string is provided for a field of type int, that can not be cast to type int
     """
 
-    if current_type == defaults.FieldType.STRING_LIST:
+    if current_type == models.FieldTypeEnum.STRING_LIST:
         if current_header in string_list_types.keys():
             string_list_types[current_header] += [line]
         else:
             string_list_types[current_header] = [line]
-    if current_type == defaults.FieldType.STRING:
+    if current_type == models.FieldTypeEnum.STRING:
         string_types[current_header] = line
-    if current_type == defaults.FieldType.INT:
+    if current_type == models.FieldTypeEnum.INT:
         int_types[current_header] = int(line)
 
 
@@ -109,7 +109,7 @@ async def _desc_data_to_model(data: io.StringIO) -> models.PackageDescV1:
     """
 
     current_header = ""
-    current_type: defaults.FieldType
+    current_type: models.FieldTypeEnum
     int_types: Dict[str, int] = {}
     string_types: Dict[str, str] = {}
     string_list_types: Dict[str, List[str]] = {}
@@ -119,9 +119,9 @@ async def _desc_data_to_model(data: io.StringIO) -> models.PackageDescV1:
         if not line:
             continue
 
-        if line in defaults.DESC_JSON.keys():
-            current_header = str(defaults.DESC_JSON[line]["name"])
-            current_type = defaults.FieldType(int(defaults.DESC_JSON[line]["type"]))
+        if line in models.get_desc_json_keys():
+            current_header = models.get_desc_json_name(key=line)
+            current_type = models.get_desc_json_field_type(line)
             continue
 
         if current_header:

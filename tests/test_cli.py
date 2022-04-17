@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 from pytest import fixture, mark
 
-from repo_management import cli, commands, defaults, errors
+from repo_management import cli, commands, errors, models
 
 
 @fixture(scope="function")
@@ -62,12 +62,12 @@ def test_db2json(
 @mark.parametrize(
     "files, db_type, fail_argparse, fail_create",
     [
-        (True, defaults.RepoDbType.FILES, False, False),
-        (False, defaults.RepoDbType.DEFAULT, False, False),
-        (True, defaults.RepoDbType.FILES, True, False),
-        (False, defaults.RepoDbType.DEFAULT, True, False),
-        (True, defaults.RepoDbType.FILES, False, True),
-        (False, defaults.RepoDbType.DEFAULT, False, True),
+        (True, models.RepoDbTypeEnum.FILES, False, False),
+        (False, models.RepoDbTypeEnum.DEFAULT, False, False),
+        (True, models.RepoDbTypeEnum.FILES, True, False),
+        (False, models.RepoDbTypeEnum.DEFAULT, True, False),
+        (True, models.RepoDbTypeEnum.FILES, False, True),
+        (False, models.RepoDbTypeEnum.DEFAULT, False, True),
     ],
 )
 @patch("repo_management.operations.create_db_from_json_files")
@@ -78,7 +78,7 @@ def test_json2db(
     argparsefactory_mock: Mock,
     create_db_from_json_files_mock: Mock,
     files: bool,
-    db_type: defaults.RepoDbType,
+    db_type: models.RepoDbTypeEnum,
     fail_argparse: bool,
     fail_create: bool,
 ) -> None:

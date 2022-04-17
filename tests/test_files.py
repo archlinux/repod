@@ -6,7 +6,7 @@ from pathlib import Path
 import py
 from pytest import fixture, mark, raises
 
-from repo_management import convert, defaults, errors, files, models
+from repo_management import convert, errors, files, models
 
 from .fixtures import create_db_file, create_empty_json_files
 
@@ -160,7 +160,7 @@ async def test__write_db_file(empty_dir: Path) -> None:
                     ),
                 ],
             ),
-            defaults.RepoDbType.DEFAULT,
+            models.RepoDbTypeEnum.DEFAULT,
         ),
         (
             models.OutputPackageBaseV1(
@@ -185,14 +185,14 @@ async def test__write_db_file(empty_dir: Path) -> None:
                     ),
                 ],
             ),
-            defaults.RepoDbType.FILES,
+            models.RepoDbTypeEnum.FILES,
         ),
     ],
 )
 @mark.asyncio
 async def test__stream_package_base_to_db(
     model: models.OutputPackageBaseV1,
-    db_type: defaults.RepoDbType,
+    db_type: models.RepoDbTypeEnum,
     empty_file: Path,
 ) -> None:
     with files._write_db_file(path=empty_file) as database:

@@ -5,7 +5,7 @@ from typing import AsyncIterator, Dict, Tuple
 import aiofiles
 import orjson
 
-from repo_management import convert, defaults, files, models
+from repo_management import convert, files, models
 
 
 async def db_file_as_models(
@@ -34,9 +34,9 @@ async def db_file_as_models(
     async for member in files._db_file_member_as_model(  # pragma: no cover
         db_file=await files._read_db_file(db_path=db_path, compression=compression)
     ):
-        if member.member_type == defaults.RepoDbMemberType.DESC:
+        if member.member_type == models.RepoDbMemberTypeEnum.DESC:
             package_descs.update({member.name: await convert._desc_data_to_model(member.data)})
-        if member.member_type == defaults.RepoDbMemberType.FILES:
+        if member.member_type == models.RepoDbMemberTypeEnum.FILES:
             package_files.update({member.name: await convert._files_data_to_model(member.data)})
 
     for (name, package_desc) in package_descs.items():
@@ -81,7 +81,7 @@ async def dump_db_to_json_files(input_path: Path, output_path: Path) -> None:
 
 
 async def create_db_from_json_files(
-    input_path: Path, output_path: Path, db_type: defaults.RepoDbType = defaults.RepoDbType.DEFAULT
+    input_path: Path, output_path: Path, db_type: models.RepoDbTypeEnum = models.RepoDbTypeEnum.DEFAULT
 ) -> None:
     """Create a repository database from a list of JSON files found in a directory
 
@@ -91,10 +91,10 @@ async def create_db_from_json_files(
         A directory from which to read JSON files
     output_path: Path
         A file to which to write a repository database
-    db_type: defaults.RepoDbType
-        A member of the defaults.RepoDbType IntEnum to define what type of repository database to create:
-        Either defaults.RepoDbType.DEFAULT for the default .db database or defaults.RepoDbType.FILES for the .files
-        database (defaults to defaults.RepoDbType.DEFAULT)
+    db_type: models.RepoDbTypeEnum
+        A member of models.RepoDbTypeEnum to define what type of repository database to create:
+        Either models.RepoDbTypeEnum.DEFAULT for the default .db database or models.RepoDbTypeEnum.FILES for the .files
+        database (defaults to models.RepoDbTypeEnum.DEFAULT)
     """
 
     repodbfile = convert.RepoDbFile()

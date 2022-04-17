@@ -64,7 +64,7 @@ async def _db_file_member_as_model(
     as instances of models.RepoDbMemberData
 
     The method filters the list of evaluated members using a regular expression. Depending on member name one of
-    defaults.RepoDbMemberType is chosen.
+    RepoDbMemberTypeEnum is chosen.
 
     Parameters
     ----------
@@ -76,11 +76,11 @@ async def _db_file_member_as_model(
     """
 
     for name in [name for name in db_file.getnames() if re.search(regex, name)]:
-        file_type = defaults.RepoDbMemberType.UNKNOWN
+        file_type = models.RepoDbMemberTypeEnum.UNKNOWN
         if re.search("(/desc)$", name):
-            file_type = defaults.RepoDbMemberType.DESC
+            file_type = models.RepoDbMemberTypeEnum.DESC
         if re.search("(/files)$", name):
-            file_type = defaults.RepoDbMemberType.FILES
+            file_type = models.RepoDbMemberTypeEnum.FILES
 
         yield models.RepoDbMemberData(
             member_type=file_type,
@@ -186,7 +186,7 @@ async def _stream_package_base_to_db(
     db: tarfile.TarFile,
     model: models.OutputPackageBaseV1,
     repodbfile: convert.RepoDbFile,
-    db_type: defaults.RepoDbType,
+    db_type: models.RepoDbTypeEnum,
 ) -> None:
     """Stream descriptor files for packages of a pkgbase to a repository database
 
@@ -198,7 +198,7 @@ async def _stream_package_base_to_db(
         The repository database to stream to
     model: models.OutputPackageBaseV1
         The model to use for streaming descriptor files to the repository database
-    db_type: defaults.RepoDbType
+    db_type: models.RepoDbTypeEnum
         The type of database to stream to
     """
 
@@ -221,7 +221,7 @@ async def _stream_package_base_to_db(
         desc_file.gname = defaults.DB_GROUP
         desc_file.mode = int(defaults.DB_FILE_MODE, base=8)
         db.addfile(desc_file, io.BytesIO(desc_content.getvalue().encode()))
-        if db_type == defaults.RepoDbType.FILES:
+        if db_type == models.RepoDbTypeEnum.FILES:
             files_content = io.StringIO()
             await repodbfile.render_files_template(model=files_model, output=files_content)
             files_file = tarfile.TarInfo(f"{dirname}/files")

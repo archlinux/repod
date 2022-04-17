@@ -7,7 +7,8 @@ from unittest.mock import Mock, patch
 
 from pytest import fixture, mark, raises
 
-from repo_management import defaults, models
+from repo_management import defaults, errors, models
+from repo_management.models.repo import DESC_JSON, FILES_JSON
 
 
 @fixture(scope="function")
@@ -374,3 +375,43 @@ def test_package_repo(
             if management_repo
             else None,
         )
+
+
+def test_get_desc_json_name() -> None:
+
+    for identifier in DESC_JSON.keys():
+        with does_not_raise():
+            assert models.get_desc_json_name(key=identifier) == DESC_JSON[identifier][0]
+
+    with raises(errors.RepoManagementFileError):
+        models.get_desc_json_name(key="%FOO%")
+
+
+def test_get_desc_json_field_type() -> None:
+
+    for identifier in DESC_JSON.keys():
+        with does_not_raise():
+            assert models.get_desc_json_field_type(key=identifier) == DESC_JSON[identifier][1]
+
+    with raises(errors.RepoManagementFileError):
+        models.get_desc_json_field_type(key="%FOO%")
+
+
+def test_get_files_json_name() -> None:
+
+    for identifier in FILES_JSON.keys():
+        with does_not_raise():
+            assert models.get_files_json_name(key=identifier) == FILES_JSON[identifier][0]
+
+    with raises(errors.RepoManagementFileError):
+        models.get_files_json_name(key="%FOO%")
+
+
+def test_get_files_json_field_type() -> None:
+
+    for identifier in FILES_JSON.keys():
+        with does_not_raise():
+            assert models.get_files_json_field_type(key=identifier) == FILES_JSON[identifier][1]
+
+    with raises(errors.RepoManagementFileError):
+        models.get_files_json_field_type(key="%FOO%")
