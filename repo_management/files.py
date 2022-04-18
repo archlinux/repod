@@ -87,7 +87,7 @@ async def _db_file_member_as_model(
             name=await _extract_db_member_package_name(name=name),
             data=io.StringIO(
                 io.BytesIO(
-                    db_file.extractfile(name).read(),  # type: ignore
+                    db_file.extractfile(name).read(),  # type: ignore[union-attr]
                 )
                 .read()
                 .decode("utf-8"),

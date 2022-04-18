@@ -220,12 +220,12 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
             The unmodified dict with all values of the Settings instance
         """
 
-        package_repo_base: Path = values.get("package_repo_base")  # type: ignore
-        source_repo_base: Path = values.get("source_repo_base")  # type: ignore
+        package_repo_base: Path = values.get("package_repo_base")  # type: ignore[assignment]
+        source_repo_base: Path = values.get("source_repo_base")  # type: ignore[assignment]
         for directory in [package_repo_base, source_repo_base]:
             models.Directory.validate_directory(directory=directory)
 
-        repositories: List[models.PackageRepo] = values.get("repositories")  # type: ignore
+        repositories: List[models.PackageRepo] = values.get("repositories")  # type: ignore[assignment]
         management_repo, package_pool, source_pool = (
             values.get("management_repo"),
             values.get("package_pool"),
@@ -467,7 +467,7 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
             The unmodified dict with all values of the Settings instance
         """
 
-        repositories: List[models.PackageRepo] = values.get("repositories")  # type: ignore
+        repositories: List[models.PackageRepo] = values.get("repositories")  # type: ignore[assignment]
         architecture, management_repo, package_pool, source_pool, package_repo_base = (
             values.get("architecture"),
             values.get("management_repo"),
@@ -477,12 +477,20 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
         )
 
         staging_dirs = [
-            (package_repo_base / repo.staging / Path(repo.architecture or architecture))  # type: ignore
+            (
+                package_repo_base  # type: ignore[operator]
+                / repo.staging
+                / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+            )
             for repo in repositories
             if repo.staging
         ]
         testing_dirs = [
-            (package_repo_base / repo.testing / Path(repo.architecture or architecture))  # type: ignore
+            (
+                package_repo_base  # type: ignore[operator]
+                / repo.testing
+                / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+            )
             for repo in repositories
             if repo.testing
         ]
@@ -505,7 +513,11 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
             if not repo.source_pool and not source_pool:
                 raise ValueError(f"The repository '{repo.name}' does not have a source pool associated with it.")
 
-            repo_dir = package_repo_base / repo.name / Path(repo.architecture or architecture)  # type: ignore
+            repo_dir = (
+                package_repo_base  # type: ignore[operator]
+                / repo.name
+                / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+            )
             _raise_on_path_in_list_of_paths(
                 path=repo_dir,
                 path_name="stable repository",
@@ -526,7 +538,11 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
             )
 
             if repo.staging:
-                staging_dir = package_repo_base / repo.staging / Path(repo.architecture or architecture)  # type: ignore
+                staging_dir = (
+                    package_repo_base  # type: ignore[operator]
+                    / repo.staging
+                    / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+                )
                 _raise_on_path_in_list_of_paths(
                     path=staging_dir,
                     path_name="the staging repository",
@@ -535,7 +551,11 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
                 )
 
             if repo.testing:
-                testing_dir = package_repo_base / repo.testing / Path(repo.architecture or architecture)  # type: ignore
+                testing_dir = (
+                    package_repo_base  # type: ignore[operator]
+                    / repo.testing
+                    / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+                )
                 _raise_on_path_in_list_of_paths(
                     path=testing_dir,
                     path_name="testing repository",
