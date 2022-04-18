@@ -34,10 +34,17 @@ async def db_file_as_models(
     async for member in files._db_file_member_as_model(  # pragma: no cover
         db_file=await files._read_db_file(db_path=db_path, compression=compression)
     ):
-        if member.member_type == models.RepoDbMemberTypeEnum.DESC:
-            package_descs.update({member.name: await convert._desc_data_to_model(member.data)})
-        if member.member_type == models.RepoDbMemberTypeEnum.FILES:
-            package_files.update({member.name: await convert._files_data_to_model(member.data)})
+        match member.member_type:
+            case models.RepoDbMemberTypeEnum.DESC:
+                desc_data: models.PackageDescV1 = await convert.file_data_to_model(  # type: ignore[assignment]
+                    data=member.data, data_type=member.member_type
+                )
+                package_descs.update({member.name: desc_data})
+            case models.RepoDbMemberTypeEnum.FILES:
+                files_data: models.Files = await convert.file_data_to_model(  # type: ignore[assignment]
+                    data=member.data, data_type=member.member_type
+                )
+                package_files.update({member.name: files_data})
 
     for (name, package_desc) in package_descs.items():
         if packages.get(package_desc.base):

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import ContextManager, Iterator, List, Optional, Tuple
 from unittest.mock import Mock, patch
 
+from pydantic import ValidationError
 from pytest import fixture, mark, raises
 
 from repo_management import defaults, errors, models
@@ -415,3 +416,17 @@ def test_get_files_json_field_type() -> None:
 
     with raises(errors.RepoManagementFileError):
         models.get_files_json_field_type(key="%FOO%")
+
+
+@mark.parametrize(
+    "file_list, expectation",
+    [
+        (None, does_not_raise()),
+        ([], does_not_raise()),
+        (["foo"], does_not_raise()),
+        (["home/foo"], raises(ValidationError)),
+    ],
+)
+def test_files(file_list: Optional[List[str]], expectation: ContextManager[str]) -> None:
+    with expectation:
+        models.Files(files=file_list)

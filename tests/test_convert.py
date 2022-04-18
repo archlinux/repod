@@ -11,26 +11,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
 
 
 @mark.parametrize(
-    "file_data, expectation",
-    [
-        ("%FILES%\nusr/\nusr/lib/\n", does_not_raise()),
-        ("%FILES%usr/\nusr/lib/\n", raises(RuntimeError)),
-        ("\n\n%FILES%usr/\nusr/lib/\n", raises(RuntimeError)),
-        ("usr/\nusr/lib/\n", raises(RuntimeError)),
-        ("usr/%FILES%\nusr/lib/\n", raises(RuntimeError)),
-    ],
-)
-@mark.asyncio
-async def test__files_data_to_model(
-    file_data: str,
-    expectation: ContextManager[str],
-) -> None:
-    with expectation:
-        assert await convert._files_data_to_model(data=io.StringIO(file_data))
-
-
-@mark.parametrize(
-    "file_data, expectation",
+    "file_data, data_type, expectation",
     [
         (
             (
@@ -43,6 +24,7 @@ async def test__files_data_to_model(
                 "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
                 "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
             ),
+            models.RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
@@ -56,6 +38,7 @@ async def test__files_data_to_model(
                 "%PGPSIG%\nfoo\n%PROVIDES%\n%REPLACES%\n"
                 "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
             ),
+            models.RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
@@ -69,6 +52,7 @@ async def test__files_data_to_model(
                 "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
                 "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
             ),
+            models.RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
@@ -82,9 +66,10 @@ async def test__files_data_to_model(
                 "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
                 "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
             ),
+            models.RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
-        ("%FOO%\nbar\n", raises(errors.RepoManagementValidationError)),
+        ("%FOO%\nbar\n", models.RepoDbMemberTypeEnum.DESC, raises(errors.RepoManagementValidationError)),
         (
             (
                 "%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
@@ -96,17 +81,25 @@ async def test__files_data_to_model(
                 "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
                 "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
             ),
+            models.RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
+        ("%FOO%\nbar\n", models.RepoDbMemberTypeEnum.UNKNOWN, raises(errors.RepoManagementFileError)),
+        ("%FILES%\nfoo\n", models.RepoDbMemberTypeEnum.FILES, does_not_raise()),
+        ("%FILES%\nhome/foo/bar\n", models.RepoDbMemberTypeEnum.FILES, raises(errors.RepoManagementValidationError)),
     ],
 )
 @mark.asyncio
-async def test__desc_data_to_model(
+async def test_file_data_to_model(
     file_data: str,
+    data_type: models.RepoDbMemberTypeEnum,
     expectation: ContextManager[str],
 ) -> None:
     with expectation:
-        assert await convert._desc_data_to_model(data=io.StringIO(file_data))
+        assert await convert.file_data_to_model(
+            data=io.StringIO(file_data),
+            data_type=data_type,
+        )
 
 
 def test_repodbfile__init() -> None:

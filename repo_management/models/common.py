@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional
 
 from pyalpm import vercmp
@@ -159,6 +160,15 @@ class Files(BaseModel):
     """
 
     files: Optional[List[str]]
+
+    @validator("files")
+    def validate_no_file_in_home(cls, files: List[str]) -> Optional[List[str]]:
+        if files:
+            for file in files:
+                if re.search("^(home/).+$", file):
+                    raise ValueError("A package must not provide files in /home")
+
+        return files
 
 
 class Groups(BaseModel):

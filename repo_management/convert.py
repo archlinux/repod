@@ -1,5 +1,5 @@
 import io
-from typing import Dict, List, Union
+from typing import Dict, List, Set, Union
 
 from jinja2 import Environment, PackageLoader
 from pydantic.error_wrappers import ValidationError
@@ -7,46 +7,7 @@ from pydantic.error_wrappers import ValidationError
 from repo_management import errors, models
 
 
-async def _files_data_to_model(data: io.StringIO) -> models.Files:
-    """Read the contents of a 'files' file (represented as an instance of
-    io.StringIO) and convert it to a pydantic model
-
-    Closes the io.StringIO upon error or before returning the dict
-
-    Parameters
-    ----------
-    data: io.StringIO
-        A buffered I/O that represents a 'files' file
-
-    Raises
-    ------
-    RuntimeError
-        If the 'files' file is missing its %FILES% header
-
-    Returns
-    -------
-    models.Files
-        A pydantic model representing the list of files of a package
-    """
-
-    name = models.get_files_json_name("%FILES%")
-    output: Dict[str, List[str]] = {name: []}
-    line_counter = 0
-
-    for line in data:
-        line = line.strip()
-        if line_counter == 0 and line not in models.get_files_json_keys():
-            data.close()
-            raise RuntimeError(f"The 'files' data misses its header: '{line}' was provided.")
-        if line_counter > 0 and line not in models.get_files_json_keys() and line:
-            output[name] += [line]
-        line_counter += 1
-
-    data.close()
-    return models.Files(**output)
-
-
-async def _desc_data_line_to_dicts(
+async def _file_data_line_to_dicts(
     current_header: str,
     current_type: models.FieldTypeEnum,
     line: str,
@@ -88,45 +49,69 @@ async def _desc_data_line_to_dicts(
         int_types[current_header] = int(line)
 
 
-async def _desc_data_to_model(data: io.StringIO) -> models.PackageDescV1:
-    """Read the contents of a 'desc' file (represented as an instance of io.StringIO) and convert it to a pydantic model
+async def file_data_to_model(
+    data: io.StringIO, data_type: models.RepoDbMemberTypeEnum
+) -> Union[models.Files, models.PackageDescV1]:
+    """Read the contents of a 'desc' or 'files' file (provided as io.StringIO) and convert it to a pydantic model
 
     Parameters
     ----------
     data: io.StringIO
         A buffered I/O that represents a 'desc' file
+    data_type: RepoDbMemberTypeEnum
+        An IntEnum specifying which type of data is converted (e.g. that of a 'desc' file or that of a 'files' file)
 
     Raises
     ------
+    errors.RepoManagementFileError
+        If an unknown file is attempted to be read
     errors.RepoManagementValidationError
         If a pydantic.error_wrappers.ValidationError is raised (e.g. due to a missing attribute) or if a ValueError is
         raised when converting data (e.g. when calling _desc_data_line_to_dicts())
 
     Returns
     -------
-    models.PackageDescV1
-        A pydantic model, representing a package
+    Union[models.PackageDescV1, models.Files]
+        A pydantic model, representing a 'desc' or a 'files' entry of a repository sync database
     """
 
     current_header = ""
     current_type: models.FieldTypeEnum
     int_types: Dict[str, int] = {}
+    keys: Set[str]
     string_types: Dict[str, str] = {}
     string_list_types: Dict[str, List[str]] = {}
+
+    match data_type:
+        case models.RepoDbMemberTypeEnum.DESC:
+            keys = models.get_desc_json_keys()
+        case models.RepoDbMemberTypeEnum.FILES:
+            keys = models.get_files_json_keys()
+        case _:
+            raise errors.RepoManagementFileError(
+                "Unknown file type encountered while attempting to read files from a repository sync database."
+            )
 
     for line in data:
         line = line.strip()
         if not line:
             continue
 
-        if line in models.get_desc_json_keys():
-            current_header = models.get_desc_json_name(key=line)
-            current_type = models.get_desc_json_field_type(line)
+        if line in keys:
+            match data_type:
+                case models.RepoDbMemberTypeEnum.DESC:
+                    current_header = models.get_desc_json_name(key=line)
+                    current_type = models.get_desc_json_field_type(line)
+                case models.RepoDbMemberTypeEnum.FILES:
+                    current_header = models.get_files_json_name(key=line)
+                    current_type = models.get_files_json_field_type(line)
+                case _:  # pragma: no cover
+                    pass
             continue
 
         if current_header:
             try:
-                await _desc_data_line_to_dicts(
+                await _file_data_line_to_dicts(
                     current_header=current_header,
                     current_type=current_type,
                     line=line,
@@ -136,16 +121,31 @@ async def _desc_data_to_model(data: io.StringIO) -> models.PackageDescV1:
                 )
             except ValueError as e:
                 raise errors.RepoManagementValidationError(
-                    f"A validation error occured while creating the file:\n\n{data.getvalue()}\n{e}"
+                    f"A validation error occured while reading the file:\n\n{data.getvalue()}\n{e}"
                 )
 
-    merged_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
-    try:
-        return models.PackageDescV1(**merged_dict)
-    except ValidationError as e:
-        raise errors.RepoManagementValidationError(
-            f"A validation error occured while creating the file:\n\n{data.getvalue()}\n{e}"
-        )
+    model: Union[models.PackageDescV1, models.Files]
+
+    match data_type:
+        case models.RepoDbMemberTypeEnum.DESC:
+            desc_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
+            try:
+                model = models.PackageDescV1(**desc_dict)
+            except ValidationError as e:
+                raise errors.RepoManagementValidationError(
+                    f"A validation error occured while reading the 'desc' file:\n\n{data.getvalue()}\n{e}"
+                )
+        case models.RepoDbMemberTypeEnum.FILES:
+            try:
+                model = models.Files(**string_list_types)
+            except ValidationError as e:
+                raise errors.RepoManagementValidationError(
+                    f"A validation error occured while reading the 'files' file:\n\n{data.getvalue()}\n{e}"
+                )
+        case _:  # pragma: no cover
+            pass
+
+    return model
 
 
 class RepoDbFile:
