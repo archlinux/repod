@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+import logging
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+from pydantic import BaseModel, ValidationError
+
+from repo_management import errors
 
 from .common import (
     Arch,
@@ -12,8 +17,8 @@ from .common import (
     CSize,
     Depends,
     Desc,
+    FileList,
     FileName,
-    Files,
     Groups,
     ISize,
     License,
@@ -31,8 +36,183 @@ from .common import (
     Version,
 )
 
+FILES_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
+    1: {
+        "required": {
+            "files",
+        },
+        "optional": set(),
+    },
+}
+OUTPUT_PACKAGE_BASE_VERSIONS: Dict[int, Dict[str, Union[int, Set[str]]]] = {
+    1: {
+        "required": {
+            "base",
+            "makedepends",
+            "packager",
+            "packages",
+            "version",
+        },
+        "files_version": 1,
+        "output_package_version": 1,
+        "package_desc_version": 1,
+    },
+}
+PACKAGE_DESC_VERSIONS: Dict[int, Dict[str, Union[Set[str], int]]] = {
+    1: {
+        "required": {
+            "arch",
+            "base",
+            "builddate",
+            "csize",
+            "desc",
+            "filename",
+            "isize",
+            "license",
+            "md5sum",
+            "name",
+            "packager",
+            "pgpsig",
+            "sha256sum",
+            "url",
+            "version",
+        },
+        "optional": {
+            "checkdepends",
+            "conflicts",
+            "depends",
+            "backup",
+            "groups",
+            "makedepends",
+            "optdepends",
+            "provides",
+            "replaces",
+        },
+        "output_package_version": 1,
+        "output_package_base_version": 1,
+    }
+}
+DEFAULT_FILES_VERSION = 1
+DEFAULT_PACKAGE_DESC_VERSION = 1
+DEFAULT_OUTPUT_PACKAGE_BASE_VERSION = 1
+
+
+class Files(BaseModel):
+    """A template class to describe files in the context of 'files' files in a repository sync database"""
+
+    @classmethod
+    def from_dict(self, data: Dict[str, List[str]]) -> Files:
+        """Class method to create one of Files' subclasses from a dict
+
+        This method is supposed to be called with data derived from a 'files' file.
+
+        Parameters
+        ----------
+        data: Dict[str, List[str]]
+            A dict with required data read from a 'files' file, which is used to instantiate one of Files' subclasses
+
+        Raises
+        ------
+        errors.RepoManagementValidationError
+            If a ValidationError occurs when instatiating one of Files' subclasses or if no valid schema version for the
+            data could be derived.
+
+        Returns
+        -------
+        Files
+            A Files instance (technically only one of its subclasses), instantiated from data
+        """
+
+        def derive_files_version(data: Set[str]) -> Optional[int]:
+            """Derive which Files subclass to instantiate
+
+            Parameters
+            ----------
+            data: Set[str]
+                 A set of strings representing the keys of the data dict passed to Files.from_dict()
+
+            Returns
+            -------
+            Optional[int]
+                The integer representing the schema version of the Files subclass, else None
+            """
+
+            for version, config in reversed(FILES_VERSIONS.items()):
+
+                config_required = config["required"]
+                config_optional = config["optional"]
+                if config_required.issubset(data):
+                    optionals = data - config_required
+
+                    if len(optionals) > len(config_optional):
+                        continue
+                    else:
+                        unmatched_optional = 0
+                        for optional in optionals:
+                            if optional not in config_optional:
+                                unmatched_optional += 1
+
+                    if unmatched_optional != 0:
+                        continue
+
+                    return version
+                else:
+                    continue
+
+            return None
+
+        detected_version = derive_files_version(data=set(data.keys()))
+        logging.debug(f"Detected schema version of 'files' file: {detected_version}")
+
+        if detected_version is not None and (detected_version < DEFAULT_FILES_VERSION):
+            logging.warning(f"Detected 'files' version {detected_version}, but {DEFAULT_FILES_VERSION} is the default!")
+
+        match detected_version:
+            case 1:
+                try:
+                    return FilesV1(**data)
+                except ValidationError as e:
+                    raise errors.RepoManagementValidationError(
+                        "A validation error occured while attempting to instantiate a FilesV1 using the data:\n"
+                        f"{data}\n{e}"
+                    )
+            case _:
+                raise errors.RepoManagementValidationError(
+                    f"The data format '{detected_version}' of the 'files' file is unknown:\n{data}"
+                )
+
+    def get_schema_version(self) -> int:
+        """Get the schema_version of the Files instance
+
+        Raises
+        ------
+        RuntimeError
+            If the method is called on an instance of the Files template class
+
+        Returns
+        -------
+        int
+            The schema_version attribute of a Files subclass
+        """
+
+        if hasattr(self, "schema_version"):
+            return int(self.schema_version)  # type: ignore[attr-defined]
+        else:
+            raise RuntimeError(
+                "It is not possible to retrieve the 'schema_version' attribute from the Files template class!"
+            )
+
+
+class FilesV1(Files, FileList, SchemaVersionV1):
+    pass
+
+
+class OutputPackage(BaseModel):
+    pass
+
 
 class OutputPackageV1(
+    OutputPackage,
     Arch,
     Backup,
     BuildDate,
@@ -42,7 +222,6 @@ class OutputPackageV1(
     Depends,
     Desc,
     FileName,
-    Files,
     Groups,
     ISize,
     License,
@@ -127,10 +306,221 @@ class OutputPackageV1(
         identifies a package's URL
     """
 
-    pass
+    files: Optional[Files] = None
+
+
+class OutputPackageBase(BaseModel):
+    """A template class with helper methods to create instances of one of its (versioned) subclasses
+
+    This class should not be instantiated directly, as it only provides generic instance methods for its subclasses.
+
+    NOTE: The `from_dict()` classmethod is used to create one of the versioned subclasses.
+    """
+
+    @classmethod
+    def from_dict(self, data: Dict[str, Union[Any, List[Any]]]) -> OutputPackageBase:
+        """Create an instance of one of OutputPackageBase's subclasses from a dict
+
+        This method expects data derived from reading a pkgbase JSON file from the management repository.
+        By default this method will prefer to create an instances of OutputPackageBase's subclasses as identified by
+        DEFAULT_OUTPUT_PACKAGE_BASE_VERSION (if it is newer than the schema_version retrieved from the data).
+
+        Parameters
+        ----------
+        data: Dict[str, Union[Any, List[Any]]]
+            A dict containing data required to instantiate a subclass of OutputPackageBase
+
+        Returns
+        -------
+        OutputPackageBase
+            An instance of one of the subclasses of OutputPackageBase
+        """
+
+        def default_output_package_from_dict(version: int, package: Dict[str, Any]) -> OutputPackage:
+            """Create the default OutputPackage subclass for a OutputPackageBase from a dict
+
+            Parameters
+            ----------
+            version: int
+                The schema_version of the OutputPackageBase subclass for which to create an instance of a subclass of
+                OutputPackage
+            package: Dict[str, Any]
+                A dict describing the attributes of an OutputPackage instance
+
+            Returns
+            -------
+            OutputPackage
+                A subclass of OutputPackage that is the default for the given OutputPackageBase schema_version
+            """
+
+            output_versions: List[Optional[int]] = []
+            output_versions.insert(
+                0,
+                OUTPUT_PACKAGE_BASE_VERSIONS[version]["output_package_version"],  # type: ignore[arg-type]
+            )
+            output_versions.insert(
+                1,
+                OUTPUT_PACKAGE_BASE_VERSIONS[version]["files_version"],  # type: ignore[arg-type]
+            )
+            match output_versions:
+                case [1, 1]:
+                    files = package.get("files")
+                    if files:
+                        if files.get("schema_version"):
+                            del files["schema_version"]
+                        package["files"] = FilesV1(**files)
+
+                    return OutputPackageV1(**package)
+                # NOTE: the catch all can never be reached but is here to satisfy our tooling
+                case _:  # pragma: no cover
+                    raise RuntimeError(f"Invalid version ({version} provided for OUTPUT_PACKAGE_BASE_VERSIONS.")
+
+        used_schema_version = data.get("schema_version")
+        if isinstance(used_schema_version, int):
+            if DEFAULT_OUTPUT_PACKAGE_BASE_VERSION > used_schema_version:
+                used_schema_version = DEFAULT_OUTPUT_PACKAGE_BASE_VERSION
+                del data["schema_version"]
+            elif DEFAULT_OUTPUT_PACKAGE_BASE_VERSION < used_schema_version:
+                raise errors.RepoManagementValidationError(
+                    f"The unsupported schema version ({used_schema_version}) has been encountered, when "
+                    f"attempting to read data:\n{data}"
+                )
+
+        match used_schema_version:
+            case 1:
+                if isinstance(data.get("packages"), list):
+                    data["packages"] = [
+                        default_output_package_from_dict(version=used_schema_version, package=package)
+                        for package in data.get("packages")  # type: ignore[union-attr]
+                    ]
+                try:
+                    return OutputPackageBaseV1(**data)
+                except ValidationError as e:
+                    raise errors.RepoManagementValidationError(
+                        "A validation error occured while attempting to instantiate an OutputPackageBaseV1 using data:"
+                        f"\n'{data}'\n{e}"
+                    )
+            case _:
+                raise errors.RepoManagementValidationError(
+                    f"The unsupported schema version ({used_schema_version}) has been encountered, when "
+                    f"attempting to read data:\n{data}"
+                )
+
+    def add_packages(self, packages: List[OutputPackage]) -> None:
+        """Add packages to an instance of one of OutputPackageBase's subclasses
+
+        Parameters
+        ----------
+        packages: List[OutputPackage]
+            A list of OutputPackage instances to add
+
+        Raises
+        ------
+        RuntimeError
+            If called on the OutputPackageBase template class
+        """
+
+        if hasattr(self, "packages"):
+            # TODO: only add OutputPackage subclasses that are compatible with the OutputPackageBase version, else
+            # attempt conversion
+            self.packages += packages  # type: ignore[attr-defined]
+        else:
+            raise RuntimeError("It is not possible to add packages to the template class OutputPackageBase!")
+
+    def get_version(self) -> str:
+        """Get version of an instance of one of OutputPackage's subclasses
+
+        Raises
+        ------
+        RuntimeError
+            If called on the OutputPackageBase template class
+
+        Returns
+        -------
+        str
+            The version string of the OutputPackageBase
+        """
+
+        if hasattr(self, "version"):
+            return str(self.version)  # type: ignore[attr-defined]
+        else:
+            raise RuntimeError(
+                "It is not possible to return the version attribute of the template class OutputPackageBase!"
+            )
+
+    async def get_packages_as_models(self) -> List[Tuple[PackageDesc, Files]]:
+        """Return the list of packages as tuples of PackageDesc and Files models
+
+        NOTE: Depending on the mapping in OUTPUT_PACKAGE_BASE_VERSIONS, which targets the schema_version of
+        OutputPackageBase subclasses different subclasses of PackageDesc are returned.
+
+        Raises
+        ------
+        RuntimeError
+            If an unknown schema_version is encountered in the OutputPackageBase instance
+            If this method is called on the template class OutputPackageBase (instead of on one of its subclasses)
+
+        Returns
+        -------
+        List[Tuple[PackageDesc, Files]]
+            A list of tuples with one PackageDesc and one Files each
+        """
+
+        if hasattr(self, "schema_version"):
+            output_versions: List[Optional[int]] = []
+            schema_version = OUTPUT_PACKAGE_BASE_VERSIONS.get(self.schema_version)  # type: ignore[attr-defined]
+            if schema_version:
+                output_versions.insert(0, schema_version.get("package_desc_version"))  # type: ignore[arg-type]
+                output_versions.insert(1, schema_version.get("files_version"))  # type: ignore[arg-type]
+
+            match output_versions:
+                case [1, 1]:
+                    return [
+                        (
+                            PackageDescV1(
+                                arch=package.arch,
+                                backup=package.backup,
+                                base=self.base,  # type: ignore[attr-defined]
+                                builddate=package.builddate,
+                                checkdepends=package.checkdepends,
+                                conflicts=package.conflicts,
+                                csize=package.csize,
+                                depends=package.depends,
+                                desc=package.desc,
+                                filename=package.filename,
+                                groups=package.groups,
+                                isize=package.isize,
+                                license=package.license,
+                                makedepends=self.makedepends,  # type: ignore[attr-defined]
+                                md5sum=package.md5sum,
+                                name=package.name,
+                                optdepends=package.optdepends,
+                                packager=self.packager,  # type: ignore[attr-defined]
+                                pgpsig=package.pgpsig,
+                                provides=package.provides,
+                                replaces=package.replaces,
+                                sha256sum=package.sha256sum,
+                                url=package.url,
+                                version=self.version,  # type: ignore[attr-defined]
+                            ),
+                            FilesV1(files=package.files.files if package.files else []),
+                        )
+                        for package in self.packages  # type: ignore[attr-defined]
+                    ]
+                case _:
+                    raise RuntimeError(
+                        f"Unknown schema_version ({self.schema_version}) provided "  # type: ignore[attr-defined]
+                        "while attempting to retrieve packages and their files from an instance of "
+                        f"'{self.__class__.__name__}'!"
+                    )
+        else:
+            raise RuntimeError(
+                "Packages and their files can not be retrieved from the templatae class OutputPackageBase!"
+            )
 
 
 class OutputPackageBaseV1(
+    OutputPackageBase,
     Base,
     MakeDepends,
     Packager,
@@ -151,8 +541,8 @@ class OutputPackageBaseV1(
     packager: str
         The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
         identifies a package's packager
-    packages: List[OutputPackageV1]
-        A list of OutputPackageV1 instances that belong to the pkgbase identified by base
+    packages: List[OutputPackage]
+        A list of OutputPackage instances that belong to the pkgbase identified by base
     schema_version: PositiveInt
         A positive integer - 1 - identifying the schema version of the object
     version: str
@@ -160,52 +550,226 @@ class OutputPackageBaseV1(
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
 
-    packages: List[OutputPackageV1]
+    packages: List[OutputPackage]
 
-    async def get_packages_as_models(self) -> List[Tuple[PackageDescV1, Files]]:
-        """Return the list of packages as tuples of PackageDescV1 and Files models
+
+class PackageDesc(BaseModel):
+    """A template class with helper methods to create instances of one of its (versioned) subclasses
+
+    This class should not be instantiated directly, as it only provides generic instance methods for its subclasses.
+
+    NOTE: The `from_dict()` classmethod is used to create one of the versioned subclasses.
+    """
+
+    @classmethod
+    def from_dict(self, data: Dict[str, Union[int, str, List[str]]]) -> PackageDesc:
+        """Create an instance of one of PackageDesc's subclasses from a dict
+
+        This method should be used with data derived from reading a 'desc' file from a repository sync database.
+
+        Parameters
+        ----------
+        data: Dict[str, Union[int, str, List[str]]]
+            A dict containing data required to instantiate a subclass of PackageDesc
 
         Returns
         -------
-        List[Tuple[PackageDescV1, Files]]
-            A list of tuples with one PackageDescV1 and one Files each
+        PackageDesc
+            An instance of one of the subclasses of PackageDesc
         """
 
-        return [
-            (
-                PackageDescV1(
-                    arch=package.arch,
-                    backup=package.backup,
-                    base=self.base,
-                    builddate=package.builddate,
-                    checkdepends=package.checkdepends,
-                    conflicts=package.conflicts,
-                    csize=package.csize,
-                    depends=package.depends,
-                    desc=package.desc,
-                    filename=package.filename,
-                    groups=package.groups,
-                    isize=package.isize,
-                    license=package.license,
-                    makedepends=self.makedepends,
-                    md5sum=package.md5sum,
-                    name=package.name,
-                    optdepends=package.optdepends,
-                    packager=self.packager,
-                    pgpsig=package.pgpsig,
-                    provides=package.provides,
-                    replaces=package.replaces,
-                    sha256sum=package.sha256sum,
-                    url=package.url,
-                    version=self.version,
-                ),
-                Files(files=package.files),
+        def derive_package_desc_version(data: Set[str]) -> Optional[int]:
+            """Derive which PackageDesc subclass to instantiate
+
+            Parameters
+            ----------
+            data: Set[str]
+                 A set of strings representing the keys of the data dict passed to PackageDesc.from_dict()
+
+            Returns
+            -------
+            Optional[int]
+                The integer representing the version of the PackageDesc subclass, else None
+            """
+
+            for version, config in reversed(PACKAGE_DESC_VERSIONS.items()):
+
+                config_required: Set[str] = config["required"]  # type: ignore[assignment]
+                config_optional: Set[str] = config["optional"]  # type: ignore[assignment]
+                if config_required.issubset(data):
+                    optionals = data - config_required
+
+                    if len(optionals) > len(config_optional):
+                        continue
+                    else:
+                        unmatched_optional = 0
+                        for optional in optionals:
+                            if optional not in config_optional:
+                                unmatched_optional += 1
+
+                    if unmatched_optional != 0:
+                        continue
+
+                    return version
+                else:
+                    continue
+
+            return None
+
+        detected_version = derive_package_desc_version(data=set(data.keys()))
+        logging.debug(f"Detected schema version of 'desc' file: {detected_version}")
+
+        if detected_version is not None and (detected_version < DEFAULT_PACKAGE_DESC_VERSION):
+            logging.warning(
+                f"Detected 'desc' version {detected_version}, but {DEFAULT_PACKAGE_DESC_VERSION} is the default!"
             )
-            for package in self.packages
-        ]
+
+        match detected_version:
+            case 1:
+                try:
+                    return PackageDescV1(**data)
+                except ValidationError as e:
+                    raise errors.RepoManagementValidationError(
+                        "A validation error occured while attempting to instantiate a PackageDescV1 using the data:\n"
+                        f"{data}\n{e}"
+                    )
+            case _:
+                raise errors.RepoManagementValidationError(f"The data format of the 'desc' file is unknown:\n{data}")
+
+    def get_output_package(self, files: Optional[Files]) -> OutputPackage:
+        """Transform the PackageDesc model and an optional Files model into an OutputPackage model
+
+        Parameters
+        ----------
+        files: Optional[Files]:
+            A pydantic model, that represents the list of files, that belong to the package described by self
+
+        Returns
+        -------
+        OutputPackage
+            A pydantic model, that describes a package and its list of files
+        """
+
+        schema_version = self.get_schema_version()
+        schema_config = PACKAGE_DESC_VERSIONS.get(schema_version)
+        desc_dict = self.dict()
+        if schema_config:
+            output_package_version = schema_config.get("output_package_version")
+            match output_package_version:
+                case 1:
+                    if files:
+                        desc_dict["files"] = files
+
+                    return OutputPackageV1(**desc_dict)
+                case _:
+                    raise RuntimeError(
+                        f"The OutputPackage version '{output_package_version}' is not valid. This is a bug!"
+                    )
+        else:
+            raise errors.RepoManagementValidationError(
+                f"The schema version '{schema_version}' is not valid for creating a "
+                "OutputPackage from a PackageDesc!"
+            )
+
+    def get_output_package_base(self, files: Optional[Files]) -> OutputPackageBase:
+        """Transform the PackageDesc model and an Files model into an OutputPackageBase model
+
+        Parameters
+        ----------
+        files: Optional[Files]:
+            A pydantic model, that represents the list of files, that belong to the package described by self
+
+        Returns
+        -------
+        OutputPackageBase
+            A pydantic model, that describes a package base and one of it's split packages
+        """
+
+        schema_version = self.get_schema_version()
+        schema_config = PACKAGE_DESC_VERSIONS.get(schema_version)
+        desc_dict = self.dict()
+        if schema_config:
+            output_package_version = schema_config.get("output_package_base_version")
+            match output_package_version:
+                case 1:
+                    desc_dict.update({"packages": [self.get_output_package(files=files)]})
+                    return OutputPackageBaseV1(**desc_dict)
+                case _:
+                    raise RuntimeError(
+                        f"The OutputPackage version '{output_package_version}' is not valid. This is a bug!"
+                    )
+        else:
+            raise errors.RepoManagementValidationError(
+                f"The schema version '{schema_version}' is not valid for creating a "
+                "OutputPackageBase from a PackageDesc!"
+            )
+
+    def get_base(self) -> str:
+        """Get the base attribute of the PackageDesc instance
+
+        Raises
+        ------
+        RuntimeError
+            If the method is called on an instance of the PackageDesc template class
+
+        Returns
+        -------
+        str
+            The base attribute of a PackageDesc subclass
+        """
+
+        if hasattr(self, "base"):
+            return str(self.base)  # type: ignore[attr-defined]
+        else:
+            raise RuntimeError(
+                "It is not possible to retrieve the 'base' attribute from the template class PackageDesc!"
+            )
+
+    def get_name(self) -> str:
+        """Get the name attribute of the PackageDesc instance
+
+        Raises
+        ------
+        RuntimeError
+            If the method is called on an instance of the PackageDesc template class
+
+        Returns
+        -------
+        str
+            The name attribute of a PackageDesc subclass
+        """
+
+        if hasattr(self, "name"):
+            return str(self.name)  # type: ignore[attr-defined]
+        else:
+            raise RuntimeError(
+                "It is not possible to retrieve the 'name' attribute from the template class PackageDesc!"
+            )
+
+    def get_schema_version(self) -> int:
+        """Get the schema_version attribute of the PackageDesc instance
+
+        Raises
+        ------
+        RuntimeError
+            If the method is called on an instance of the PackageDesc template class
+
+        Returns
+        -------
+        int
+            The schema_version attribute of a PackageDesc subclass
+        """
+
+        if hasattr(self, "schema_version"):
+            return int(self.schema_version)  # type: ignore[attr-defined]
+        else:
+            raise RuntimeError(
+                "It is not possible to retrieve the 'schema_version' attribute from the templatet class PackageDesc!"
+            )
 
 
 class PackageDescV1(
+    PackageDesc,
     Arch,
     Backup,
     Base,
@@ -311,28 +875,3 @@ class PackageDescV1(
         The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
-
-    def get_output_package(self, files: Optional[Files]) -> OutputPackageV1:
-        """Transform the PackageDescV1 model and an optional Files model into an OutputPackageV1 model
-
-        Parameters
-        ----------
-        files: Optional[Files]:
-            A pydantic model, that represents the list of files, that belong to the package described by self
-
-        Returns
-        -------
-        OutputPackageV1
-            A pydantic model, that describes a package and its list of files
-        """
-
-        desc_dict = self.dict()
-        # remove attributes, that are represented on the pkgbase level
-        for name in ["base", "makedepends", "packager", "version"]:
-            if desc_dict.get(name):
-                del desc_dict[name]
-
-        if files:
-            return OutputPackageV1(**desc_dict, **files.dict())
-        else:
-            return OutputPackageV1(**desc_dict)

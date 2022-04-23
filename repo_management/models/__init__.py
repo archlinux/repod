@@ -1,4 +1,3 @@
-from .common import Files  # noqa: F401
 from .config import (  # noqa: F401
     Architecture,
     Directory,
@@ -7,7 +6,7 @@ from .config import (  # noqa: F401
     PackageRepo,
     SourcePool,
 )
-from .package import OutputPackageBaseV1, OutputPackageV1, PackageDescV1  # noqa: F401
+from .package import Files, OutputPackage, OutputPackageBase, PackageDesc  # noqa: F401
 from .repo import (  # noqa: F401
     FieldTypeEnum,
     RepoDbMemberData,

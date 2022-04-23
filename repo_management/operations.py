@@ -10,9 +10,9 @@ from repo_management import convert, files, models
 
 async def db_file_as_models(
     db_path: Path, compression: str = "gz"
-) -> AsyncIterator[Tuple[str, models.OutputPackageBaseV1]]:
+) -> AsyncIterator[Tuple[str, models.OutputPackageBase]]:
     """Read a repository database and yield the name of each pkgbase and the respective data (represented as an instance
-    of models.OutputPackageBaseV1) in a Tuple.
+    of models.OutputPackageBase) in a Tuple.
 
     Parameters
     ----------
@@ -24,41 +24,38 @@ async def db_file_as_models(
 
     Returns
     -------
-    Iterator[Tuple[str, models.OutputPackageBaseV1]]:
-        A Tuple holding the name of a pkgbase and its accompanying data in an instance of models.OutputPackageBaseV1
+    Iterator[Tuple[str, models.OutputPackageBase]]:
+        A Tuple holding the name of a pkgbase and its accompanying data in an instance of models.OutputPackageBase
     """
 
-    packages: Dict[str, models.OutputPackageBaseV1] = {}
-    package_descs: Dict[str, models.PackageDescV1] = {}
+    packages: Dict[str, models.OutputPackageBase] = {}
+    package_descs: Dict[str, models.PackageDesc] = {}
     package_files: Dict[str, models.Files] = {}
+
     async for member in files._db_file_member_as_model(
         db_file=await files._read_db_file(db_path=db_path, compression=compression)
     ):
         match member.member_type:
             case models.RepoDbMemberTypeEnum.DESC:
-                desc_data: models.PackageDescV1 = await convert.file_data_to_model(  # type: ignore[assignment]
-                    data=member.data, data_type=member.member_type
+                desc_data: models.PackageDesc = await convert.file_data_to_model(  # type: ignore[assignment]
+                    name=member.name, data=member.data, data_type=member.member_type
                 )
                 package_descs.update({member.name: desc_data})
             case models.RepoDbMemberTypeEnum.FILES:
                 files_data: models.Files = await convert.file_data_to_model(  # type: ignore[assignment]
-                    data=member.data, data_type=member.member_type
+                    name=member.name, data=member.data, data_type=member.member_type
                 )
                 package_files.update({member.name: files_data})
 
     for (name, package_desc) in package_descs.items():
-        if packages.get(package_desc.base):
-            packages[package_desc.base].packages += [package_desc.get_output_package(files=package_files.get(name))]
+        if packages.get(package_desc.get_base()):
+            packages[package_desc.get_base()].add_packages(
+                [package_desc.get_output_package(files=package_files.get(name))]
+            )
         else:
             packages.update(
                 {
-                    package_desc.base: models.OutputPackageBaseV1(
-                        base=package_desc.base,
-                        makedepends=package_desc.makedepends,
-                        packager=package_desc.packager,
-                        version=package_desc.version,
-                        packages=[package_desc.get_output_package(files=package_files.get(name))],
-                    )
+                    package_desc.get_base(): package_desc.get_output_package_base(files=package_files.get(name)),
                 }
             )
 

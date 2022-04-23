@@ -57,6 +57,20 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
         ),
         (
             (
+                "\n\n%ARCH%\nfoo\n%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
+                "%BUILDDATE%\n42\n%CONFLICTS%\nfoo\nbar\n%CSIZE%\n23\n"
+                "%DEPENDS%\nfoo\nbar\n%DESC%\nfoo\n%CHECKDEPENDS%\nfoo\nbar\n"
+                "%FILENAME%\nfoo\n%GROUPS%\nfoo\nbar\n%ISIZE%\n42\n"
+                "%LICENSE%\nfoo\nbar\n%MAKEDEPENDS%\nfoo\nbar\n%MD5SUM%\nfoo\n"
+                "%NAME%\nX-X-X\n%OPTDEPENDS%\nfoo\nbar\n%PACKAGER%\nfoo\n"
+                "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
+                "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
+            ),
+            models.RepoDbMemberTypeEnum.DESC,
+            raises(errors.RepoManagementValidationError),
+        ),
+        (
+            (
                 "%ARCH%\nfoo\n%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
                 "%BUILDDATE%\n42\n%CONFLICTS%\nfoo\nbar\n%CSIZE%\nfoo\n"
                 "%DEPENDS%\nfoo\nbar\n%DESC%\nfoo\n%CHECKDEPENDS%\nfoo\nbar\n"
@@ -99,6 +113,7 @@ async def test_file_data_to_model(
         assert await convert.file_data_to_model(
             data=io.StringIO(file_data),
             data_type=data_type,
+            name="foo",
         )
 
 
@@ -106,43 +121,60 @@ def test_repodbfile__init() -> None:
     assert convert.RepoDbFile()
 
 
+@mark.parametrize(
+    "schema_version, expectation",
+    [
+        (1, does_not_raise()),
+        (9999, raises(errors.RepoManagementFileNotFoundError)),
+    ],
+)
 @mark.asyncio
-async def test_repodbfile_render_desc_template() -> None:
+async def test_repodbfile_render_desc_template(schema_version: int, expectation: ContextManager[str]) -> None:
     repodbfile = convert.RepoDbFile()
     assert repodbfile
     output = io.StringIO()
     assert not output.getvalue()
-    await repodbfile.render_desc_template(
-        model=models.PackageDescV1(
-            arch="foo",
-            base="foo",
-            builddate=1,
-            csize=1,
-            desc="foo",
-            filename="foo",
-            isize=1,
-            license=["foo"],
-            md5sum="foo",
-            name="foo",
-            packager="foo",
-            pgpsig="foo",
-            sha256sum="foo",
-            url="foo",
-            version="foo",
-        ),
-        output=output,
-    )
-    assert output.getvalue()
+    with expectation:
+        await repodbfile.render_desc_template(
+            model=models.package.PackageDescV1(
+                arch="foo",
+                base="foo",
+                builddate=1,
+                csize=1,
+                desc="foo",
+                filename="foo",
+                isize=1,
+                license=["foo"],
+                md5sum="foo",
+                name="foo",
+                packager="foo",
+                pgpsig="foo",
+                schema_version=schema_version,
+                sha256sum="foo",
+                url="foo",
+                version="foo",
+            ),
+            output=output,
+        )
+        assert output.getvalue()
 
 
+@mark.parametrize(
+    "schema_version, expectation",
+    [
+        (1, does_not_raise()),
+        (9999, raises(errors.RepoManagementFileNotFoundError)),
+    ],
+)
 @mark.asyncio
-async def test_repodbfile_render_files_template() -> None:
+async def test_repodbfile_render_files_template(schema_version: int, expectation: ContextManager[str]) -> None:
     repodbfile = convert.RepoDbFile()
     assert repodbfile
     output = io.StringIO()
     assert not output.getvalue()
-    await repodbfile.render_files_template(
-        model=models.Files(files=["foo", "bar"]),
-        output=output,
-    )
-    assert output.getvalue()
+    with expectation:
+        await repodbfile.render_files_template(
+            model=models.package.FilesV1(files=["foo", "bar"], schema_version=schema_version),
+            output=output,
+        )
+        assert output.getvalue()

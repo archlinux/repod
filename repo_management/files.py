@@ -8,7 +8,6 @@ from typing import AsyncIterator, Iterator
 
 import aiofiles
 import orjson
-from pydantic.error_wrappers import ValidationError
 
 from repo_management import convert, defaults, errors, models
 
@@ -122,8 +121,8 @@ async def _json_files_in_directory(path: Path) -> AsyncIterator[Path]:
         yield json_file
 
 
-async def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBaseV1:
-    """Read a JSON file that represents a pkgbase and return it as models.OutputPackageBaseV1
+async def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
+    """Read a JSON file that represents a pkgbase and return it as models.OutputPackageBase
 
     Parameters
     ----------
@@ -135,21 +134,20 @@ async def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBaseV1:
     errors.RepoManagementFileError
         If the JSON file can not be decoded
     errors.RepoManagementValidationError
-        If the JSON file can not be validated using models.OutputPackageBaseV1
+        If the JSON file can not be validated using models.OutputPackageBase
 
     Returns
     -------
-    models.OutputPackageBaseV1
+    models.OutputPackageBase
         A pydantic model representing a pkgbase
     """
 
     async with aiofiles.open(path, "r") as input_file:
         try:
-            return models.OutputPackageBaseV1(**orjson.loads(await input_file.read()))
+            model = models.OutputPackageBase.from_dict(data=orjson.loads(await input_file.read()))
+            return model
         except orjson.JSONDecodeError as e:
             raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
-        except ValidationError as e:
-            raise errors.RepoManagementValidationError(f"The JSON file '{path}' could not be validated!\n{e}")
 
 
 @contextlib.contextmanager
@@ -184,7 +182,7 @@ def _write_db_file(path: Path, compression: str = "gz") -> Iterator[tarfile.TarF
 
 async def _stream_package_base_to_db(
     db: tarfile.TarFile,
-    model: models.OutputPackageBaseV1,
+    model: models.OutputPackageBase,
     repodbfile: convert.RepoDbFile,
     db_type: models.RepoDbTypeEnum,
 ) -> None:
@@ -196,14 +194,14 @@ async def _stream_package_base_to_db(
     ----------
     db: tarfile.TarFile
         The repository database to stream to
-    model: models.OutputPackageBaseV1
+    model: models.OutputPackageBase
         The model to use for streaming descriptor files to the repository database
     db_type: models.RepoDbTypeEnum
         The type of database to stream to
     """
 
     for (desc_model, files_model) in await model.get_packages_as_models():
-        dirname = f"{desc_model.name}-{model.version}"
+        dirname = f"{desc_model.get_name()}-{model.get_version()}"
         directory = tarfile.TarInfo(dirname)
         directory.type = tarfile.DIRTYPE
         directory.mtime = int(time.time())

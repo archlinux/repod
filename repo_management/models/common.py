@@ -149,8 +149,8 @@ class FileName(BaseModel):
     filename: str
 
 
-class Files(BaseModel):
-    """A model describing a single 'files' attribute
+class FileList(BaseModel):
+    """A model describing an optional list of files
 
     Attributes
     ----------

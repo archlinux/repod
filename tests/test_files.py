@@ -138,18 +138,18 @@ async def test__write_db_file(empty_dir: Path) -> None:
     "model, db_type",
     [
         (
-            models.OutputPackageBaseV1(
+            models.package.OutputPackageBaseV1(
                 base="foo",
                 packager="foobar",
                 version="1.0.0-1",
                 packages=[
-                    models.OutputPackageV1(
+                    models.package.OutputPackageV1(
                         arch="foo",
                         builddate=1,
                         csize=1,
                         desc="foo",
                         filename="foo",
-                        files=["foo", "bar"],
+                        files=models.package.FilesV1(files=["foo", "bar"]),
                         isize=1,
                         license=["foo"],
                         md5sum="foo",
@@ -163,18 +163,18 @@ async def test__write_db_file(empty_dir: Path) -> None:
             models.RepoDbTypeEnum.DEFAULT,
         ),
         (
-            models.OutputPackageBaseV1(
+            models.package.OutputPackageBaseV1(
                 base="foo",
                 packager="foobar",
                 version="1.0.0-1",
                 packages=[
-                    models.OutputPackageV1(
+                    models.package.OutputPackageV1(
                         arch="foo",
                         builddate=1,
                         csize=1,
                         desc="foo",
                         filename="foo",
-                        files=["foo", "bar"],
+                        files=models.package.FilesV1(files=["foo", "bar"]),
                         isize=1,
                         license=["foo"],
                         md5sum="foo",
@@ -191,7 +191,7 @@ async def test__write_db_file(empty_dir: Path) -> None:
 )
 @mark.asyncio
 async def test__stream_package_base_to_db(
-    model: models.OutputPackageBaseV1,
+    model: models.package.OutputPackageBaseV1,
     db_type: models.RepoDbTypeEnum,
     empty_file: Path,
 ) -> None:

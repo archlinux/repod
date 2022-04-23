@@ -35,7 +35,7 @@ def empty_file(tmpdir: py.path.local) -> Path:
 async def test_db_file_as_models(create_gz_db_file: Path) -> None:
     async for (name, model) in operations.db_file_as_models(db_path=create_gz_db_file):
         assert isinstance(name, str)
-        assert isinstance(model, models.OutputPackageBaseV1)
+        assert isinstance(model, models.package.OutputPackageBaseV1)
 
 
 @mark.asyncio
