@@ -98,7 +98,12 @@ DEFAULT_OUTPUT_PACKAGE_BASE_VERSION = 1
 
 
 class Files(BaseModel):
-    """A template class to describe files in the context of 'files' files in a repository sync database"""
+    """A template class to describe files in the context of 'files' files in a repository sync database
+
+    This class should not be instantiated directly, as it only provides generic instance methods for its subclasses.
+
+    NOTE: The `from_dict()` classmethod is used to create one of the versioned subclasses.
+    """
 
     @classmethod
     def from_dict(self, data: Dict[str, List[str]]) -> Files:
@@ -185,6 +190,9 @@ class Files(BaseModel):
     def get_schema_version(self) -> int:
         """Get the schema_version of the Files instance
 
+        NOTE: This method only successfully returns if the instance of the class using it actually defines the
+        `schema_version` field!
+
         Raises
         ------
         RuntimeError
@@ -205,10 +213,24 @@ class Files(BaseModel):
 
 
 class FilesV1(Files, FileList, SchemaVersionV1):
+    """A pydantic model to describe files in the context of 'files' files in a repository sync database (version 1)
+
+    Attributes
+    ----------
+    files: Optional[List[str]]
+        An optional list of files. This is the data below a %FILES% identifier in a 'files' file, which identifies which
+        file(s) belong to a package
+    """
+
     pass
 
 
 class OutputPackage(BaseModel):
+    """A template class to describe all required attributes that define a package in the context of an output file
+
+    This class should not be instantiated directly. Use one of its subclasses instead!
+    """
+
     pass
 
 
@@ -331,6 +353,13 @@ class OutputPackageBase(BaseModel):
         data: Dict[str, Union[Any, List[Any]]]
             A dict containing data required to instantiate a subclass of OutputPackageBase
 
+        Raises
+        ------
+        RepoManagementValidationError
+            If an invalid schema_version is encountered when reading data
+            If a ValidationError is encountered during instantiation of one of the OutputPackage subclasses
+            If an unsupported schema_version is encountered
+
         Returns
         -------
         OutputPackageBase
@@ -410,6 +439,9 @@ class OutputPackageBase(BaseModel):
     def add_packages(self, packages: List[OutputPackage]) -> None:
         """Add packages to an instance of one of OutputPackageBase's subclasses
 
+        NOTE: This method only operates successfully if the instance of the class using it actually defines the
+        `packages` field! The OutputPackageBase class does not do that!
+
         Parameters
         ----------
         packages: List[OutputPackage]
@@ -430,6 +462,9 @@ class OutputPackageBase(BaseModel):
 
     def get_version(self) -> str:
         """Get version of an instance of one of OutputPackage's subclasses
+
+        NOTE: This method only successfully returns if the instance of the class using it defines the `get_version`
+        field! The OutputPackageBase class does not do that!
 
         Raises
         ------
@@ -452,8 +487,11 @@ class OutputPackageBase(BaseModel):
     async def get_packages_as_models(self) -> List[Tuple[PackageDesc, Files]]:
         """Return the list of packages as tuples of PackageDesc and Files models
 
-        NOTE: Depending on the mapping in OUTPUT_PACKAGE_BASE_VERSIONS, which targets the schema_version of
-        OutputPackageBase subclasses different subclasses of PackageDesc are returned.
+        Depending on the mapping in OUTPUT_PACKAGE_BASE_VERSIONS, which targets the schema_version of OutputPackageBase
+        subclasses, different subclasses of PackageDesc are returned.
+
+        NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
+        The OutputPackageBase class does not do that!
 
         Raises
         ------
@@ -573,6 +611,12 @@ class PackageDesc(BaseModel):
         data: Dict[str, Union[int, str, List[str]]]
             A dict containing data required to instantiate a subclass of PackageDesc
 
+        Raises
+        ------
+        RepoManagementValidationError
+            If a ValidationError is encountered while instantiating one of PackageDesc's subclasses
+            If no supported schema_version can be found
+
         Returns
         -------
         PackageDesc
@@ -641,10 +685,22 @@ class PackageDesc(BaseModel):
     def get_output_package(self, files: Optional[Files]) -> OutputPackage:
         """Transform the PackageDesc model and an optional Files model into an OutputPackage model
 
+        NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
+        The PackageDesc class does not do that!
+
         Parameters
         ----------
         files: Optional[Files]:
             A pydantic model, that represents the list of files, that belong to the package described by self
+
+        Raises
+        ------
+        RuntimeError
+            If called on the PackageDesc template class
+            If there is no matching OutputPackage schema_version defined in the configuration for the given
+            PackageDesc.schema_version (bug in PACKAGE_DESC_VERSIONS).
+        RepoManagementValidationError
+            If no configuration is available for a given PackageDesc.schema_version
 
         Returns
         -------
@@ -676,10 +732,22 @@ class PackageDesc(BaseModel):
     def get_output_package_base(self, files: Optional[Files]) -> OutputPackageBase:
         """Transform the PackageDesc model and an Files model into an OutputPackageBase model
 
+        NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
+        The PackageDesc class does not do that!
+
         Parameters
         ----------
         files: Optional[Files]:
             A pydantic model, that represents the list of files, that belong to the package described by self
+
+        Raises
+        ------
+        RuntimeError
+            If called on the PackageDesc template class
+            If there is no matching OutputPackage schema_version defined in the configuration for the given
+            PackageDesc.schema_version (bug in PACKAGE_DESC_VERSIONS).
+        RepoManagementValidationError
+            If no configuration is available for a given PackageDesc.schema_version
 
         Returns
         -------
@@ -709,6 +777,9 @@ class PackageDesc(BaseModel):
     def get_base(self) -> str:
         """Get the base attribute of the PackageDesc instance
 
+        NOTE: This method only successfully returns if the instance of the class using it defines the `base` field! The
+        PackageDesc class does not do that!
+
         Raises
         ------
         RuntimeError
@@ -730,6 +801,9 @@ class PackageDesc(BaseModel):
     def get_name(self) -> str:
         """Get the name attribute of the PackageDesc instance
 
+        NOTE: This method only successfully returns if the instance of the class using it defines the `name` field! The
+        PackageDesc class does not do that!
+
         Raises
         ------
         RuntimeError
@@ -750,6 +824,9 @@ class PackageDesc(BaseModel):
 
     def get_schema_version(self) -> int:
         """Get the schema_version attribute of the PackageDesc instance
+
+        NOTE: This method only successfully returns if the instance of the class using it defines the `schema_version`
+        field! The PackageDesc class does not do that!
 
         Raises
         ------
