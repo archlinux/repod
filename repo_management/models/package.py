@@ -137,8 +137,9 @@ class Files(BaseModel):
                 The integer representing the schema version of the Files subclass, else None
             """
 
-            for version, config in reversed(FILES_VERSIONS.items()):
+            for version, config in sorted(FILES_VERSIONS.items(), reverse=True):
 
+                logging.debug(f"Comparing 'files' data to schema version {version}")
                 config_required = config["required"]
                 config_optional = config["optional"]
                 if config_required.issubset(data):
@@ -592,8 +593,9 @@ class PackageDesc(BaseModel):
                 The integer representing the version of the PackageDesc subclass, else None
             """
 
-            for version, config in reversed(PACKAGE_DESC_VERSIONS.items()):
+            for version, config in sorted(PACKAGE_DESC_VERSIONS.items(), reverse=True):
 
+                logging.debug(f"Comparing 'desc' data to schema version {version}")
                 config_required: Set[str] = config["required"]  # type: ignore[assignment]
                 config_optional: Set[str] = config["optional"]  # type: ignore[assignment]
                 if config_required.issubset(data):
