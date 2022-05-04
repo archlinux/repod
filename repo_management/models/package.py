@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from pydantic import BaseModel, ValidationError
@@ -954,3 +955,30 @@ class PackageDescV1(
         The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
+
+
+def export_schemas(output: Union[Path, str]) -> None:
+    """Export the JSON schema of selected pydantic models to an output directory
+
+    Parameters
+    ----------
+    output: Path
+        A path to which to output the JSON schema files
+
+    Raises
+    ------
+    RuntimeError
+        If output is not an existing directory
+    """
+
+    classes = [FilesV1, OutputPackageV1, OutputPackageBaseV1, PackageDescV1]
+
+    if isinstance(output, str):
+        output = Path(output)
+
+    if not output.exists():
+        raise RuntimeError(f"The output directory {output} must exist!")
+
+    for class_ in classes:
+        with open(output / f"{class_.__name__}.json", "w") as f:
+            print(class_.schema_json(indent=2), file=f)

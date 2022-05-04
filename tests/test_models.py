@@ -1172,3 +1172,15 @@ def test_outputpackagebase_get_version() -> None:
     model = models.OutputPackageBase()
     with raises(RuntimeError):
         model.get_version()
+
+
+def test_export_schemas() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        models.package.export_schemas(output=str(tmp))
+        models.package.export_schemas(output=tmp)
+
+    with raises(RuntimeError):
+        models.package.export_schemas(output="/foobar")
+
+    with raises(RuntimeError):
+        models.package.export_schemas(output=Path("/foobar"))
