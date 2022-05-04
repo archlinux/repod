@@ -24,6 +24,11 @@ coverage:
   script:
     - tox -e coverage
 
+docs:
+  extends: .test
+  script:
+    - tox -e docs
+
 integration:
   extends: .test
   script:
