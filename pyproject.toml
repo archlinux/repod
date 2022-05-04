@@ -8,7 +8,8 @@ packages = [
   {include = 'repo_management'}
 ]
 include = [
-  {path = 'tests/*', format = 'sdist'}
+  {path = 'tests/*', format = 'sdist'},
+  {path = 'docs/*', format = 'sdist'},
 ]
 
 [tool.poetry.dependencies]
