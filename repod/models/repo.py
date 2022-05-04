@@ -6,7 +6,7 @@ from typing import Dict, Set, Tuple
 
 from pydantic import BaseModel
 
-from repo_management.errors import RepoManagementFileError
+from repod.errors import RepoManagementFileError
 
 from .common import Name
 
@@ -128,24 +128,24 @@ class RepoDbMemberData(Name, RepoDbMemberType):
 
 
 def get_desc_json_keys() -> Set[str]:
-    """Get the keys of repo_management.models.repo.DESC_JSON
+    """Get the keys of repod.models.repo.DESC_JSON
 
     Returns
     -------
     Set[str]
-        A set of strings representing the keys of repo_management.models.repo.DESC_JSON
+        A set of strings representing the keys of repod.models.repo.DESC_JSON
     """
 
     return set(DESC_JSON.keys())
 
 
 def get_desc_json_name(key: str) -> str:
-    """Get the JSON name of a given key from the definition in repo_management.models.repo.DESC_JSON
+    """Get the JSON name of a given key from the definition in repod.models.repo.DESC_JSON
 
     Parameters
     ----------
     key: str
-        A string corresponding with one of the keys in repo_management.models.repo.DESC_JSON
+        A string corresponding with one of the keys in repod.models.repo.DESC_JSON
 
     Raises
     ------
@@ -165,12 +165,12 @@ def get_desc_json_name(key: str) -> str:
 
 
 def get_desc_json_field_type(key: str) -> FieldTypeEnum:
-    """Get the FieldTypeEnum of a given key from the definition in repo_management.models.repo.DESC_JSON
+    """Get the FieldTypeEnum of a given key from the definition in repod.models.repo.DESC_JSON
 
     Parameters
     ----------
     key: str
-        A string corresponding with one of the keys in repo_management.models.repo.DESC_JSON
+        A string corresponding with one of the keys in repod.models.repo.DESC_JSON
 
     Raises
     ------
@@ -190,24 +190,24 @@ def get_desc_json_field_type(key: str) -> FieldTypeEnum:
 
 
 def get_files_json_keys() -> Set[str]:
-    """Get the keys of repo_management.models.repo.FILES_JSON
+    """Get the keys of repod.models.repo.FILES_JSON
 
     Returns
     -------
     Set[str]
-        A set of strings representing the keys of repo_management.models.repo.FILES_JSON
+        A set of strings representing the keys of repod.models.repo.FILES_JSON
     """
 
     return set(FILES_JSON.keys())
 
 
 def get_files_json_name(key: str) -> str:
-    """Get the JSON name of a given key from the definition in repo_management.models.repo.FILES_JSON
+    """Get the JSON name of a given key from the definition in repod.models.repo.FILES_JSON
 
     Parameters
     ----------
     key: str
-        A string corresponding with one of the keys in repo_management.models.repo.FILES_JSON
+        A string corresponding with one of the keys in repod.models.repo.FILES_JSON
 
     Raises
     ------
@@ -227,12 +227,12 @@ def get_files_json_name(key: str) -> str:
 
 
 def get_files_json_field_type(key: str) -> FieldTypeEnum:
-    """Get the FieldTypeEnum of a given key from the definition in repo_management.models.repo.FILES_JSON
+    """Get the FieldTypeEnum of a given key from the definition in repod.models.repo.FILES_JSON
 
     Parameters
     ----------
     key: str
-        A string corresponding with one of the keys in repo_management.models.repo.FILES_JSON
+        A string corresponding with one of the keys in repod.models.repo.FILES_JSON
 
     Raises
     ------

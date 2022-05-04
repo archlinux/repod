@@ -18,8 +18,8 @@ from unittest.mock import Mock, patch
 from pydantic import ValidationError
 from pytest import fixture, mark, raises
 
-from repo_management import defaults, errors, models
-from repo_management.models.repo import DESC_JSON, FILES_JSON
+from repod import defaults, errors, models
+from repod.models.repo import DESC_JSON, FILES_JSON
 
 
 @fixture(scope="function")
@@ -120,8 +120,8 @@ def test_package_desc_from_dict_derive_file_version(
 ) -> None:
     with expectation:
         with patch("logging.warning") as logging_warning_mock:
-            with patch("repo_management.models.package.PACKAGE_DESC_VERSIONS", files_versions):
-                with patch("repo_management.models.package.DEFAULT_PACKAGE_DESC_VERSION", default_version):
+            with patch("repod.models.package.PACKAGE_DESC_VERSIONS", files_versions):
+                with patch("repod.models.package.DEFAULT_PACKAGE_DESC_VERSION", default_version):
                     models.PackageDesc.from_dict(data=input_dict)
                     if emit_warning:
                         logging_warning_mock.assert_called_once()
@@ -289,7 +289,7 @@ def test_package_desc_get_output_package(
 
 
 def test_package_desc_get_output_package_inconsistent_schema_config() -> None:
-    with patch("repo_management.models.package.PACKAGE_DESC_VERSIONS", {1: {"output_package_version": 9999}}):
+    with patch("repod.models.package.PACKAGE_DESC_VERSIONS", {1: {"output_package_version": 9999}}):
         with raises(RuntimeError):
             models.package.PackageDescV1(
                 arch="foo",
@@ -499,7 +499,7 @@ def test_package_desc_v1_get_output_package_base(
 
 
 def test_package_desc_get_output_package_base_inconsistent_schema_config() -> None:
-    with patch("repo_management.models.package.PACKAGE_DESC_VERSIONS", {1: {"output_package_base_version": 9999}}):
+    with patch("repod.models.package.PACKAGE_DESC_VERSIONS", {1: {"output_package_base_version": 9999}}):
         with raises(RuntimeError):
             models.package.PackageDescV1(
                 arch="foo",
@@ -741,9 +741,9 @@ def test_mangement_repo(
     "os.access",
     Mock(side_effect=[False, False, True, True]),
 )
-@patch("repo_management.models.config.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
-@patch("repo_management.models.config.Path.is_dir", Mock(side_effect=[False, True, True]))
-@patch("repo_management.models.config.Path.parent", return_value=Mock())
+@patch("repod.models.config.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
+@patch("repod.models.config.Path.is_dir", Mock(side_effect=[False, True, True]))
+@patch("repod.models.config.Path.parent", return_value=Mock())
 def test_directory_validate_directory(parent_mock: Mock) -> None:
     parent_mock.exists.side_effect = [False, True, True, True]
     parent_mock.is_dir.side_effect = [False, True, True]
@@ -953,8 +953,8 @@ def test_files_from_dict_derive_file_version(
 ) -> None:
     with expectation:
         with patch("logging.warning") as logging_warning_mock:
-            with patch("repo_management.models.package.FILES_VERSIONS", files_versions):
-                with patch("repo_management.models.package.DEFAULT_FILES_VERSION", default_files_version):
+            with patch("repod.models.package.FILES_VERSIONS", files_versions):
+                with patch("repod.models.package.DEFAULT_FILES_VERSION", default_files_version):
                     models.Files.from_dict(data=files_dict)
                     if emit_warning:
                         logging_warning_mock.assert_called_once()

@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from pytest import raises
 
-from repo_management import argparse as repo_argparse
+from repod import argparse as repo_argparse
 
 
 def test_argparsefactory__init__() -> None:
@@ -19,7 +19,7 @@ def test_argparsefactory__json2db() -> None:
 
 
 @patch(
-    "repo_management.argparse.Path",
+    "repod.argparse.Path",
     Mock(return_value=Mock(exists=Mock(side_effect=[False, True, True]), is_file=Mock(side_effect=[False, True]))),
 )
 def test_argparsefactory_string_to_file_path() -> None:
@@ -34,9 +34,9 @@ def test_argparsefactory_string_to_file_path() -> None:
     "os.access",
     Mock(side_effect=[False, False, True, True]),
 )
-@patch("repo_management.argparse.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
-@patch("repo_management.argparse.Path.is_file", Mock(side_effect=[False, True, True]))
-@patch("repo_management.argparse.Path.parent", return_value=Mock())
+@patch("repod.argparse.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
+@patch("repod.argparse.Path.is_file", Mock(side_effect=[False, True, True]))
+@patch("repod.argparse.Path.parent", return_value=Mock())
 def test_argparsefactory_string_to_writable_file_path(parent_mock: Mock) -> None:
     parent_mock.exists.side_effect = [False, True, True, True]
     parent_mock.is_dir.side_effect = [False, True, True]
@@ -55,7 +55,7 @@ def test_argparsefactory_string_to_writable_file_path(parent_mock: Mock) -> None
 
 
 @patch(
-    "repo_management.argparse.Path",
+    "repod.argparse.Path",
     Mock(return_value=Mock(exists=Mock(side_effect=[False, True, True]), is_dir=Mock(side_effect=[False, True]))),
 )
 def test_argparsefactory_string_to_dir_path() -> None:

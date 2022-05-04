@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "arch-repo-management"
+name = "repod"
 version = "0.1.0"
-description = "Tools for package repository management"
+description = "Tooling to maintain binary package repositories for Linux distributions using the pacman package manager"
 authors = ["Arch Linux <arch-projects@lists.archlinux.org>"]
 license = "GPL-3.0-or-later"
 packages = [
-  {include = 'repo_management'}
+  {include = 'repod'}
 ]
 include = [
   {path = 'tests/*', format = 'sdist'},
@@ -35,8 +35,8 @@ Sphinx = "^4.5.0"
 sphinx-rtd-theme = "^1.0.0"
 
 [tool.poetry.scripts]
-db2json = "repo_management.cli:db2json"
-json2db = "repo_management.cli:json2db"
+db2json = "repod.cli:db2json"
+json2db = "repod.cli:json2db"
 
 [tool.pytest.ini_options]
 markers = ["integration"]
@@ -66,7 +66,7 @@ exclude = '''
 
 
 [tool.coverage.path]
-source = "repo_management"
+source = "repod"
 
 [tool.coverage.report]
 omit = ["tests/*", ".tox/*", "db-write/*", "db2json/*", "dbscripts/*"]

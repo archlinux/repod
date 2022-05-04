@@ -9,7 +9,7 @@ from typing import AsyncIterator, Iterator
 import aiofiles
 import orjson
 
-from repo_management import convert, defaults, errors, models
+from repod import convert, defaults, errors, models
 
 
 async def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:

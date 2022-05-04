@@ -8,7 +8,7 @@ from pathlib import Path
 import orjson
 import py
 
-from repo_management import models
+from repod import models
 
 RESOURCES = join(dirname(realpath(__file__)), "resources", "repo_db")
 

@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 from pytest import fixture, mark
 
-from repo_management import cli, commands, errors, models
+from repod import cli, commands, errors, models
 
 
 @fixture(scope="function")
@@ -31,9 +31,9 @@ def empty_file() -> Iterator[Path]:
         (False, True),
     ],
 )
-@patch("repo_management.operations.dump_db_to_json_files")
-@patch("repo_management.argparse.ArgParseFactory")
-@patch("repo_management.cli.exit")
+@patch("repod.operations.dump_db_to_json_files")
+@patch("repod.argparse.ArgParseFactory")
+@patch("repod.cli.exit")
 def test_db2json(
     exit_mock: Mock,
     argparsefactory_mock: Mock,
@@ -70,9 +70,9 @@ def test_db2json(
         (False, models.RepoDbTypeEnum.DEFAULT, False, True),
     ],
 )
-@patch("repo_management.operations.create_db_from_json_files")
-@patch("repo_management.argparse.ArgParseFactory")
-@patch("repo_management.cli.exit")
+@patch("repod.operations.create_db_from_json_files")
+@patch("repod.argparse.ArgParseFactory")
+@patch("repod.cli.exit")
 def test_json2db(
     exit_mock: Mock,
     argparsefactory_mock: Mock,

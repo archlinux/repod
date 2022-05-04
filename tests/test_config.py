@@ -7,7 +7,7 @@ from unittest.mock import Mock, call, patch
 
 from pytest import fixture, raises
 
-from repo_management import config, models
+from repod import config, models
 
 
 @fixture(scope="function")
@@ -36,9 +36,9 @@ def test_read_toml_configuration_settings(
     empty_toml_file: Path,
     empty_toml_files_in_dir: Path,
 ) -> None:
-    with patch("repo_management.defaults.SETTINGS_LOCATION", empty_toml_file):
+    with patch("repod.defaults.SETTINGS_LOCATION", empty_toml_file):
         config.read_toml_configuration_settings(Mock())
-        with patch("repo_management.defaults.SETTINGS_OVERRIDE_LOCATION", empty_toml_files_in_dir):
+        with patch("repod.defaults.SETTINGS_OVERRIDE_LOCATION", empty_toml_files_in_dir):
             config.read_toml_configuration_settings(Mock())
             toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
 
@@ -372,7 +372,7 @@ def test_read_toml_configuration_settings(
         # raise_on_repo_name_below_management_repo_dir
         (
             "x86_64",
-            (Path("parent_repo_management"), "https://parent.foo.bar"),
+            (Path("parent_repod"), "https://parent.foo.bar"),
             [
                 (
                     None,
@@ -386,7 +386,7 @@ def test_read_toml_configuration_settings(
             ],
             Path("parent_package_pool"),
             Path("parent_source_pool"),
-            (True, Path("parent_repo_management/package_repo_base")),
+            (True, Path("parent_repod/package_repo_base")),
             (True, Path("source_repo_base")),
             raises(ValueError),
         ),

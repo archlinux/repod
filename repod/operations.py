@@ -5,7 +5,7 @@ from typing import AsyncIterator, Dict, Tuple
 import aiofiles
 import orjson
 
-from repo_management import convert, files, models
+from repod import convert, files, models
 
 
 async def db_file_as_models(

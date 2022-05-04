@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from pydantic import BaseModel, ValidationError
 
-from repo_management import errors
+from repod import errors
 
 from .common import (
     Arch,

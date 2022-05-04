@@ -5,7 +5,7 @@ from typing import ContextManager
 
 from pytest import mark, raises
 
-from repo_management import convert, errors, models
+from repod import convert, errors, models
 
 RESOURCES = join(dirname(realpath(__file__)), "resources")
 

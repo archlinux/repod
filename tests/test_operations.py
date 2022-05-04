@@ -4,7 +4,7 @@ from pathlib import Path
 import py
 from pytest import fixture, mark
 
-from repo_management import models, operations
+from repod import models, operations
 
 from .fixtures import create_db_file, create_json_files
 

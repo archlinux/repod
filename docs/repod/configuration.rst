@@ -6,10 +6,9 @@ Configuration
 
 The repod service uses a |TOML| based configuration file format.
 
-A configuration can either be provided using
-``/etc/arch-repo-management/config.toml`` and/ or by providing ``.toml`` files
-in the override location ``/etc/arch-repo-management.d/``. If no configuration
-file exists, the application will assume some defaults.
+A configuration can either be provided using ``/etc/repod.conf`` and/ or by
+providing ``.conf`` files in the override location ``/etc/repod.conf.d/``. If
+no configuration file exists, the application will assume some defaults.
 Override configuration files are merged and used to override the defaults or
 any configuration provided in the default configuration file.
 
@@ -32,18 +31,18 @@ repository-specific configuration provided.
   default).
 * **management_repo**: A *required* object describing a directory which
   contains the :ref:`management repository` (defaults to
-  ``"/var/lib/arch-repo-management/management/default/"``) and its upstream url
+  ``"/var/lib/repod/management/default/"``) and its upstream url
   (unset by default).
 * **package_pool**: The directory which is used as :ref:`package pool`
-  (defaults to ``"/var/lib/arch-repo-management/pool/package/default/"``).
+  (defaults to ``"/var/lib/repod/pool/package/default/"``).
 * **package_repo_base**: The directory which contains all :ref:`binary
   repository` directories (defaults to
-  ``"/var/lib/arch-repo-management/repo/"``).
+  ``"/var/lib/repod/repo/"``).
 * **source_pool**: The directory which is used as :ref:`source tarball pool`
-  (defaults to ``"/var/lib/arch-repo-management/pool/source/default/"``).
+  (defaults to ``"/var/lib/repod/pool/source/default/"``).
 * **source_repo_base**: The directory which contains all :ref:`source tarball
   repository` directories (defaults to
-  ``"/var/lib/arch-repo-management/source/"``).
+  ``"/var/lib/repod/source/"``).
 
 .. _repository options and defaults:
 
@@ -120,7 +119,7 @@ Defaults with one repository
 .. code:: toml
 
   architecture = "x86_64"
-  management_repo = {directory = "/var/lib/arch-repo-management/management/default", url = "https://foo.bar"}
+  management_repo = {directory = "/var/lib/repod/management/default", url = "https://foo.bar"}
 
   [[repositories]]
   name = "repo"
@@ -132,7 +131,7 @@ Defaults with multi-architecture repositories
 
 .. code:: toml
 
-  management_repo = {directory = "/var/lib/arch-repo-management/management/default", url = "https://foo.bar"}
+  management_repo = {directory = "/var/lib/repod/management/default", url = "https://foo.bar"}
 
   [[repositories]]
   architecture = "x86_64"

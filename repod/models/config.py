@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import AnyUrl, BaseModel, root_validator, validator
 
-from repo_management import defaults
+from repod import defaults
 
 
 class Architecture(BaseModel):

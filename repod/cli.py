@@ -2,7 +2,7 @@ import asyncio
 from argparse import ArgumentTypeError
 from sys import exit
 
-from repo_management import argparse, errors, models, operations
+from repod import argparse, errors, models, operations
 
 
 def db2json() -> None:

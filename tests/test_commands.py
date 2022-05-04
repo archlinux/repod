@@ -5,7 +5,7 @@ from typing import ContextManager, Dict, List, Optional, Union
 
 from pytest import mark, raises
 
-from repo_management import commands
+from repod import commands
 
 
 @mark.parametrize("env", [(None), ({"FOO": "BAR"})])

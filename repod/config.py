@@ -6,7 +6,7 @@ import tomli
 from pydantic import BaseSettings, root_validator, validator
 from pydantic.env_settings import SettingsSourceCallable
 
-from repo_management import defaults, models
+from repod import defaults, models
 
 
 def _raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
@@ -105,7 +105,7 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
     if defaults.SETTINGS_LOCATION.exists():
         config_files += [defaults.SETTINGS_LOCATION]
     if defaults.SETTINGS_OVERRIDE_LOCATION.exists():
-        config_files += sorted(defaults.SETTINGS_OVERRIDE_LOCATION.glob("*.toml"))
+        config_files += sorted(defaults.SETTINGS_OVERRIDE_LOCATION.glob("*.conf"))
 
     for config_file in config_files:
         with open(config_file, "rb") as file:
@@ -114,7 +114,7 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
 
 
 class Settings(models.Architecture, BaseSettings, models.PackagePool, models.SourcePool):
-    """A class to describe a configuration for arch-repo-management
+    """A class to describe a configuration for repod
 
     Attributes
     ----------

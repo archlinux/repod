@@ -6,7 +6,7 @@ from pathlib import Path
 import py
 from pytest import fixture, mark, raises
 
-from repo_management import convert, errors, files, models
+from repod import convert, errors, files, models
 
 from .fixtures import create_db_file, create_empty_json_files
 

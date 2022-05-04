@@ -3,7 +3,7 @@ from typing import Dict, List, Set, Union
 
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 
-from repo_management import errors, models
+from repod import errors, models
 
 
 async def file_data_to_model(
@@ -137,7 +137,7 @@ class RepoDbFile:
         """
 
         self.env = Environment(
-            loader=PackageLoader("repo_management", "templates"),
+            loader=PackageLoader("repod", "templates"),
             trim_blocks=True,
             lstrip_blocks=True,
             enable_async=enable_async,

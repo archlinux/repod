@@ -14,8 +14,8 @@ The repod project can be used from a git clone of the project, with the help of
 
 .. code:: sh
 
-  git clone https://gitlab.archlinux.org/archlinux/arch-repo-management/
-  cd arch-repo-management
+  git clone https://gitlab.archlinux.org/archlinux/repod/
+  cd repod
   poetry install
 
 Afterwards it is possible to make use of existing :ref:`tooling` with the help

@@ -5,7 +5,7 @@ repod documentation
 The repod project contains tooling to maintain binary package repositories for
 Linux distributions using the |pacman| package manager.
 
-It is developed at https://gitlab.archlinux.org/archlinux/arch-repo-management
+It is developed at https://gitlab.archlinux.org/archlinux/repod
 
 .. note::
 
