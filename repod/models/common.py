@@ -2,7 +2,7 @@ import re
 from typing import List, Optional
 
 from pyalpm import vercmp
-from pydantic import BaseModel, PositiveInt, validator
+from pydantic import BaseModel, conint, validator
 
 
 class Arch(BaseModel):
@@ -337,7 +337,7 @@ class SchemaVersionV1(BaseModel):
         A schema version - 1 - for a model
     """
 
-    schema_version: PositiveInt = 1
+    schema_version: conint(ge=1, le=1) = 1  # type: ignore[valid-type]
 
 
 class Sha256Sum(BaseModel):

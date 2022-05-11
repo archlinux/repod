@@ -6,6 +6,8 @@ from typing import ContextManager
 from pytest import mark, raises
 
 from repod import convert, errors, models
+from repod.models.package import Files, PackageDesc
+from tests.conftest import FilesV9999, PackageDescV9999
 
 RESOURCES = join(dirname(realpath(__file__)), "resources")
 
@@ -122,21 +124,10 @@ def test_repodbfile__init() -> None:
 
 
 @mark.parametrize(
-    "schema_version, expectation",
+    "model, expectation",
     [
-        (1, does_not_raise()),
-        (9999, raises(errors.RepoManagementFileNotFoundError)),
-    ],
-)
-@mark.asyncio
-async def test_repodbfile_render_desc_template(schema_version: int, expectation: ContextManager[str]) -> None:
-    repodbfile = convert.RepoDbFile()
-    assert repodbfile
-    output = io.StringIO()
-    assert not output.getvalue()
-    with expectation:
-        await repodbfile.render_desc_template(
-            model=models.package.PackageDescV1(
+        (
+            models.package.PackageDescV1(
                 arch="foo",
                 base="foo",
                 builddate=1,
@@ -149,32 +140,45 @@ async def test_repodbfile_render_desc_template(schema_version: int, expectation:
                 name="foo",
                 packager="foo",
                 pgpsig="foo",
-                schema_version=schema_version,
                 sha256sum="foo",
                 url="foo",
                 version="foo",
             ),
+            does_not_raise(),
+        ),
+        (PackageDescV9999(), raises(errors.RepoManagementFileNotFoundError)),
+    ],
+)
+@mark.asyncio
+async def test_repodbfile_render_desc_template(model: PackageDesc, expectation: ContextManager[str]) -> None:
+    repodbfile = convert.RepoDbFile()
+    assert repodbfile
+    output = io.StringIO()
+    assert not output.getvalue()
+    with expectation:
+        await repodbfile.render_desc_template(
+            model=model,
             output=output,
         )
         assert output.getvalue()
 
 
 @mark.parametrize(
-    "schema_version, expectation",
+    "model, expectation",
     [
-        (1, does_not_raise()),
-        (9999, raises(errors.RepoManagementFileNotFoundError)),
+        (models.package.FilesV1(files=["foo", "bar"]), does_not_raise()),
+        (FilesV9999(), raises(errors.RepoManagementFileNotFoundError)),
     ],
 )
 @mark.asyncio
-async def test_repodbfile_render_files_template(schema_version: int, expectation: ContextManager[str]) -> None:
+async def test_repodbfile_render_files_template(model: Files, expectation: ContextManager[str]) -> None:
     repodbfile = convert.RepoDbFile()
     assert repodbfile
     output = io.StringIO()
     assert not output.getvalue()
     with expectation:
         await repodbfile.render_files_template(
-            model=models.package.FilesV1(files=["foo", "bar"], schema_version=schema_version),
+            model=model,
             output=output,
         )
         assert output.getvalue()
