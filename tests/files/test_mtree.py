@@ -15,6 +15,7 @@ from repod.errors import (
     RepoManagementValidationError,
 )
 from repod.files import mtree
+from repod.files.package import extract_from_package_file, open_package_file
 
 
 @mark.parametrize(
@@ -393,3 +394,26 @@ def test_export_schemas() -> None:
 
     with raises(RuntimeError):
         mtree.export_schemas(output=Path("/foobar"))
+
+
+@mark.integration
+@mark.skipif(
+    not Path("/var/cache/pacman/pkg/").exists(),
+    reason="Package cache in /var/cache/pacman/pkg/ does not exist",
+)
+async def test_read_mtree_files() -> None:
+    file_list = sorted(Path("/var/cache/pacman/pkg/").glob("*.zst"))
+    if len(file_list) > 500:
+        file_list = file_list[0:500]
+    for package in file_list:
+        assert isinstance(
+            mtree.MTree.from_file(
+                data=mtree.read_mtree(
+                    await extract_from_package_file(
+                        package=await open_package_file(package),
+                        file=".MTREE",
+                    )
+                )
+            ),
+            mtree.MTree,
+        )
