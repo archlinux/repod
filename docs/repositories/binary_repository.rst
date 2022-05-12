@@ -6,8 +6,8 @@ Binary Repository
 
 A binary repository is a directory exposed by a web server, that contains built
 package files of precompiled software, which can be installed using |pacman|.
-Apart from the packages and their potential signature files, :ref:`sync
-database` files are also present.
+Apart from the packages and their potential :ref:`package signature` files,
+:ref:`sync database` files are also present.
 
 .. note::
 
