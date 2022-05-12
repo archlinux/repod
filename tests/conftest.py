@@ -3,7 +3,8 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from random import choice
 from string import digits
-from tempfile import NamedTemporaryFile
+from tarfile import open as tarfile_open
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from textwrap import dedent
 from typing import IO, Any, Generator, List
 
@@ -11,6 +12,7 @@ from pydantic import BaseModel
 from pytest import fixture
 
 from repod.files.mtree import MTree, MTreeEntryV1
+from repod.files.package import ZstdTarFile
 from repod.models import Files, OutputPackageBase, PackageDesc
 
 
@@ -250,3 +252,62 @@ def valid_mtree_file(mtreeentryv1_stringio: StringIO) -> Generator[Path, None, N
 def valid_mtree_bytesio(valid_mtree_file: Path) -> Generator[IO[bytes], None, None]:
     with open(valid_mtree_file, mode="rb") as gzip_mtree:
         yield BytesIO(gzip_mtree.read())
+
+
+@fixture(scope="function")
+def temp_dir() -> Generator[Path, None, None]:
+    with TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir)
+
+
+@fixture(scope="function")
+def text_file(temp_dir: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(dir=temp_dir, suffix=".txt", delete=False) as temp_file:
+        with open(temp_file.name, "w") as f:
+            print("foo", file=f)
+
+        yield Path(temp_file.name)
+
+
+@fixture(scope="function")
+def bz2_file(text_file: Path) -> Generator[Path, None, None]:
+    with TemporaryDirectory() as temp_dir:
+        with NamedTemporaryFile(dir=temp_dir, suffix=".bz2", delete=False) as tarfile:
+            with tarfile_open(tarfile.name, mode="w:bz2") as compressed_tarfile:
+                compressed_tarfile.add(text_file.parent)
+                compressed_tarfile.add(text_file)
+
+        yield Path(tarfile.name)
+
+
+@fixture(scope="function")
+def gz_file(text_file: Path) -> Generator[Path, None, None]:
+    with TemporaryDirectory() as temp_dir:
+        with NamedTemporaryFile(dir=temp_dir, suffix=".gz", delete=False) as tarfile:
+            with tarfile_open(tarfile.name, mode="w:gz") as compressed_tarfile:
+                compressed_tarfile.add(text_file.parent)
+                compressed_tarfile.add(text_file)
+
+        yield Path(tarfile.name)
+
+
+@fixture(scope="function")
+def xz_file(text_file: Path) -> Generator[Path, None, None]:
+    with TemporaryDirectory() as temp_dir:
+        with NamedTemporaryFile(dir=temp_dir, suffix=".xz", delete=False) as tarfile:
+            with tarfile_open(tarfile.name, mode="w:xz") as compressed_tarfile:
+                compressed_tarfile.add(text_file.parent)
+                compressed_tarfile.add(text_file)
+
+        yield Path(tarfile.name)
+
+
+@fixture(scope="function")
+def zst_file(text_file: Path) -> Generator[Path, None, None]:
+    with TemporaryDirectory() as temp_dir:
+        with NamedTemporaryFile(dir=temp_dir, suffix=".zst", delete=False) as tarfile:
+            with ZstdTarFile(tarfile.name, mode="w") as compressed_tarfile:
+                compressed_tarfile.add(text_file.parent)
+                compressed_tarfile.add(text_file)
+
+        yield Path(tarfile.name)
