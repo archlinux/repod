@@ -24,6 +24,13 @@ It is developed at https://gitlab.archlinux.org/archlinux/repod
 
 .. toctree::
    :maxdepth: 2
+   :caption: Packages
+
+   packages/contents.rst
+   packages/signatures.rst
+
+.. toctree::
+   :maxdepth: 2
    :caption: Using Repod
 
    repod/installation.rst
