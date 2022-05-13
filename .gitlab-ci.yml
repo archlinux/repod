@@ -23,6 +23,12 @@ coverage:
   extends: .test
   script:
     - tox -e coverage
+  coverage: '/TOTAL.*\s([.\d]+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: .tox/coverage.xml
 
 docs:
   extends: .test
