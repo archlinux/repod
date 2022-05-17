@@ -32,6 +32,285 @@ class PackageDescV9999(PackageDesc, SchemaVersion9999):
     pass
 
 
+@fixture(scope="session")
+def absolute_dir() -> str:
+    return "/foo"
+
+
+@fixture(
+    scope="session",
+    params=[
+        "/",
+        "foo",
+        "",
+    ],
+)
+def invalid_absolute_dir(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "aarch64",
+        "any",
+        "arm",
+        "armv6h",
+        "armv7h",
+        "i486",
+        "i686",
+        "pentium4",
+        "riscv32",
+        "riscv64",
+        "x86_64",
+        "x86_64_v2",
+        "x86_64_v3",
+        "x86_64_v4",
+    ],
+)
+def arch(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "foo",
+        "!foo",
+        "!1234",
+        "foo123",
+        "foo-123",
+        "foo.123",
+        "foo_",
+    ],
+)
+def buildenv(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "",
+        "!",
+        "! foo",
+    ],
+)
+def invalid_buildenv(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "foobar@mcfooface.tld",
+        "foo.bar@mcfooface.tld",
+        "foo.bar@mc-fooface.tld",
+        "foo_bar@mc-fooface.tld",
+        "foo_bar@mc.fooface.tld",
+        "foo-bar@mc.fooface.tld",
+        "foobar@mcfooface.tld-foo",
+    ],
+)
+def email(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "foo",
+        "@mcfooface.tld",
+        "foobar@.tld",
+        "foobar@mcfooface.",
+        "foobar@mcfooface",
+        "foobar@@mcfooface.tld",
+    ],
+)
+def invalid_email(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "1:",
+        "10:",
+        "100:",
+    ],
+)
+def epoch(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "0:",
+        "1",
+        ":1",
+    ],
+)
+def invalid_epoch(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "foo",
+        "!foo",
+        "!1234",
+        "foo123",
+        "foo-123",
+        "foo.123",
+        "foo_",
+    ],
+)
+def option(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "",
+        "!",
+        "! foo",
+    ],
+)
+def invalid_option(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "foo",
+        "_foo",
+        "@foo",
+        "+foo",
+        "foo_",
+        "foo123",
+        "foo+123",
+        "foo.123",
+        "foo_123",
+        "foo-123",
+    ],
+)
+def package_name(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "foo!",
+        "",
+        ".foo",
+        "-foo",
+        "fo,o",
+        "fo*o",
+    ],
+)
+def invalid_package_name(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "1",
+        "10",
+        "1.1",
+        "1.10",
+        "10.10",
+    ],
+)
+def pkgrel(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "0",
+        "1.0",
+        "0.1",
+        "",
+    ],
+)
+def invalid_pkgrel(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "Foobar",
+        "Foobar McFooface",
+        "Foobar Mc-Fooface",
+        "Foobar McFooface (The great Bar)",
+        "Foobar McFooface (The great Bar..)",
+        "Foobar McFooface (The 1st)",
+        "foo",
+    ],
+)
+def packager_name(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "",
+        "Foobar!",
+        "Foobar, McFooface",
+    ],
+)
+def invalid_packager_name(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(scope="session")
+def sha256sum() -> str:
+    return "".join(choice("abcdef" + digits) for x in range(64))
+
+
+@fixture(
+    scope="session",
+    params=[
+        "0.0.1",
+        "0_0_1",
+        "0+0+1",
+        "0.1.0",
+        "1.0.0",
+        "1.0.0.0.0.1",
+        "abc1.0.0",
+        "1.0.abc",
+        "0",
+        "1.",
+        "1..",
+        "foo",
+    ],
+)
+def version(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        "-1",
+        "1 0",
+        "1-0",
+        "1/0",
+    ],
+)
+def invalid_version(request: Any) -> str:
+    return str(request.param)
+
+
 @fixture(scope="function")
 def mtreeentryv1_stringio() -> Generator[StringIO, None, None]:
     mtree_contents = """
