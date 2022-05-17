@@ -590,3 +590,86 @@ def zst_file(text_file: Path) -> Generator[Path, None, None]:
                 compressed_tarfile.add(text_file)
 
         yield Path(tarfile.name)
+
+
+@fixture(scope="session")
+def epoch_version_pkgrel(epoch: str, version: str, pkgrel: str) -> str:
+    return f"{epoch}{version}-{pkgrel}"
+
+
+@fixture(scope="session")
+def invalid_epoch_version_pkgrel(invalid_epoch: str, invalid_version: str, invalid_pkgrel: str) -> str:
+    return f"{invalid_epoch}{invalid_version}-{invalid_pkgrel}"
+
+
+@fixture(scope="module")
+def buildinfov1_stringio(
+    email: str,
+    packager_name: str,
+    sha256sum: str,
+) -> Generator[StringIO, None, None]:
+    buildinfov1_contents = f"""format = 1
+        pkgname = foo
+        pkgbase = bar
+        pkgver = 1:1.0.0-1
+        pkgarch = any
+        pkgbuild_sha256sum = {sha256sum}
+        packager = {packager_name} <{email}>
+        builddate = 1
+        builddir = /build
+        buildenv = check
+        buildenv = color
+        options = debug
+        options = strip
+        installed = baz-1:1.0.1-1-any
+        installed = beh-1:1.0.1-1-any
+        """
+
+    yield StringIO(initial_value=dedent(buildinfov1_contents).strip())
+
+
+@fixture(scope="module")
+def buildinfov2_stringio(
+    email: str,
+    packager_name: str,
+    sha256sum: str,
+) -> Generator[StringIO, None, None]:
+    buildinfov1_contents = f"""format = 2
+        pkgname = foo
+        pkgbase = bar
+        pkgver = 1:1.0.0-1
+        pkgarch = any
+        pkgbuild_sha256sum = {sha256sum}
+        packager = {packager_name} <{email}>
+        builddate = 1
+        builddir = /build
+        startdir = /startdir
+        buildtool = buildtool
+        buildtoolver = 1:1.0.1-1-any
+        buildenv = check
+        buildenv = color
+        options = debug
+        options = strip
+        installed = baz-1:1.0.1-1-any
+        installed = beh-1:1.0.1-1-any
+        """
+
+    yield StringIO(initial_value=dedent(buildinfov1_contents).strip())
+
+
+@fixture(scope="function")
+def valid_buildinfov1_file(buildinfov1_stringio: StringIO) -> Generator[Path, None, None]:
+    with NamedTemporaryFile() as buildinfo_file:
+        with open(buildinfo_file.name, mode="wt") as f:
+            print(buildinfov1_stringio.getvalue(), file=f)
+
+        yield Path(buildinfo_file.name)
+
+
+@fixture(scope="function")
+def valid_buildinfov2_file(buildinfov2_stringio: StringIO) -> Generator[Path, None, None]:
+    with NamedTemporaryFile() as buildinfo_file:
+        with open(buildinfo_file.name, mode="wt") as f:
+            print(buildinfov2_stringio.getvalue(), file=f)
+
+        yield Path(buildinfo_file.name)
