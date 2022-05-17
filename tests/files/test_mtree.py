@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from pathlib import Path
-from random import choice, randrange
+from random import choice, randrange, sample
 from string import ascii_lowercase, digits
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import IO, ContextManager, Literal, Optional, Union
@@ -402,10 +402,10 @@ def test_export_schemas() -> None:
     reason="Package cache in /var/cache/pacman/pkg/ does not exist",
 )
 async def test_read_mtree_files() -> None:
-    file_list = sorted(Path("/var/cache/pacman/pkg/").glob("*.zst"))
-    if len(file_list) > 500:
-        file_list = file_list[0:500]
-    for package in file_list:
+    packages = sorted(Path("/var/cache/pacman/pkg/").glob("*.zst"))
+    if len(packages) > 50:
+        packages = sample(packages, 50)
+    for package in packages:
         assert isinstance(
             mtree.MTree.from_file(
                 data=mtree.read_mtree(
