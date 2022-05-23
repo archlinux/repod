@@ -6,31 +6,10 @@ from typing import Dict, Set, Tuple
 
 from pydantic import BaseModel
 
+from repod.common.enums import FieldTypeEnum
 from repod.errors import RepoManagementFileError
 
 from .common import Name
-
-
-class FieldTypeEnum(IntEnum):
-    """An IntEnum to distinguish the types of different entries in a 'desc' or 'files' file contained in repository
-    sync databases.
-
-    This information is required for being able to properly parse the data and have functioning typing.
-
-    Attributes
-    ----------
-    STRING: int
-        An entry of type 'str'
-    INT: int
-        An entry of typoe 'int'
-    STRING_LIST: int
-        An entry of type 'List[str]'
-    """
-
-    STRING = 0
-    INT = 1
-    STRING_LIST = 2
-
 
 DESC_JSON: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "%BASE%": ("base", FieldTypeEnum.STRING),

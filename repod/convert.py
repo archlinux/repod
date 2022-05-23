@@ -4,6 +4,7 @@ from typing import Dict, List, Set, Union
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 
 from repod import errors, models
+from repod.common.enums import FieldTypeEnum
 
 
 async def file_data_to_model(
@@ -35,7 +36,7 @@ async def file_data_to_model(
     """
 
     current_header = ""
-    current_type: models.FieldTypeEnum
+    current_type: FieldTypeEnum
     int_types: Dict[str, int] = {}
     keys: Set[str]
     string_types: Dict[str, str] = {}
@@ -69,7 +70,7 @@ async def file_data_to_model(
                     pass
             # FIXME: find better way to provide a default (None or empty list for STRING_LIST as they all are
             # Optional[List[str]]
-            if current_header and current_type == models.FieldTypeEnum.STRING_LIST:
+            if current_header and current_type == FieldTypeEnum.STRING_LIST:
                 string_list_types[current_header] = []
 
             continue
@@ -77,11 +78,11 @@ async def file_data_to_model(
         if current_header:
             try:
                 match current_type:
-                    case models.FieldTypeEnum.STRING_LIST:
+                    case FieldTypeEnum.STRING_LIST:
                         string_list_types[current_header] += [line]
-                    case models.FieldTypeEnum.STRING:
+                    case FieldTypeEnum.STRING:
                         string_types[current_header] = line
-                    case models.FieldTypeEnum.INT:
+                    case FieldTypeEnum.INT:
                         int_types[current_header] = int(line)
                     case _:  # pragma: no cover
                         pass
