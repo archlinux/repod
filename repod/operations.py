@@ -1,15 +1,23 @@
 from os.path import join
 from pathlib import Path
-from typing import AsyncIterator, Dict, Tuple
+from typing import AsyncIterator, Dict, Optional, Tuple
 
 import aiofiles
 import orjson
 
-from repod import convert, files, models
+from repod import convert, models
+from repod.files import (
+    _db_file_member_as_model,
+    _json_files_in_directory,
+    _read_pkgbase_json_file,
+    _stream_package_base_to_db,
+    _write_db_file,
+    open_tarfile,
+)
 
 
 async def db_file_as_models(
-    db_path: Path, compression: str = "gz"
+    db_path: Path, compression: Optional[str] = "gzip"
 ) -> AsyncIterator[Tuple[str, models.OutputPackageBase]]:
     """Read a repository database and yield the name of each pkgbase and the respective data (represented as an instance
     of models.OutputPackageBase) in a Tuple.
@@ -32,20 +40,25 @@ async def db_file_as_models(
     package_descs: Dict[str, models.PackageDesc] = {}
     package_files: Dict[str, models.Files] = {}
 
-    async for member in files._db_file_member_as_model(
-        db_file=await files._read_db_file(db_path=db_path, compression=compression)
-    ):
-        match member.member_type:
-            case models.RepoDbMemberTypeEnum.DESC:
-                desc_data: models.PackageDesc = await convert.file_data_to_model(  # type: ignore[assignment]
-                    name=member.name, data=member.data, data_type=member.member_type
-                )
-                package_descs.update({member.name: desc_data})
-            case models.RepoDbMemberTypeEnum.FILES:
-                files_data: models.Files = await convert.file_data_to_model(  # type: ignore[assignment]
-                    name=member.name, data=member.data, data_type=member.member_type
-                )
-                package_files.update({member.name: files_data})
+    with open_tarfile(path=db_path, compression=compression) as db_tarfile:
+        async for member in _db_file_member_as_model(db_file=db_tarfile):
+            match member.member_type:
+                case models.RepoDbMemberTypeEnum.DESC:
+                    desc_data: models.PackageDesc = await convert.file_data_to_model(  # type: ignore[assignment]
+                        name=member.name, data=member.data, data_type=member.member_type
+                    )
+                    package_descs.update({member.name: desc_data})
+                case models.RepoDbMemberTypeEnum.FILES:
+                    files_data: models.Files = await convert.file_data_to_model(  # type: ignore[assignment]
+                        name=member.name, data=member.data, data_type=member.member_type
+                    )
+                    package_files.update({member.name: files_data})
+                case _:  # pragma: no cover
+                    # NOTE: this case can never be reached, but we add it to make tests happy
+                    raise RuntimeError(
+                        f"The database file {db_path} contains the member {member.name} of the unsupported type "
+                        f"{member.member_type}!"
+                    )
 
     for (name, package_desc) in package_descs.items():
         if packages.get(package_desc.get_base()):
@@ -102,10 +115,10 @@ async def create_db_from_json_files(
     """
 
     repodbfile = convert.RepoDbFile()
-    with files._write_db_file(path=output_path) as database:
-        async for path in files._json_files_in_directory(path=input_path):
-            model = await files._read_pkgbase_json_file(path)
-            await files._stream_package_base_to_db(
+    with _write_db_file(path=output_path) as database:
+        async for path in _json_files_in_directory(path=input_path):
+            model = await _read_pkgbase_json_file(path)
+            await _stream_package_base_to_db(
                 db=database,
                 model=model,
                 repodbfile=repodbfile,
