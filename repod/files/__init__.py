@@ -10,6 +10,7 @@ import aiofiles
 import orjson
 
 from repod import convert, defaults, errors, models
+from repod.files.common import extract_file_from_tarfile, open_tarfile  # noqa: F401
 
 
 async def _read_db_file(db_path: Path, compression: str = "gz") -> tarfile.TarFile:

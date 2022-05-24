@@ -1,6 +1,6 @@
 from logging import debug
 from pathlib import Path
-from tarfile import TarFile
+from tarfile import ReadError, TarFile
 from tarfile import open as tarfile_open
 from typing import IO, Dict, Literal, Optional, Union
 
@@ -148,5 +148,102 @@ async def extract_from_package_file(package: TarFile, file: str) -> IO[bytes]:
 
     if extracted is None:
         raise RepoManagementFileNotFoundError(f"File {file} in {str(package.name)} is not a file or a symbolic link!")
+
+    return extracted
+
+
+def open_tarfile(
+    path: Path,
+    compression: Optional[CompressionTypeEnum] = None,
+    mode: Literal["r", "w", "x"] = "r",
+) -> TarFile:
+    """Open a file as a TarFile
+
+    This function distinguishes between bzip2, gzip, lzma and zstandard compression depending on file suffix.
+    The detection can be overridden by providing either a file suffix or compression type.
+
+    Parameters
+    ----------
+    path: Path
+        A Path to a file
+    compression: Optional[CompressionTypeEnum]
+        An optional compression type to override the detection based on mime type.
+    mode: Literal["r", "w", "x"]
+        A mode to open the file with (defaults to "r").
+        "r" - open file for reading
+        "w" - open file for writing
+        "x" - create file
+
+    Raises
+    ------
+    ValueError
+        If the file represented by db_path does not exist
+    tarfile.ReadError
+        If the file could not be opened
+    RepoManagementFileError
+        If the compression type is unknown
+
+    Returns
+    -------
+    tarfile.Tarfile
+        An instance of Tarfile
+    """
+
+    debug(f"Opening file {path}...")
+
+    if not path.is_absolute():
+        raise RepoManagementFileError(f"An error occured while attempting to resolve a file path: {path} is relative!")
+    if path.is_symlink():
+        path = path.resolve()
+
+    compression_type = compression if compression else compression_type_of_tarfile(path=path)
+
+    match compression_type:
+        case CompressionTypeEnum.NONE | CompressionTypeEnum.BZIP2 | CompressionTypeEnum.GZIP | CompressionTypeEnum.LZMA:
+            try:
+                return tarfile_open(name=path, mode=f"{mode}:{compression_type.value}")
+            except ReadError as e:
+                raise RepoManagementFileError(
+                    f"An error occured attempting to read tar file {path} using compression type "
+                    f"{compression_type.value}.\n{e}"
+                )
+        case CompressionTypeEnum.ZSTANDARD:
+            return ZstdTarFile(name=path, mode=mode)
+        case _:
+            raise RepoManagementFileError(
+                f"Unknown compression type {compression_type} encountered while attempting to open file {path}!"
+            )
+
+
+async def extract_file_from_tarfile(tarfile: TarFile, file: str) -> IO[bytes]:
+    """Extract a file from a TarFile and return it as a bytes stream
+
+    Parameters
+    ----------
+    tarfile: TarFile
+        An instance of TarFile
+    file: str
+        A string representing the name of a file contained in tarfile
+
+    Raises
+    ------
+    RepoManagementFileNotFoundError
+        If the requested file does not exist in the tarfile or if the requested file is neither a file nor a symlink
+
+    Returns
+    -------
+    IO[bytes]
+        A bytes stream that represents the file to extract
+    """
+
+    debug(f"Extracting file {file} from {str(tarfile.name)}...")
+
+    try:
+        extracted = tarfile.extractfile(file)
+    except KeyError as e:
+        raise RepoManagementFileNotFoundError(f"File {file} not found in {str(tarfile.name)}!\n{e}")
+
+    if extracted is None:
+        raise RepoManagementFileNotFoundError(f"File {file} in {str(tarfile.name)} is not a file or a symbolic link!")
 
     return extracted
