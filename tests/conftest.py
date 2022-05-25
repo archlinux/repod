@@ -1,19 +1,25 @@
 import gzip
 from io import BytesIO, StringIO
+from os import chdir
 from pathlib import Path
 from random import choice
 from string import digits
 from tarfile import open as tarfile_open
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from textwrap import dedent
-from typing import IO, Any, Generator, List
+from typing import IO, Any, AsyncGenerator, Generator, List, Tuple
 
+import pytest_asyncio
 from pydantic import BaseModel
 from pytest import fixture
 
-from repod.files.mtree import MTree, MTreeEntryV1
+from repod.common.enums import CompressionTypeEnum
+from repod.convert import RepoDbFile
+from repod.files import _stream_package_base_to_db, open_tarfile
 from repod.files.common import ZstdTarFile
-from repod.models import Files, OutputPackageBase, PackageDesc
+from repod.files.mtree import MTree, MTreeEntryV1
+from repod.models import Files, OutputPackageBase, PackageDesc, RepoDbTypeEnum
+from repod.models.package import FilesV1, OutputPackageBaseV1, OutputPackageV1
 
 
 class SchemaVersion9999(BaseModel):
@@ -153,6 +159,11 @@ def epoch(request: Any) -> str:
 )
 def invalid_epoch(request: Any) -> str:
     return str(request.param)
+
+
+@fixture(scope="session")
+def md5sum() -> str:
+    return "".join(choice("abcdef" + digits) for x in range(32))
 
 
 @fixture(
@@ -684,3 +695,151 @@ def valid_buildinfov2_file(buildinfov2_stringio: StringIO) -> Generator[Path, No
             print(buildinfov2_stringio.getvalue(), file=f)
 
         yield Path(buildinfo_file.name)
+
+
+@fixture(scope="session")
+def outputpackagebasev1(md5sum: str, sha256sum: str) -> OutputPackageBaseV1:
+    return OutputPackageBaseV1(
+        base="foo",
+        packager="Foobar McFooface <foobar@mcfooface.tld>",
+        packages=[
+            OutputPackageV1(
+                arch="any",
+                builddate=1,
+                csize=1,
+                desc="Something foo",
+                filename="foo-1.0.0-1-any.pkg.tar.zst",
+                files=FilesV1(files=["/foo"]),
+                isize=1,
+                license=["GPL3"],
+                md5sum=md5sum,
+                name="foo",
+                pgpsig="FAKE_SIGNATURE",
+                sha256sum=sha256sum,
+                url="https://domain.tld",
+            ),
+            OutputPackageV1(
+                arch="any",
+                builddate=1,
+                csize=1,
+                desc="Something bar",
+                filename="bar-1.0.0-1-any.pkg.tar.zst",
+                files=FilesV1(files=["/bar"]),
+                isize=1,
+                license=["GPL3"],
+                md5sum=md5sum,
+                name="bar",
+                pgpsig="FAKE_SIGNATURE",
+                sha256sum=sha256sum,
+                url="https://domain.tld",
+            ),
+        ],
+        version="1.0.0-1",
+    )
+
+
+@pytest_asyncio.fixture(
+    scope="module",
+    params=[
+        CompressionTypeEnum.BZIP2,
+        CompressionTypeEnum.GZIP,
+        CompressionTypeEnum.LZMA,
+        CompressionTypeEnum.ZSTANDARD,
+    ],
+    ids=[
+        "default bzip2",
+        "default gzip",
+        "default lzma",
+        "default zstandard",
+    ],
+)
+async def default_sync_db_file(
+    md5sum: str,
+    outputpackagebasev1: OutputPackageBaseV1,
+    request: Any,
+    sha256sum: str,
+) -> AsyncGenerator[Tuple[Path, Path], None]:
+    compression = request.param
+    suffix = ""
+    match compression:
+        case CompressionTypeEnum.BZIP2:
+            suffix = ".bz2"
+        case CompressionTypeEnum.GZIP:
+            suffix = ".gz"
+        case CompressionTypeEnum.LZMA:
+            suffix = ".xz"
+        case CompressionTypeEnum.ZSTANDARD:
+            suffix = ".zst"
+
+    tar_db_name = Path(f"test.db.tar{suffix}")
+    symlink_db_name = Path("test.db")
+
+    with TemporaryDirectory() as temp_dir:
+        sync_db_tarfile = Path(temp_dir) / f"test.tar{compression}"
+        temp_path = Path(temp_dir)
+        sync_db_tarfile = temp_path / tar_db_name
+        sync_db_symlink = temp_path / symlink_db_name
+        with open_tarfile(path=sync_db_tarfile, compression=compression, mode="x") as db_tarfile:
+            await _stream_package_base_to_db(
+                db=db_tarfile,
+                model=outputpackagebasev1,
+                repodbfile=RepoDbFile(),
+                db_type=RepoDbTypeEnum.DEFAULT,
+            )
+
+        chdir(temp_path)
+        symlink_db_name.symlink_to(sync_db_tarfile.name)
+        yield (sync_db_tarfile, sync_db_symlink)
+
+
+@pytest_asyncio.fixture(
+    scope="module",
+    params=[
+        CompressionTypeEnum.BZIP2,
+        CompressionTypeEnum.GZIP,
+        CompressionTypeEnum.LZMA,
+        CompressionTypeEnum.ZSTANDARD,
+    ],
+    ids=[
+        "files bzip2",
+        "files gzip",
+        "files lzma",
+        "files zstandard",
+    ],
+)
+async def files_sync_db_file(
+    md5sum: str,
+    outputpackagebasev1: OutputPackageBaseV1,
+    request: Any,
+    sha256sum: str,
+) -> AsyncGenerator[Tuple[Path, Path], None]:
+    compression = request.param
+    suffix = ""
+    match compression:
+        case CompressionTypeEnum.BZIP2:
+            suffix = ".bz2"
+        case CompressionTypeEnum.GZIP:
+            suffix = ".gz"
+        case CompressionTypeEnum.LZMA:
+            suffix = ".xz"
+        case CompressionTypeEnum.ZSTANDARD:
+            suffix = ".zst"
+
+    tar_db_name = Path(f"test.files.tar{suffix}")
+    symlink_db_name = Path("test.files")
+
+    with TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        sync_db_tarfile = temp_path / tar_db_name
+        sync_db_symlink = temp_path / symlink_db_name
+        with open_tarfile(path=sync_db_tarfile, compression=compression, mode="x") as db_tarfile:
+            await _stream_package_base_to_db(
+                db=db_tarfile,
+                model=outputpackagebasev1,
+                repodbfile=RepoDbFile(),
+                db_type=RepoDbTypeEnum.FILES,
+            )
+
+        chdir(temp_path)
+        symlink_db_name.symlink_to(sync_db_tarfile.name)
+        yield (sync_db_tarfile, sync_db_symlink)
