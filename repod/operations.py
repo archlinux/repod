@@ -6,6 +6,7 @@ import aiofiles
 import orjson
 
 from repod import convert, models
+from repod.common.enums import CompressionTypeEnum
 from repod.files import (
     _db_file_member_as_model,
     _json_files_in_directory,
@@ -17,7 +18,7 @@ from repod.files import (
 
 
 async def db_file_as_models(
-    db_path: Path, compression: Optional[str] = "gzip"
+    db_path: Path, compression: Optional[CompressionTypeEnum] = None
 ) -> AsyncIterator[Tuple[str, models.OutputPackageBase]]:
     """Read a repository database and yield the name of each pkgbase and the respective data (represented as an instance
     of models.OutputPackageBase) in a Tuple.

@@ -1,17 +1,21 @@
 import tempfile
+from asyncio import AbstractEventLoop, get_event_loop
 from pathlib import Path
+from typing import Generator, Tuple
 
 import py
 from pytest import fixture, mark
 
 from repod import models, operations
 
-from .fixtures import create_db_file, create_json_files
+from .fixtures import create_json_files
 
 
-@fixture(scope="function")
-def create_gz_db_file(tmpdir: py.path.local) -> Path:
-    return create_db_file(tmpdir)
+@fixture(scope="module")
+def event_loop() -> Generator[AbstractEventLoop, None, None]:
+    loop = get_event_loop()
+    yield loop
+    loop.close()
 
 
 @fixture(scope="function")
@@ -32,18 +36,18 @@ def empty_file(tmpdir: py.path.local) -> Path:
 
 
 @mark.asyncio
-async def test_db_file_as_models(create_gz_db_file: Path) -> None:
-    async for (name, model) in operations.db_file_as_models(db_path=create_gz_db_file):
+async def test_db_file_as_models(files_sync_db_file: Tuple[Path, Path]) -> None:
+    async for (name, model) in operations.db_file_as_models(db_path=files_sync_db_file[0]):
         assert isinstance(name, str)
         assert isinstance(model, models.package.OutputPackageBaseV1)
 
 
 @mark.asyncio
 async def test_dump_db_to_json_files(
-    create_gz_db_file: Path,
+    files_sync_db_file: Tuple[Path, Path],
     create_dir_path: Path,
 ) -> None:
-    await operations.dump_db_to_json_files(input_path=create_gz_db_file, output_path=create_dir_path)
+    await operations.dump_db_to_json_files(input_path=files_sync_db_file[0], output_path=create_dir_path)
 
 
 @mark.asyncio

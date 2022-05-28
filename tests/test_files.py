@@ -1,29 +1,22 @@
 import tarfile
 import tempfile
-from contextlib import nullcontext as does_not_raise
+from asyncio import AbstractEventLoop, get_event_loop
 from pathlib import Path
+from typing import Generator, Tuple
 
 import py
 from pytest import fixture, mark, raises
 
 from repod import convert, errors, files, models
 
-from .fixtures import create_db_file, create_empty_json_files
+from .fixtures import create_empty_json_files
 
 
-@fixture(scope="function")
-def create_gz_db_file(tmpdir: py.path.local) -> Path:
-    return create_db_file(tmpdir)
-
-
-@fixture(scope="function")
-def create_bzip_db_file(tmpdir: py.path.local) -> Path:
-    return create_db_file(tmpdir, compression="bz2")
-
-
-@fixture(scope="function")
-def create_null_db_file(tmpdir: py.path.local) -> Path:
-    return create_db_file(tmpdir, remove_db=True)
+@fixture(scope="module")
+def event_loop() -> Generator[AbstractEventLoop, None, None]:
+    loop = get_event_loop()
+    yield loop
+    loop.close()
 
 
 @fixture(scope="function")
@@ -62,32 +55,8 @@ def invalid_json_file(tmpdir: py.path.local) -> Path:
 
 
 @mark.asyncio
-async def test__read_db_file(create_gz_db_file: Path) -> None:
-    with does_not_raise():
-        assert await files._read_db_file(create_gz_db_file)
-
-
-@mark.asyncio
-async def test__read_db_file_wrong_compression(create_gz_db_file: Path) -> None:
-    with raises(tarfile.CompressionError):
-        assert await files._read_db_file(create_gz_db_file, compression="foo")
-
-
-@mark.asyncio
-async def test__read_db_file_does_not_exist(create_null_db_file: Path) -> None:
-    with raises(FileNotFoundError):
-        assert await files._read_db_file(create_null_db_file)
-
-
-@mark.asyncio
-async def test__read_db_file_wrong_db_compression(create_bzip_db_file: Path) -> None:
-    with raises(tarfile.ReadError):
-        assert await files._read_db_file(create_bzip_db_file)
-
-
-@mark.asyncio
-async def test__read_db_file_member_as_model(create_gz_db_file: Path) -> None:
-    async for member in files._db_file_member_as_model(db_file=await files._read_db_file(create_gz_db_file)):
+async def test__read_db_file_member_as_model(files_sync_db_file: Tuple[Path, Path]) -> None:
+    async for member in files._db_file_member_as_model(db_file=files.open_tarfile(files_sync_db_file[0])):
         assert isinstance(member, models.RepoDbMemberData)
 
 
