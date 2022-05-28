@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from pytest import fixture
 
 from repod.files.mtree import MTree, MTreeEntryV1
-from repod.files.package import ZstdTarFile
+from repod.files.common import ZstdTarFile
 from repod.models import Files, OutputPackageBase, PackageDesc
 
 

@@ -4,8 +4,10 @@ from tarfile import TarFile
 from tarfile import open as tarfile_open
 from typing import IO, Dict, Literal, Optional, Union
 
+from magic import from_buffer
 from pyzstd import CParameter, ZstdDict, ZstdFile
 
+from repod.common.enums import CompressionTypeEnum
 from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundError
 
 
@@ -38,6 +40,46 @@ class ZstdTarFile(TarFile):
             super().close()
         finally:
             self.zstd_file.close()
+
+
+def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
+    """Retrieve the compression type of a tar file
+
+    Parameters
+    ----------
+    path: Path
+        The path to a tar file
+
+    Raises
+    ------
+    RepoManagementFileError
+        If an unknown compression type is encountered
+
+    Returns
+    -------
+    CompressionTypeEnum
+        A member of CompressionTypeEnum, that reflects the compression type of tar file at path
+    """
+
+    file = " ".join(from_buffer(open(path, "rb").read(2048)).split()[0:3]).lower().strip(",")
+    debug(f"Type of file {path} detected as: {file}")
+
+    match file:
+        case "posix tar archive":
+            return CompressionTypeEnum.NONE
+        case "bzip2 compressed data":
+            return CompressionTypeEnum.BZIP2
+        case "gzip compressed data":
+            return CompressionTypeEnum.GZIP
+        case "xz compressed data":
+            return CompressionTypeEnum.LZMA
+        case "zstandard compressed data":
+            return CompressionTypeEnum.ZSTANDARD
+        case _:
+            raise RepoManagementFileError(
+                f"An error occured while attempting to retrieve the compression type of tar file: {path}!\n"
+                "Unknown compression type encountered."
+            )
 
 
 async def open_package_file(path: Path) -> TarFile:

@@ -15,7 +15,7 @@ from repod.errors import (
     RepoManagementValidationError,
 )
 from repod.files import mtree
-from repod.files.package import extract_from_package_file, open_package_file
+from repod.files.common import extract_from_package_file, open_package_file
 
 
 @mark.parametrize(
