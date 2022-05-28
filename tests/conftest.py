@@ -571,6 +571,17 @@ def gz_file(text_file: Path) -> Generator[Path, None, None]:
 
 
 @fixture(scope="function")
+def tar_file(text_file: Path) -> Generator[Path, None, None]:
+    with TemporaryDirectory() as temp_dir:
+        with NamedTemporaryFile(dir=temp_dir, suffix=".tar", delete=False) as tarfile:
+            with tarfile_open(tarfile.name, mode="w:") as uncompressed_tarfile:
+                uncompressed_tarfile.add(text_file.parent)
+                uncompressed_tarfile.add(text_file)
+
+        yield Path(tarfile.name)
+
+
+@fixture(scope="function")
 def xz_file(text_file: Path) -> Generator[Path, None, None]:
     with TemporaryDirectory() as temp_dir:
         with NamedTemporaryFile(dir=temp_dir, suffix=".xz", delete=False) as tarfile:
