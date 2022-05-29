@@ -15,7 +15,7 @@ from repod.errors import (
     RepoManagementFileNotFoundError,
 )
 from repod.files import buildinfo
-from repod.files.common import extract_from_package_file, open_package_file
+from repod.files.common import extract_file_from_tarfile, open_tarfile
 
 
 @mark.parametrize(
@@ -247,8 +247,8 @@ async def test_read_buildinfo_files() -> None:
         assert isinstance(
             buildinfo.BuildInfo.from_file(
                 data=buildinfo.read_buildinfo(
-                    await extract_from_package_file(
-                        package=await open_package_file(package),
+                    await extract_file_from_tarfile(
+                        tarfile=open_tarfile(package),
                         file=".BUILDINFO",
                     )
                 )
