@@ -20,41 +20,6 @@ def event_loop() -> Generator[AbstractEventLoop, None, None]:
 
 
 @mark.parametrize(
-    "file_type, expectation",
-    [
-        (".bz2", does_not_raise()),
-        (".gz", does_not_raise()),
-        (".xz", does_not_raise()),
-        (".zst", does_not_raise()),
-        (".foo", raises(RepoManagementFileError)),
-    ],
-)
-@mark.asyncio
-async def test_open_package_file(
-    file_type: str,
-    bz2_file: Path,
-    gz_file: Path,
-    xz_file: Path,
-    zst_file: Path,
-    expectation: ContextManager[str],
-) -> None:
-    match file_type:
-        case ".bz2":
-            path = bz2_file
-        case ".gz":
-            path = gz_file
-        case ".xz":
-            path = xz_file
-        case ".zst":
-            path = zst_file
-        case ".foo":
-            path = Path("foo.foo")
-    with expectation:
-        assert await common.open_package_file(path=path)
-
-
-# TODO: also test opening database files
-@mark.parametrize(
     "file_type, compression_override, expectation",
     [
         (".bz2", None, does_not_raise()),
@@ -120,19 +85,6 @@ def test_open_tarfile_relative_path() -> None:
             path=Path("foo"),
         ) as tarfile_file:
             assert isinstance(tarfile_file, TarFile)
-
-
-async def test_extract_from_package_file(zst_file: Path) -> None:
-    with common.ZstdTarFile(zst_file) as tarfile:
-        for member in tarfile.getmembers():
-            if member.name.endswith(".txt"):
-                assert await common.extract_from_package_file(tarfile, member.name)
-            else:
-                with raises(RepoManagementFileNotFoundError):
-                    assert await common.extract_from_package_file(tarfile, member.name)
-
-                with raises(RepoManagementFileNotFoundError):
-                    assert await common.extract_from_package_file(tarfile, f"{member.name}foobar")
 
 
 async def test_extract_file_from_tarfile(zst_file: Path) -> None:
