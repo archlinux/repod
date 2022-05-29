@@ -7,8 +7,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from pydantic import BaseModel, ValidationError
 
 from repod import errors
-
-from .common import (
+from repod.common.models import (
     Arch,
     Backup,
     Base,

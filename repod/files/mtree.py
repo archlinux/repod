@@ -15,12 +15,12 @@ from pydantic import (
     constr,
 )
 
+from repod.common.models import SchemaVersionV1
 from repod.errors import (
     RepoManagementFileError,
     RepoManagementFileNotFoundError,
     RepoManagementValidationError,
 )
-from repod.models.common import SchemaVersionV1
 
 
 class SystemGID(BaseModel):

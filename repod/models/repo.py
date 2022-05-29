@@ -7,9 +7,8 @@ from typing import Dict, Set, Tuple
 from pydantic import BaseModel
 
 from repod.common.enums import FieldTypeEnum
+from repod.common.models import Name
 from repod.errors import RepoManagementFileError
-
-from .common import Name
 
 DESC_JSON: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "%BASE%": ("base", FieldTypeEnum.STRING),

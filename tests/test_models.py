@@ -19,6 +19,7 @@ from pydantic import ValidationError
 from pytest import fixture, mark, raises
 
 from repod import defaults, errors, models
+from repod.common import models as common_models
 from repod.models.repo import DESC_JSON, FILES_JSON
 from tests.conftest import OutputPackageBaseV9999, PackageDescV9999
 
@@ -553,7 +554,7 @@ async def test_output_package_base_get_packages_as_models(
 )
 def test_name(name: str, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert name == models.common.Name(name=name).name
+        assert name == common_models.Name(name=name).name
 
 
 @mark.parametrize(
@@ -565,7 +566,7 @@ def test_name(name: str, expectation: ContextManager[str]) -> None:
 )
 def test_builddate(builddate: int, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert builddate == models.common.BuildDate(builddate=builddate).builddate
+        assert builddate == common_models.BuildDate(builddate=builddate).builddate
 
 
 @mark.parametrize(
@@ -577,7 +578,7 @@ def test_builddate(builddate: int, expectation: ContextManager[str]) -> None:
 )
 def test_csize(csize: int, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert csize == models.common.CSize(csize=csize).csize
+        assert csize == common_models.CSize(csize=csize).csize
 
 
 @mark.parametrize(
@@ -589,7 +590,7 @@ def test_csize(csize: int, expectation: ContextManager[str]) -> None:
 )
 def test_isize(isize: int, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert isize == models.common.ISize(isize=isize).isize
+        assert isize == common_models.ISize(isize=isize).isize
 
 
 @mark.parametrize(
@@ -609,7 +610,7 @@ def test_isize(isize: int, expectation: ContextManager[str]) -> None:
 )
 def test_version_version_is_valid(version: str, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert version == models.common.Version(version=version).version
+        assert version == common_models.Version(version=version).version
 
 
 @mark.parametrize(
@@ -620,7 +621,7 @@ def test_version_version_is_valid(version: str, expectation: ContextManager[str]
     ],
 )
 def test_version_is_older_than(version: str, other_version: str, expectation: bool) -> None:
-    model = models.common.Version(version=version)
+    model = common_models.Version(version=version)
     assert model.is_older_than(other_version) is expectation
 
 
@@ -632,7 +633,7 @@ def test_version_is_older_than(version: str, other_version: str, expectation: bo
     ],
 )
 def test_version_is_newer_than(version: str, other_version: str, expectation: bool) -> None:
-    model = models.common.Version(version=version)
+    model = common_models.Version(version=version)
     assert model.is_newer_than(other_version) is expectation
 
 
@@ -811,7 +812,7 @@ def test_get_files_json_field_type() -> None:
 )
 def test_file_list(file_list: Optional[List[str]], expectation: ContextManager[str]) -> None:
     with expectation:
-        models.common.FileList(files=file_list)
+        common_models.FileList(files=file_list)
 
 
 def test_files_get_schema_version() -> None:
