@@ -9,8 +9,8 @@ from pydantic import BaseModel, NonNegativeInt, conint, constr, root_validator
 
 from repod.common.enums import FieldTypeEnum
 from repod.common.regex import (
-    ABSOLUTE_DIR,
-    ARCHITECTURES,
+    ABSOLUTE_PATH,
+    ARCHITECTURE,
     BUILDENVS,
     EMAIL,
     EPOCH,
@@ -67,7 +67,7 @@ class BuildDir(BaseModel):
         A string representing an absolute directory
     """
 
-    builddir: constr(regex=f"^{ABSOLUTE_DIR}$")  # type: ignore[valid-type]  # noqa: F722
+    builddir: constr(regex=rf"^{ABSOLUTE_PATH}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class BuildEnv(BaseModel):
@@ -81,7 +81,7 @@ class BuildEnv(BaseModel):
         A list of strings as described by makepkg.conf's BUILDENV option
     """
 
-    buildenv: List[constr(regex=f"^{BUILDENVS}$")]  # type: ignore[valid-type]  # noqa: F722
+    buildenv: List[constr(regex=rf"^{BUILDENVS}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class BuildTool(BaseModel):
@@ -93,7 +93,7 @@ class BuildTool(BaseModel):
         The package name of the build tool used to create a package
     """
 
-    buildtool: constr(regex=f"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
+    buildtool: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class BuildToolVer(BaseModel):
@@ -143,7 +143,7 @@ class Installed(BaseModel):
     """
 
     installed: List[  # type: ignore[valid-type]
-        constr(regex=f"^({PACKAGE_NAME})-({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURES}$")  # noqa: F722
+        constr(regex=rf"^({PACKAGE_NAME})-({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}$")  # noqa: F722
     ]
 
 
@@ -158,7 +158,7 @@ class Options(BaseModel):
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     """
 
-    options: List[constr(regex=f"^{OPTIONS}$")]  # type: ignore[valid-type]  # noqa: F722
+    options: List[constr(regex=rf"^{OPTIONS}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class Packager(BaseModel):
@@ -184,7 +184,7 @@ class PkgArch(BaseModel):
         A valid CPU architecture for a package
     """
 
-    pkgarch: constr(regex=f"^{ARCHITECTURES}$")  # type: ignore[valid-type]  # noqa: F722
+    pkgarch: constr(regex=rf"^{ARCHITECTURE}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class PkgBase(BaseModel):
@@ -198,7 +198,7 @@ class PkgBase(BaseModel):
         A string representing a valid pkgbase for a package
     """
 
-    pkgbase: constr(regex=f"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
+    pkgbase: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class PkgBuildSha256Sum(BaseModel):
@@ -210,7 +210,7 @@ class PkgBuildSha256Sum(BaseModel):
         A string representing a SHA-256 checksum for a PKGBUILD of a package
     """
 
-    pkgbuild_sha256sum: constr(regex=f"{SHA256}")  # type: ignore[valid-type]  # noqa: F722
+    pkgbuild_sha256sum: constr(regex=rf"{SHA256}")  # type: ignore[valid-type]  # noqa: F722
 
 
 class PkgName(BaseModel):
@@ -224,7 +224,7 @@ class PkgName(BaseModel):
         A string representing a valid pkgname of a package
     """
 
-    pkgname: constr(regex=f"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
+    pkgname: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class PkgVer(BaseModel):
@@ -253,7 +253,7 @@ class StartDir(BaseModel):
         A string representing the absolute startdir directory of a package
     """
 
-    startdir: constr(regex=f"^{ABSOLUTE_DIR}$")  # type: ignore[valid-type]  # noqa: F722
+    startdir: constr(regex=rf"^{ABSOLUTE_PATH}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class BuildInfo(BaseModel):
@@ -433,7 +433,7 @@ class BuildInfoV2(
         """
 
         buildtool, buildtoolver = str(values.get("buildtool")), str(values.get("buildtoolver"))
-        if buildtool == "devtools" and not fullmatch(f"^({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURES}$", buildtoolver):
+        if buildtool == "devtools" and not fullmatch(rf"^({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}$", buildtoolver):
             raise ValueError(
                 "When building with devtools the buildtoolver must be of the format "
                 f"<optional_epoch><pkgver>-<pkgrel>-<arch>, but it is {buildtoolver}!"

@@ -1,13 +1,23 @@
-ABSOLUTE_DIR = r"/[A-Za-z0-9.,:;/_()@\\&$?!+%~{}<>*\-\"\'\[\]]+"
-ARCHITECTURES = (
-    r"(aarch64|any|arm|armv6h|armv7h|i486|i686|pentium4|riscv32|riscv64|x86_64|x86_64_v2|x86_64_v3|x86_64_v4)"
-)
+from repod.common.defaults import architectures_for_architecture_regex
+from repod.common.enums import tar_compression_types_for_filename_regex
+
+RELATIVE_MTREE_PATH = r"[A-Za-z0-9.,:;/_()@\\&$?!+%~{}<>*\-\"\'\[\]]+"
+ABSOLUTE_MTREE_PATH = rf"/{RELATIVE_MTREE_PATH}"
+ARCHITECTURE = rf"({architectures_for_architecture_regex()})"
+BASE64 = r"[0-9A-Za-z/+]+={0,2}"
 BUILDENVS = r"(!|)[\w\-.]+"
 EMAIL = r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)"
 EPOCH = r"[1-9]+[0-9]*:"
+MD5 = r"^[a-f0-9]{32}$"
 OPTIONS = r"(!|)[\w\-.]+"
 PKGREL = r"[1-9]+[0-9]*(|[.]{1}[1-9]+[0-9]*)"
 PACKAGE_NAME = r"[a-z\d_@+]+[a-z\d\-._@+]*"
 PACKAGER_NAME = r"[\w\s\-().]+"
+RELATIVE_PATH = r"[^/][\w\d\s.,:;/_=#()@\\&$?!+%~{}<>*\-\"\'\[\]\`^]+"
+ABSOLUTE_PATH = rf"/{RELATIVE_PATH}"
 SHA256 = r"^[a-f0-9]{64}$"
 VERSION = r"([A-Za-z\d]+)[_+.]?[A-Za-z\d_+.]*"
+FILENAME = (
+    rf"{PACKAGE_NAME}-({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}"
+    rf"(.pkg.tar)({tar_compression_types_for_filename_regex()})"
+)

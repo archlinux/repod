@@ -16,6 +16,7 @@ from pydantic import (
 )
 
 from repod.common.models import SchemaVersionV1
+from repod.common.regex import ABSOLUTE_MTREE_PATH, MD5, RELATIVE_MTREE_PATH, SHA256
 from repod.errors import (
     RepoManagementFileError,
     RepoManagementFileNotFoundError,
@@ -45,7 +46,7 @@ class LinkTarget(BaseModel):
     """
 
     link: Optional[  # type: ignore[valid-type]
-        constr(regex=r"^[A-Za-z0-9.,:;/_()@\\&$?!+%~{}<>*\-\"\'\[\]]+$")  # noqa: F722
+        constr(regex=rf"^({RELATIVE_MTREE_PATH}|{ABSOLUTE_MTREE_PATH})$")  # noqa: F722
     ]
 
 
@@ -58,7 +59,7 @@ class Md5(BaseModel):
         An optional string representing an MD5 checksum
     """
 
-    md5: Optional[constr(regex=r"^[a-f0-9]{32}$")]  # type: ignore[valid-type]  # noqa: F722
+    md5: Optional[constr(regex=rf"^{MD5}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class FileMode(BaseModel):
@@ -85,7 +86,7 @@ class MTreeEntryName(BaseModel):
         A string representing an absolute file location in mtree format
     """
 
-    name: constr(regex=r"^/[A-Za-z0-9.,:;/_()@\\&$?!+%~{}<>*\-\"\'\[\]]+$")  # type: ignore[valid-type]  # noqa: F722
+    name: constr(regex=rf"^{ABSOLUTE_MTREE_PATH}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class Sha256(BaseModel):
@@ -97,7 +98,7 @@ class Sha256(BaseModel):
         An optional string representing a SHA-256 checksum
     """
 
-    sha256: Optional[constr(regex=r"^[a-f0-9]{64}$")]  # type: ignore[valid-type]  # noqa: F722
+    sha256: Optional[constr(regex=rf"^{SHA256}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class FileSize(BaseModel):

@@ -128,8 +128,8 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
         A directory that serves as the base for all directories, that are defined for the package repositories and are
         used for storing symlinks to source tarballs (defaults to defaults.SOURCE_REPO_BASE)
     architecture: Optional[str]
-        An optional Architecture string (see defaults.ARCHITECTURES), that if set is used for each package repository
-        to set its CPU architecture unless a package repository defines an architecture itself
+        An optional Architecture string (see repod.common.defaults.ARCHITECTURES), that if set is used for each package
+        repository to set its CPU architecture unless a package repository defines an architecture itself
         NOTE: It is mandatory to provide an architecture for each package repository!
     management_repo: Optional[ManagementRepo]
         An optional ManagementRepo, that if set is used for each package repository to manage the state of each package
