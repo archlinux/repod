@@ -78,7 +78,7 @@ show_missing = true
 
 [tool.coverage.run]
 branch = true
-command_line = "-m pytest -v tests/ -m 'not integration'"
+command_line = "-m pytest -vv tests/ -m 'not integration'"
 omit = ["tests/*", ".tox/*", "db-write/*", "db2json/*", "dbscripts/*"]
 
 [tool.isort]
