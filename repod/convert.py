@@ -142,7 +142,6 @@ class RepoDbFile:
             trim_blocks=True,
             lstrip_blocks=True,
             enable_async=enable_async,
-            autoescape=True,
         )
 
     async def render_desc_template(self, model: models.PackageDesc, output: io.StringIO) -> None:
