@@ -1,25 +1,34 @@
 import gzip
+from copy import deepcopy
 from io import BytesIO, StringIO
 from os import chdir
 from pathlib import Path
 from random import choice
-from string import digits
+from string import ascii_lowercase, ascii_uppercase, digits
 from tarfile import open as tarfile_open
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from tempfile import NamedTemporaryFile, TemporaryDirectory, mkstemp
 from textwrap import dedent
 from typing import IO, Any, AsyncGenerator, Generator, List, Tuple
 
+import orjson
 import pytest_asyncio
+from py.path import local
 from pydantic import BaseModel
 from pytest import fixture
 
+from repod.common.defaults import ARCHITECTURES
 from repod.common.enums import CompressionTypeEnum
 from repod.convert import RepoDbFile
 from repod.files import _stream_package_base_to_db, open_tarfile
 from repod.files.common import ZstdTarFile
 from repod.files.mtree import MTree, MTreeEntryV1
 from repod.models import Files, OutputPackageBase, PackageDesc, RepoDbTypeEnum
-from repod.models.package import FilesV1, OutputPackageBaseV1, OutputPackageV1
+from repod.models.package import (
+    FilesV1,
+    OutputPackageBaseV1,
+    OutputPackageV1,
+    PackageDescV1,
+)
 
 
 class SchemaVersion9999(BaseModel):
@@ -36,6 +45,150 @@ class OutputPackageBaseV9999(OutputPackageBase, SchemaVersion9999):
 
 class PackageDescV9999(PackageDesc, SchemaVersion9999):
     pass
+
+
+def create_default_arch() -> str:
+    return str(choice(ARCHITECTURES))
+
+
+@fixture(scope="session")
+def default_arch() -> str:
+    return create_default_arch()
+
+
+def create_base64_pgpsig() -> str:
+    return "".join(choice(ascii_uppercase + ascii_lowercase + digits + "/+") for x in range(400)) + "=="
+
+
+@fixture(scope="session")
+def base64_pgpsig() -> str:
+    return create_base64_pgpsig()
+
+
+def create_default_buildenv() -> str:
+    return "foo"
+
+
+@fixture(scope="session")
+def default_buildenv() -> str:
+    return create_default_buildenv()
+
+
+def create_default_invalid_buildenv() -> str:
+    return "! foo"
+
+
+@fixture(scope="session")
+def default_invalid_buildenv() -> str:
+    return create_default_invalid_buildenv()
+
+
+def create_default_description() -> str:
+    return "description"
+
+
+@fixture(scope="session")
+def default_description() -> str:
+    return create_default_description()
+
+
+def create_default_filename() -> str:
+    return f"foo-{create_default_full_version()}-any.pkg.tar.zst"
+
+
+@fixture(scope="session")
+def default_filename() -> str:
+    return create_default_filename()
+
+
+def create_default_license() -> str:
+    return "GPL"
+
+
+@fixture(scope="session")
+def default_license() -> str:
+    return create_default_license()
+
+
+def create_default_full_version() -> str:
+    return "1:1.0.0-1"
+
+
+@fixture(scope="session")
+def default_full_version() -> str:
+    return create_default_full_version()
+
+
+def create_default_invalid_full_version() -> str:
+    return "0:1/0-0.1"
+
+
+@fixture(scope="function")
+def default_invalid_full_version() -> str:
+    return create_default_invalid_full_version()
+
+
+def create_default_option() -> str:
+    return "foo"
+
+
+@fixture(scope="function")
+def default_option() -> str:
+    return create_default_option()
+
+
+def create_default_invalid_option() -> str:
+    return "! foo"
+
+
+@fixture(scope="function")
+def default_invalid_option() -> str:
+    return create_default_invalid_option()
+
+
+def create_default_package_name() -> str:
+    return "foo"
+
+
+@fixture(scope="session")
+def default_package_name() -> str:
+    return create_default_package_name()
+
+
+def create_default_invalid_package_name() -> str:
+    return ".foo"
+
+
+@fixture(scope="session")
+def default_invalid_package_name() -> str:
+    return create_default_invalid_package_name()
+
+
+def create_default_packager() -> str:
+    return "Foobar McFooface <foobar@mcfooface.tld>"
+
+
+@fixture(scope="session")
+def default_packager() -> str:
+    return create_default_packager()
+
+
+def create_default_invalid_packager() -> str:
+    return "Foobar McFooface"
+
+
+@fixture(scope="session")
+def default_invalid_packager() -> str:
+    return create_default_invalid_packager()
+
+
+def create_url() -> str:
+    return "https://foobar.tld"
+
+
+@fixture(scope="session")
+def url() -> str:
+    return create_url()
 
 
 @fixture(scope="session")
@@ -57,22 +210,7 @@ def invalid_absolute_dir(request: Any) -> str:
 
 @fixture(
     scope="session",
-    params=[
-        "aarch64",
-        "any",
-        "arm",
-        "armv6h",
-        "armv7h",
-        "i486",
-        "i686",
-        "pentium4",
-        "riscv32",
-        "riscv64",
-        "x86_64",
-        "x86_64_v2",
-        "x86_64_v3",
-        "x86_64_v4",
-    ],
+    params=ARCHITECTURES,
 )
 def arch(request: Any) -> str:
     return str(request.param)
@@ -161,9 +299,13 @@ def invalid_epoch(request: Any) -> str:
     return str(request.param)
 
 
+def create_md5sum() -> str:
+    return "".join(choice("abcdef" + digits) for x in range(32))
+
+
 @fixture(scope="session")
 def md5sum() -> str:
-    return "".join(choice("abcdef" + digits) for x in range(32))
+    return create_md5sum()
 
 
 @fixture(
@@ -201,12 +343,7 @@ def invalid_option(request: Any) -> str:
         "_foo",
         "@foo",
         "+foo",
-        "foo_",
-        "foo123",
-        "foo+123",
-        "foo.123",
-        "foo_123",
-        "foo-123",
+        "foo.+_-123",
     ],
 )
 def package_name(request: Any) -> str:
@@ -283,9 +420,13 @@ def invalid_packager_name(request: Any) -> str:
     return str(request.param)
 
 
+def create_sha256sum() -> str:
+    return "".join(choice("abcdef" + digits) for x in range(64))
+
+
 @fixture(scope="session")
 def sha256sum() -> str:
-    return "".join(choice("abcdef" + digits) for x in range(64))
+    return create_sha256sum()
 
 
 @fixture(
@@ -468,14 +609,14 @@ def mtreeentryv1_internals() -> Generator[List[MTreeEntryV1], None, None]:
 
 
 @fixture(scope="function")
-def mtreeentryv1_dir() -> Generator[MTreeEntryV1, None, None]:
+def mtreeentryv1_dir(md5sum: str, sha256sum: str) -> Generator[MTreeEntryV1, None, None]:
     yield MTreeEntryV1(
         gid=0,
         link=None,
-        md5="".join(choice("abcdef" + digits) for x in range(32)),
+        md5=md5sum,
         mode="0755",
         name="/foo/dir",
-        sha256="".join(choice("abcdef" + digits) for x in range(64)),
+        sha256=sha256sum,
         time=1000,
         type_="dir",
         uid=0,
@@ -483,14 +624,14 @@ def mtreeentryv1_dir() -> Generator[MTreeEntryV1, None, None]:
 
 
 @fixture(scope="function")
-def mtreeentryv1_file() -> Generator[MTreeEntryV1, None, None]:
+def mtreeentryv1_file(md5sum: str, sha256sum: str) -> Generator[MTreeEntryV1, None, None]:
     yield MTreeEntryV1(
         gid=0,
         link=None,
-        md5="".join(choice("abcdef" + digits) for x in range(32)),
+        md5=md5sum,
         mode="0644",
         name="/foo/file",
-        sha256="".join(choice("abcdef" + digits) for x in range(64)),
+        sha256=sha256sum,
         time=1000,
         type_="file",
         uid=0,
@@ -498,14 +639,14 @@ def mtreeentryv1_file() -> Generator[MTreeEntryV1, None, None]:
 
 
 @fixture(scope="function")
-def mtreeentryv1_link() -> Generator[MTreeEntryV1, None, None]:
+def mtreeentryv1_link(md5sum: str, sha256sum: str) -> Generator[MTreeEntryV1, None, None]:
     yield MTreeEntryV1(
         gid=0,
         link="/foo/target",
-        md5="".join(choice("abcdef" + digits) for x in range(32)),
+        md5=md5sum,
         mode="0777",
         name="/foo/link",
-        sha256="".join(choice("abcdef" + digits) for x in range(64)),
+        sha256=sha256sum,
         time=1000,
         type_="link",
         uid=0,
@@ -624,10 +765,9 @@ def invalid_epoch_version_pkgrel(invalid_epoch: str, invalid_version: str, inval
     return f"{invalid_epoch}{invalid_version}-{invalid_pkgrel}"
 
 
-@fixture(scope="module")
+@fixture(scope="function")
 def buildinfov1_stringio(
-    email: str,
-    packager_name: str,
+    default_packager: str,
     sha256sum: str,
 ) -> Generator[StringIO, None, None]:
     buildinfov1_contents = f"""format = 1
@@ -636,7 +776,7 @@ def buildinfov1_stringio(
         pkgver = 1:1.0.0-1
         pkgarch = any
         pkgbuild_sha256sum = {sha256sum}
-        packager = {packager_name} <{email}>
+        packager = {default_packager}
         builddate = 1
         builddir = /build
         buildenv = check
@@ -650,10 +790,9 @@ def buildinfov1_stringio(
     yield StringIO(initial_value=dedent(buildinfov1_contents).strip())
 
 
-@fixture(scope="module")
+@fixture(scope="function")
 def buildinfov2_stringio(
-    email: str,
-    packager_name: str,
+    default_packager: str,
     sha256sum: str,
 ) -> Generator[StringIO, None, None]:
     buildinfov1_contents = f"""format = 2
@@ -662,7 +801,7 @@ def buildinfov2_stringio(
         pkgver = 1:1.0.0-1
         pkgarch = any
         pkgbuild_sha256sum = {sha256sum}
-        packager = {packager_name} <{email}>
+        packager = {default_packager}
         builddate = 1
         builddir = /build
         startdir = /startdir
@@ -697,49 +836,102 @@ def valid_buildinfov2_file(buildinfov2_stringio: StringIO) -> Generator[Path, No
         yield Path(buildinfo_file.name)
 
 
-@fixture(scope="session")
-def outputpackagebasev1(md5sum: str, sha256sum: str) -> OutputPackageBaseV1:
+@fixture(scope="function")
+def filesv1() -> FilesV1:
+    return FilesV1(files=["foo", "bar"])
+
+
+@fixture(scope="function")
+def outputpackagev1(
+    base64_pgpsig: str,
+    default_description: str,
+    default_filename: str,
+    default_license: str,
+    filesv1: FilesV1,
+    md5sum: str,
+    sha256sum: str,
+    url: str,
+) -> OutputPackageV1:
+    return OutputPackageV1(
+        arch="any",
+        builddate=1,
+        csize=1,
+        desc=default_description,
+        filename=default_filename,
+        files=filesv1,
+        isize=1,
+        license=[default_license],
+        md5sum=md5sum,
+        name="foo",
+        pgpsig=base64_pgpsig,
+        sha256sum=sha256sum,
+        url=url,
+    )
+
+
+@fixture(scope="function")
+def outputpackagebasev1(
+    base64_pgpsig: str,
+    default_description: str,
+    default_filename: str,
+    default_full_version: str,
+    default_license: str,
+    default_packager: str,
+    filesv1: FilesV1,
+    md5sum: str,
+    outputpackagev1: OutputPackageV1,
+    sha256sum: str,
+    url: str,
+) -> OutputPackageBaseV1:
+    outputpackage2 = deepcopy(outputpackagev1)
+    outputpackage2.filename = outputpackage2.filename.replace("foo", "bar")
+    outputpackage2.name = "bar"
+    outputpackage2.files = FilesV1(files=["bar"])
+
     return OutputPackageBaseV1(
         base="foo",
-        packager="Foobar McFooface <foobar@mcfooface.tld>",
+        packager=default_packager,
         packages=[
-            OutputPackageV1(
-                arch="any",
-                builddate=1,
-                csize=1,
-                desc="Something foo",
-                filename="foo-1.0.0-1-any.pkg.tar.zst",
-                files=FilesV1(files=["/foo"]),
-                isize=1,
-                license=["GPL3"],
-                md5sum=md5sum,
-                name="foo",
-                pgpsig="FAKE_SIGNATURE",
-                sha256sum=sha256sum,
-                url="https://domain.tld",
-            ),
-            OutputPackageV1(
-                arch="any",
-                builddate=1,
-                csize=1,
-                desc="Something bar",
-                filename="bar-1.0.0-1-any.pkg.tar.zst",
-                files=FilesV1(files=["/bar"]),
-                isize=1,
-                license=["GPL3"],
-                md5sum=md5sum,
-                name="bar",
-                pgpsig="FAKE_SIGNATURE",
-                sha256sum=sha256sum,
-                url="https://domain.tld",
-            ),
+            outputpackagev1,
+            outputpackage2,
         ],
-        version="1.0.0-1",
+        version=default_full_version,
+    )
+
+
+@fixture(scope="function")
+def packagedescv1(
+    base64_pgpsig: str,
+    default_description: str,
+    default_filename: str,
+    default_full_version: str,
+    default_license: str,
+    default_packager: str,
+    md5sum: str,
+    sha256sum: str,
+    url: str,
+) -> PackageDescV1:
+    return PackageDescV1(
+        arch="any",
+        base="foo",
+        builddate=1,
+        csize=1,
+        desc=default_description,
+        filename=default_filename,
+        isize=1,
+        license=[default_license],
+        md5sum=md5sum,
+        name="foo",
+        packager=default_packager,
+        pgpsig=base64_pgpsig,
+        sha256sum=sha256sum,
+        url=url,
+        version=default_full_version,
     )
 
 
 @pytest_asyncio.fixture(
-    scope="module",
+    scope="function",
     params=[
         CompressionTypeEnum.BZIP2,
         CompressionTypeEnum.GZIP,
@@ -793,7 +985,7 @@ async def default_sync_db_file(
 
 
 @pytest_asyncio.fixture(
-    scope="module",
+    scope="function",
     params=[
         CompressionTypeEnum.BZIP2,
         CompressionTypeEnum.GZIP,
@@ -843,3 +1035,96 @@ async def files_sync_db_file(
         chdir(temp_path)
         symlink_db_name.symlink_to(sync_db_tarfile.name)
         yield (sync_db_tarfile, sync_db_symlink)
+
+
+@fixture(scope="function")
+def outputpackagebasev1_json_files_in_dir(
+    base64_pgpsig: str,
+    default_description: str,
+    default_filename: str,
+    default_license: str,
+    default_packager: str,
+    default_full_version: str,
+    filesv1: Files,
+    md5sum: str,
+    sha256sum: str,
+    tmpdir: local,
+    url: str,
+) -> Path:
+    for name, files in [
+        ("foo", filesv1),
+        ("bar", filesv1),
+        ("baz", None),
+    ]:
+        model = OutputPackageBaseV1(
+            base=name,
+            packager=default_packager,
+            version=default_full_version,
+            packages=[
+                OutputPackageV1(
+                    arch="any",
+                    builddate=1,
+                    csize=0,
+                    desc=default_description.replace("foo", name),
+                    filename=default_filename,
+                    files=files,
+                    isize=1,
+                    license=[default_license],
+                    md5sum=md5sum,
+                    name=name,
+                    pgpsig=base64_pgpsig,
+                    sha256sum=sha256sum,
+                    url=url,
+                )
+            ],
+        )
+
+        with open(tmpdir / f"{name}.json", "wb") as output_file:
+            output_file.write(
+                orjson.dumps(
+                    model.dict(), option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE | orjson.OPT_SORT_KEYS
+                )
+            )
+
+    return Path(tmpdir)
+
+
+@fixture(scope="function")
+def empty_dir(tmpdir: local) -> Path:
+    directory = Path(tmpdir) / "empty"
+    directory.mkdir()
+    return directory
+
+
+@fixture(scope="function")
+def empty_file(tmpdir: local) -> Path:
+    [foo, file_name] = mkstemp(dir=tmpdir)
+    return Path(file_name)
+
+
+@fixture(scope="function")
+def broken_json_file(tmpdir: local) -> Path:
+    [foo, json_file] = mkstemp(suffix=".json", dir=tmpdir)
+    with open(json_file, "w") as input_file:
+        input_file.write("garbage")
+    return Path(json_file)
+
+
+@fixture(scope="function")
+def invalid_json_file(tmpdir: local) -> Path:
+    [foo, json_file] = mkstemp(suffix=".json", dir=tmpdir)
+    with open(json_file, "w") as input_file:
+        input_file.write('{"foo": "bar"}')
+    return Path(json_file)
+
+
+@fixture(scope="function")
+def empty_toml_file(tmpdir: local) -> Path:
+    return Path(NamedTemporaryFile(suffix=".toml", dir=Path(tmpdir), delete=False).name)
+
+
+@fixture(scope="function")
+def empty_toml_files_in_dir(tmpdir: local) -> Path:
+    for i in range(5):
+        NamedTemporaryFile(suffix=".toml", dir=Path(tmpdir), delete=False)
+    return Path(tmpdir)

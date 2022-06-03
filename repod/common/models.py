@@ -2,7 +2,22 @@ import re
 from typing import List, Optional
 
 from pyalpm import vercmp
-from pydantic import BaseModel, conint, validator
+from pydantic import BaseModel, HttpUrl, NonNegativeInt, conint, constr, validator
+
+from repod.common.regex import (
+    ARCHITECTURE,
+    BASE64,
+    EMAIL,
+    EPOCH,
+    FILENAME,
+    MD5,
+    PACKAGE_NAME,
+    PACKAGER_NAME,
+    PKGREL,
+    RELATIVE_PATH,
+    SHA256,
+    VERSION,
+)
 
 
 class Arch(BaseModel):
@@ -15,7 +30,7 @@ class Arch(BaseModel):
         identifies a package's architecture
     """
 
-    arch: str
+    arch: constr(regex=f"^{ARCHITECTURE}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class Backup(BaseModel):
@@ -28,7 +43,7 @@ class Backup(BaseModel):
         identifies which file(s) of a package pacman will create backups for
     """
 
-    backup: Optional[List[str]]
+    backup: Optional[List[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
 
 
 class Base(BaseModel):
@@ -41,7 +56,7 @@ class Base(BaseModel):
         identifies a package's pkgbase
     """
 
-    base: str
+    base: constr(regex=f"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class BuildDate(BaseModel):
@@ -54,14 +69,7 @@ class BuildDate(BaseModel):
         which identifies a package's build date (represented in seconds since the epoch)
     """
 
-    builddate: int
-
-    @validator("builddate")
-    def builddate_greater_zero(cls, builddate: int) -> int:
-        if builddate < 0:
-            raise ValueError("The build date must be greater than zero.")
-
-        return builddate
+    builddate: NonNegativeInt
 
 
 class CheckDepends(BaseModel):
@@ -100,14 +108,7 @@ class CSize(BaseModel):
         identifies a package's size
     """
 
-    csize: int
-
-    @validator("csize")
-    def csize_greater_equal_zero(cls, csize: int) -> int:
-        if csize < 0:
-            raise ValueError("The csize must be greater than or equal zero.")
-
-        return csize
+    csize: NonNegativeInt
 
 
 class Depends(BaseModel):
@@ -146,7 +147,7 @@ class FileName(BaseModel):
         identifies a package's file name
     """
 
-    filename: str
+    filename: constr(regex=f"^{FILENAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class FileList(BaseModel):
@@ -159,7 +160,7 @@ class FileList(BaseModel):
         identifies which file(s) belong to a package
     """
 
-    files: Optional[List[str]]
+    files: Optional[List[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
 
     @validator("files")
     def validate_no_file_in_home(cls, files: List[str]) -> Optional[List[str]]:
@@ -181,7 +182,7 @@ class Groups(BaseModel):
         identifies a package's groups
     """
 
-    groups: Optional[List[str]]
+    groups: Optional[List[constr(regex=f"^{PACKAGE_NAME}$")]]  # type: ignore[valid-type]  # noqa: F722
 
 
 class ISize(BaseModel):
@@ -194,14 +195,7 @@ class ISize(BaseModel):
         identifies a package's installed size
     """
 
-    isize: int
-
-    @validator("isize")
-    def isize_greater_equal_zero(cls, isize: int) -> int:
-        if isize < 0:
-            raise ValueError("The isize must be greater than or equal zero.")
-
-        return isize
+    isize: NonNegativeInt
 
 
 class License(BaseModel):
@@ -240,7 +234,7 @@ class Md5Sum(BaseModel):
         identifies a package's md5 checksum
     """
 
-    md5sum: str
+    md5sum: constr(regex=MD5)  # type: ignore[valid-type]
 
 
 class Name(BaseModel):
@@ -253,27 +247,7 @@ class Name(BaseModel):
         identifies a package's name
     """
 
-    name: str
-
-    @validator("name")
-    def name_contains_only_allowed_chars(cls, name: str) -> str:
-        disallowed_start_chars = [".", "-"]
-        for char in disallowed_start_chars:
-            if name.startswith(char):
-                raise ValueError(f"The package name '{name}' can not start with any of '{disallowed_start_chars}'.")
-
-        allowed_chars = ["@", ".", "_", "+", "-"]
-        remaining_chars: List[str] = []
-        for char in name:
-            if (not char.isalnum() or (not char.isdigit() and not char.islower())) and char not in allowed_chars:
-                remaining_chars += [char]
-        if remaining_chars:
-            raise ValueError(
-                f"The package name '{name}' can not contain '{remaining_chars}' but must consist only of alphanumeric "
-                f"chars and any of '{allowed_chars}'."
-            )
-
-        return name
+    name: constr(regex=f"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class Packager(BaseModel):
@@ -286,7 +260,7 @@ class Packager(BaseModel):
         identifies a package's packager
     """
 
-    packager: str
+    packager: constr(regex=(rf"^{PACKAGER_NAME}\s<{EMAIL}>$"))  # type: ignore[valid-type]  # noqa: F722
 
 
 class PgpSig(BaseModel):
@@ -299,7 +273,7 @@ class PgpSig(BaseModel):
         identifies a package's PGP signature
     """
 
-    pgpsig: str
+    pgpsig: constr(regex=f"^{BASE64}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class Provides(BaseModel):
@@ -350,7 +324,7 @@ class Sha256Sum(BaseModel):
         which identifies a package's sha256 checksum
     """
 
-    sha256sum: str
+    sha256sum: constr(regex=SHA256)  # type: ignore[valid-type]
 
 
 class OptDepends(BaseModel):
@@ -376,7 +350,7 @@ class Url(BaseModel):
         identifies a package's URL
     """
 
-    url: str
+    url: HttpUrl
 
 
 class Version(BaseModel):
@@ -389,29 +363,7 @@ class Version(BaseModel):
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
 
-    version: str
-
-    @validator("version")
-    def version_is_valid(cls, version: str) -> str:
-        allowed_chars = [":", ".", "_", "+", "-"]
-
-        if version.endswith("-0"):
-            raise ValueError("The first pkgrel of a package release always needs to start at 1.")
-        for char in allowed_chars:
-            if version.startswith(char):
-                raise ValueError("The first character of a package version must not be '{char}'.")
-
-        remaining_chars: List[str] = []
-        for char in version:
-            if not char.isalnum() and char not in allowed_chars:
-                remaining_chars += [char]
-        if remaining_chars:
-            raise ValueError(
-                f"Package versions can not contain '{remaining_chars}' but must consist of alphanumeric chars and any "
-                f"of '{allowed_chars}'."
-            )
-
-        return version
+    version: constr(regex=rf"^({EPOCH}|){VERSION}-{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
 
     def is_older_than(self, version: str) -> bool:
         """Check whether the version is older than a provided version
@@ -426,10 +378,7 @@ class Version(BaseModel):
         True if self.version is older than the provided version, False otherwise.
         """
 
-        if vercmp(self.version, version) < 0:
-            return True
-        else:
-            return False
+        return True if vercmp(self.version, version) < 0 else False
 
     def is_newer_than(self, version: str) -> bool:
         """Check whether the version is newer than a provided version
@@ -444,7 +393,4 @@ class Version(BaseModel):
         True if self.version is newer than the provided version, False otherwise.
         """
 
-        if vercmp(self.version, version) > 0:
-            return True
-        else:
-            return False
+        return True if vercmp(self.version, version) > 0 else False

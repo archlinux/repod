@@ -1,22 +1,14 @@
-from asyncio import AbstractEventLoop, get_event_loop
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from tarfile import TarFile
-from typing import ContextManager, Generator, Optional, Tuple
+from typing import ContextManager, Optional, Tuple
 from unittest.mock import patch
 
-from pytest import fixture, mark, raises
+from pytest import mark, raises
 
 from repod.common.enums import CompressionTypeEnum
 from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundError
 from repod.files import common
-
-
-@fixture(scope="module")
-def event_loop() -> Generator[AbstractEventLoop, None, None]:
-    loop = get_event_loop()
-    yield loop
-    loop.close()
 
 
 @mark.parametrize(

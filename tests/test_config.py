@@ -1,5 +1,3 @@
-import shutil
-import tempfile
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterator, Tuple
@@ -8,26 +6,6 @@ from unittest.mock import Mock, call, patch
 from pytest import fixture, raises
 
 from repod import config, models
-
-
-@fixture(scope="function")
-def empty_dir() -> Iterator[Path]:
-    directory = tempfile.mkdtemp()
-    yield Path(directory)
-    shutil.rmtree(directory)
-
-
-@fixture(scope="function")
-def empty_toml_files_in_dir(empty_dir: Path) -> Iterator[Path]:
-    for i in range(5):
-        tempfile.NamedTemporaryFile(suffix=".toml", dir=empty_dir, delete=False)
-    yield empty_dir
-
-
-@fixture(scope="function")
-def empty_toml_file() -> Iterator[Path]:
-    _, toml_file = tempfile.mkstemp(suffix=".toml")
-    yield Path(toml_file)
 
 
 @patch("tomli.load", return_value={})

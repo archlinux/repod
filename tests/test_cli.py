@@ -1,26 +1,11 @@
-import shutil
-import tempfile
 from argparse import ArgumentTypeError, Namespace
 from pathlib import Path
-from typing import Dict, Iterator
+from typing import Dict
 from unittest.mock import Mock, patch
 
-from pytest import fixture, mark
+from pytest import mark
 
 from repod import cli, commands, errors, models
-
-
-@fixture(scope="function")
-def empty_dir() -> Iterator[Path]:
-    directory = tempfile.mkdtemp()
-    yield Path(directory)
-    shutil.rmtree(directory)
-
-
-@fixture(scope="function")
-def empty_file() -> Iterator[Path]:
-    [foo, file_name] = tempfile.mkstemp()
-    yield Path(file_name)
 
 
 @mark.parametrize(

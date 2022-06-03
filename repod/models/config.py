@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import AnyUrl, BaseModel, root_validator, validator
+from pydantic import AnyUrl, BaseModel, constr, root_validator, validator
 
-from repod import defaults
+from repod.common.regex import ARCHITECTURE
 
 
 class Architecture(BaseModel):
@@ -16,17 +16,7 @@ class Architecture(BaseModel):
         A string describing a valid architecture for a repository
     """
 
-    architecture: Optional[str]
-
-    @validator("architecture")
-    def validate_architecture(cls, architecture: Optional[str]) -> Optional[str]:
-        if architecture is None:
-            return architecture
-        if architecture not in defaults.ARCHITECTURES:
-            raise ValueError(
-                f"The architecture '{architecture}' is not supported (must be one of {defaults.ARCHITECTURES}"
-            )
-        return architecture
+    architecture: Optional[constr(regex=f"^{ARCHITECTURE}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class Directory(BaseModel):

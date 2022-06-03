@@ -1,34 +1,26 @@
-import shutil
-import tempfile
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-from typing import (
-    Any,
-    ContextManager,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Any, ContextManager, Dict, List, Optional, Set, Union
 from unittest.mock import Mock, patch
 
+from py.path import local
 from pydantic import ValidationError
-from pytest import fixture, mark, raises
+from pytest import mark, raises
 
-from repod import defaults, errors, models
+from repod import errors, models
 from repod.common import models as common_models
 from repod.models.repo import DESC_JSON, FILES_JSON
-from tests.conftest import OutputPackageBaseV9999, PackageDescV9999
-
-
-@fixture(scope="function")
-def empty_dir() -> Iterator[Path]:
-    directory = tempfile.mkdtemp()
-    yield Path(directory)
-    shutil.rmtree(directory)
+from tests.conftest import (
+    OutputPackageBaseV9999,
+    PackageDescV9999,
+    create_base64_pgpsig,
+    create_default_filename,
+    create_default_full_version,
+    create_default_packager,
+    create_md5sum,
+    create_sha256sum,
+    create_url,
+)
 
 
 @mark.parametrize(
@@ -92,21 +84,21 @@ def empty_dir() -> Iterator[Path]:
             },
             2,
             {
-                "arch": "foo",
+                "arch": "any",
                 "base": "foo",
                 "builddate": 1,
                 "csize": 1,
                 "desc": "foo",
-                "filename": "foo",
+                "filename": create_default_filename(),
                 "isize": 1,
                 "license": ["foo"],
-                "md5sum": "foo",
+                "md5sum": create_md5sum(),
                 "name": "foo",
-                "packager": "someone",
-                "pgpsig": "signature",
-                "sha256sum": "foo",
-                "url": "url",
-                "version": "1.0.0",
+                "packager": create_default_packager(),
+                "pgpsig": create_base64_pgpsig(),
+                "sha256sum": create_sha256sum(),
+                "url": create_url(),
+                "version": create_default_full_version(),
             },
             True,
             does_not_raise(),
@@ -130,417 +122,111 @@ def test_package_desc_from_dict_derive_file_version(
 
 
 @mark.parametrize(
-    "output_package, package_desc, files, expectation",
+    "no_files, invalid_packagedesc_version, expectation",
     [
-        (
-            models.package.OutputPackageV1(
-                arch="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                files=models.package.FilesV1(files=["foo", "bar"]),
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-            ),
-            models.package.PackageDescV1(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="foo",
-            ),
-            models.package.FilesV1(files=["foo", "bar"]),
-            does_not_raise(),
-        ),
-        (
-            models.package.OutputPackageV1(
-                arch="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                files=None,
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-            ),
-            models.package.PackageDescV1(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="foo",
-            ),
-            None,
-            does_not_raise(),
-        ),
-        (
-            models.package.OutputPackageV1(
-                arch="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                files=None,
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-            ),
-            PackageDescV9999(),
-            None,
-            raises(errors.RepoManagementValidationError),
-        ),
-        (
-            models.package.OutputPackageV1(
-                arch="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                files=None,
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-            ),
-            PackageDescV9999(),
-            None,
-            raises(errors.RepoManagementValidationError),
-        ),
+        (False, False, does_not_raise()),
+        (True, False, does_not_raise()),
+        (True, True, raises(errors.RepoManagementValidationError)),
     ],
 )
-def test_package_desc_get_output_package(
-    output_package: models.package.OutputPackageV1,
-    package_desc: models.package.PackageDescV1,
-    files: Optional[models.Files],
+def test_package_desc_v1_get_output_package_v1(
+    outputpackagev1: models.OutputPackage,
+    packagedescv1: models.PackageDesc,
+    filesv1: Optional[models.package.FilesV1],
+    no_files: bool,
+    invalid_packagedesc_version: bool,
     expectation: ContextManager[str],
 ) -> None:
+    output_package = outputpackagev1
+    package_desc = packagedescv1
+    files = filesv1
+    if no_files:
+        output_package.files = None  # type: ignore[attr-defined]
+        files = None
+    if invalid_packagedesc_version:
+        package_desc = PackageDescV9999()
+
     with expectation:
         assert output_package == package_desc.get_output_package(files)
 
 
-def test_package_desc_get_output_package_inconsistent_schema_config() -> None:
+def test_package_desc_get_output_package_inconsistent_schema_config(packagedescv1: models.PackageDesc) -> None:
     with patch("repod.models.package.PACKAGE_DESC_VERSIONS", {1: {"output_package_version": 9999}}):
         with raises(RuntimeError):
-            models.package.PackageDescV1(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="foo",
-            ).get_output_package(files=None)
+            packagedescv1.get_output_package(files=None)
 
 
 @mark.parametrize(
-    "output_package_base, package_desc, files, expectation",
+    "no_files, invalid_package_desc, expectation",
     [
-        (
-            models.package.OutputPackageBaseV1(
-                base="foo",
-                makedepends=["bar"],
-                packager="someone",
-                packages=[
-                    models.package.OutputPackageV1(
-                        arch="foo",
-                        builddate=1,
-                        csize=1,
-                        desc="foo",
-                        filename="foo",
-                        files=models.package.FilesV1(files=["foo", "bar"]),
-                        isize=1,
-                        license=["foo"],
-                        md5sum="foo",
-                        name="foo",
-                        pgpsig="foo",
-                        sha256sum="foo",
-                        url="foo",
-                    ),
-                ],
-                version="1.0.0",
-            ),
-            models.package.PackageDescV1(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                makedepends=["bar"],
-                md5sum="foo",
-                name="foo",
-                packager="someone",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="1.0.0",
-            ),
-            models.package.FilesV1(files=["foo", "bar"]),
-            does_not_raise(),
-        ),
-        (
-            models.package.OutputPackageBaseV1(
-                base="foo",
-                packager="someone",
-                packages=[
-                    models.package.OutputPackageV1(
-                        arch="foo",
-                        builddate=1,
-                        csize=1,
-                        desc="foo",
-                        filename="foo",
-                        files=models.package.FilesV1(files=["foo", "bar"]),
-                        isize=1,
-                        license=["foo"],
-                        md5sum="foo",
-                        name="foo",
-                        pgpsig="foo",
-                        sha256sum="foo",
-                        url="foo",
-                    ),
-                ],
-                version="1.0.0",
-            ),
-            models.package.PackageDescV1(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="someone",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="1.0.0",
-            ),
-            models.package.FilesV1(files=["foo", "bar"]),
-            does_not_raise(),
-        ),
-        (
-            models.package.OutputPackageBaseV1(
-                base="foo",
-                packager="someone",
-                packages=[
-                    models.package.OutputPackageV1(
-                        arch="foo",
-                        builddate=1,
-                        csize=1,
-                        desc="foo",
-                        filename="foo",
-                        isize=1,
-                        license=["foo"],
-                        md5sum="foo",
-                        name="foo",
-                        pgpsig="foo",
-                        sha256sum="foo",
-                        url="foo",
-                    ),
-                ],
-                version="1.0.0",
-            ),
-            models.package.PackageDescV1(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="someone",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="1.0.0",
-            ),
-            None,
-            does_not_raise(),
-        ),
-        (
-            models.package.OutputPackageBaseV1(
-                base="foo",
-                packager="someone",
-                packages=[
-                    models.package.OutputPackageV1(
-                        arch="foo",
-                        builddate=1,
-                        csize=1,
-                        desc="foo",
-                        filename="foo",
-                        isize=1,
-                        license=["foo"],
-                        md5sum="foo",
-                        name="foo",
-                        pgpsig="foo",
-                        sha256sum="foo",
-                        url="foo",
-                    ),
-                ],
-                version="1.0.0",
-            ),
-            PackageDescV9999(),
-            None,
-            raises(errors.RepoManagementValidationError),
-        ),
+        (False, False, does_not_raise()),
+        (True, False, does_not_raise()),
+        (False, True, raises(errors.RepoManagementValidationError)),
+        (True, True, raises(errors.RepoManagementValidationError)),
     ],
 )
-def test_package_desc_v1_get_output_package_base(
-    output_package_base: models.package.OutputPackageBaseV1,
-    package_desc: models.package.PackageDescV1,
-    files: Optional[models.Files],
+def test_package_desc_v1_get_output_package_base_v1(
+    outputpackagebasev1: models.OutputPackageBase,
+    packagedescv1: models.PackageDesc,
+    filesv1: Optional[models.Files],
+    no_files: bool,
+    invalid_package_desc: bool,
     expectation: ContextManager[str],
 ) -> None:
+    output_package_base = outputpackagebasev1
+    package_desc = packagedescv1
+    files = filesv1
+    # remove all but the first package
+    output_package_base.packages = output_package_base.packages[0:1]  # type: ignore[attr-defined]
+
+    if no_files:
+        files = None
+        output_package_base.packages[0].files = None  # type: ignore[attr-defined]
+    if invalid_package_desc:
+        package_desc = PackageDescV9999()
+
     with expectation:
         assert output_package_base == package_desc.get_output_package_base(files)
 
 
-def test_package_desc_get_output_package_base_inconsistent_schema_config() -> None:
+def test_package_desc_get_output_package_base_inconsistent_schema_config(
+    packagedescv1: models.PackageDesc,
+) -> None:
     with patch("repod.models.package.PACKAGE_DESC_VERSIONS", {1: {"output_package_base_version": 9999}}):
         with raises(RuntimeError):
-            models.package.PackageDescV1(
-                arch="foo",
-                base="foo",
-                builddate=1,
-                csize=1,
-                desc="foo",
-                filename="foo",
-                isize=1,
-                license=["foo"],
-                md5sum="foo",
-                name="foo",
-                packager="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="foo",
-            ).get_output_package_base(files=None)
+            packagedescv1.get_output_package_base(files=None)
 
 
 @mark.parametrize(
-    "models_list, output_package_base, expectation",
+    "output_package_base_type, expectation",
     [
-        (
-            [
-                (
-                    models.package.PackageDescV1(
-                        arch="foo",
-                        base="foo",
-                        builddate=1,
-                        csize=1,
-                        desc="foo",
-                        filename="foo",
-                        isize=1,
-                        license=["foo"],
-                        md5sum="foo",
-                        name="foo",
-                        packager="foo",
-                        pgpsig="foo",
-                        sha256sum="foo",
-                        url="foo",
-                        version="foo",
-                    ),
-                    models.package.FilesV1(files=["foo", "bar"]),
-                ),
-            ],
-            models.package.OutputPackageBaseV1(
-                base="foo",
-                packager="foo",
-                version="foo",
-                packages=[
-                    models.package.OutputPackageV1(
-                        arch="foo",
-                        builddate=1,
-                        csize=1,
-                        desc="foo",
-                        filename="foo",
-                        files=models.package.FilesV1(files=["foo", "bar"]),
-                        isize=1,
-                        license=["foo"],
-                        md5sum="foo",
-                        name="foo",
-                        pgpsig="foo",
-                        sha256sum="foo",
-                        url="foo",
-                    ),
-                ],
-            ),
-            does_not_raise(),
-        ),
-        (
-            [],
-            OutputPackageBaseV9999(),
-            raises(RuntimeError),
-        ),
-        (
-            [],
-            models.OutputPackageBase(),
-            raises(RuntimeError),
-        ),
+        ("1", does_not_raise()),
+        ("base", raises(RuntimeError)),
+        ("9999", raises(RuntimeError)),
     ],
 )
 @mark.asyncio
-async def test_output_package_base_get_packages_as_models(
-    models_list: List[Tuple[models.package.PackageDesc, models.Files]],
-    output_package_base: models.package.OutputPackageBase,
+async def test_output_package_base_v1_get_packages_as_models(
+    packagedescv1: models.package.PackageDescV1,
+    filesv1: models.package.FilesV1,
+    outputpackagebasev1: models.OutputPackageBase,
+    output_package_base_type: str,
     expectation: ContextManager[str],
 ) -> None:
+    package_desc = packagedescv1
+    files = filesv1
+    output_package_base = outputpackagebasev1
+    # remove all but the first package
+    output_package_base.packages = output_package_base.packages[0:1]  # type: ignore[attr-defined]
+
+    match output_package_base_type:
+        case "base":
+            output_package_base = models.OutputPackageBase()
+        case "9999":
+            output_package_base = OutputPackageBaseV9999()
+
     with expectation:
-        assert models_list == await output_package_base.get_packages_as_models()
+        assert [(package_desc, files)] == await output_package_base.get_packages_as_models()
 
 
 @mark.parametrize(
@@ -637,9 +323,8 @@ def test_version_is_newer_than(version: str, other_version: str, expectation: bo
     assert model.is_newer_than(other_version) is expectation
 
 
-def test_architecture_validate_architecture() -> None:
-    for arch in [None] + defaults.ARCHITECTURES:  # type:ignore
-        assert models.Architecture(architecture=arch)
+def test_architecture_validate_architecture(default_arch: str) -> None:
+    assert models.Architecture(architecture=default_arch)
 
     with raises(ValueError):
         models.Architecture(architecture="foo")
@@ -926,64 +611,69 @@ def test_packagedesc_get_output_package_base() -> None:
     [
         (
             {
-                "arch": "foo",
+                "arch": "any",
                 "base": "foo",
                 "builddate": 1,
                 "csize": 1,
                 "desc": "foo",
-                "filename": "foo",
+                "filename": create_default_filename(),
                 "isize": 1,
                 "license": ["foo"],
-                "md5sum": "foo",
+                "md5sum": create_md5sum(),
                 "name": "foo",
-                "packager": "foo",
-                "pgpsig": "foo",
-                "sha256sum": "foo",
-                "url": "foo",
-                "version": "foo",
+                "packager": create_default_packager(),
+                "pgpsig": create_base64_pgpsig(),
+                "sha256sum": create_sha256sum(),
+                "url": create_url(),
+                "version": create_default_full_version(),
             },
             does_not_raise(),
         ),
         (
             {
-                "arch": "foo",
+                "arch": "any",
                 "base": "foo",
                 "builddate": 1,
                 "csize": 1,
                 "desc": "foo",
-                "filename": "foo",
+                "filename": create_default_filename(),
                 "isize": 1,
                 "license": ["foo"],
-                "md5sum": "foo",
+                "md5sum": create_md5sum(),
                 "name": "foo",
-                "packager": "foo",
-                "pgpsig": "foo",
-                "sha256sum": "foo",
-                "url": "foo",
+                "packager": create_default_packager(),
+                "pgpsig": create_base64_pgpsig(),
+                "sha256sum": create_sha256sum(),
+                "url": create_url(),
             },
             raises(errors.RepoManagementValidationError),
         ),
         (
             {
-                "arch": "foo",
+                "arch": "any",
                 "base": "foo",
                 "builddate": 1,
                 "csize": 1,
                 "desc": "foo",
-                "filename": "foo",
+                "filename": create_default_filename(),
                 "isize": 1,
                 "license": ["foo"],
-                "md5sum": "foo",
+                "md5sum": create_md5sum(),
                 "name": "foo",
-                "packager": "foo",
-                "pgpsig": "foo",
-                "sha256sum": "foo",
-                "url": "foo",
-                "version": "foo",
+                "packager": create_default_packager(),
+                "pgpsig": create_base64_pgpsig(),
+                "sha256sum": create_sha256sum(),
+                "url": create_url(),
+                "version": create_default_full_version(),
                 "foo": "bar",
             },
             raises(errors.RepoManagementValidationError),
         ),
+    ],
+    ids=[
+        "default",
+        "version missing",
+        "invalid key-value pair",
     ],
 )
 def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expectation: ContextManager[str]) -> None:
@@ -1000,7 +690,7 @@ def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expe
                 "makedepends": ["bar"],
                 "packager": "someone",
                 "packages": [],
-                "version": "1.0.0",
+                "version": create_default_full_version(),
             },
             raises(errors.RepoManagementValidationError),
         ),
@@ -1008,10 +698,10 @@ def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expe
             {
                 "base": "foo",
                 "makedepends": ["bar"],
-                "packager": "someone",
+                "packager": create_default_packager(),
                 "packages": [],
                 "schema_version": 1,
-                "version": "1.0.0",
+                "version": create_default_full_version(),
             },
             does_not_raise(),
         ),
@@ -1019,10 +709,10 @@ def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expe
             {
                 "base": "foo",
                 "makedepends": ["bar"],
-                "packager": "someone",
+                "packager": create_default_packager(),
                 "packages": [],
                 "schema_version": 0,
-                "version": "1.0.0",
+                "version": create_default_full_version(),
             },
             does_not_raise(),
         ),
@@ -1030,10 +720,10 @@ def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expe
             {
                 "base": "foo",
                 "makedepends": ["bar"],
-                "packager": "someone",
+                "packager": create_default_packager(),
                 "packages": [],
                 "schema_version": 9999,
-                "version": "1.0.0",
+                "version": create_default_full_version(),
             },
             raises(errors.RepoManagementValidationError),
         ),
@@ -1041,10 +731,10 @@ def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expe
             {
                 "base": "foo",
                 "makedepends": ["bar"],
-                "packager": "someone",
+                "packager": create_default_packager(),
                 "packages": [
                     {
-                        "arch": "foo",
+                        "arch": "any",
                         "backup": ["foo"],
                         "builddate": 1,
                         "checkdepends": [],
@@ -1052,24 +742,24 @@ def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expe
                         "csize": 1,
                         "depends": ["bar"],
                         "desc": "something",
-                        "filename": "foo-1.0.0.pkg.tar.zst",
+                        "filename": create_default_filename(),
                         "files": {"files": ["foo", "bar"]},
                         "groups": [],
                         "isize": 1,
                         "license": ["GPL"],
-                        "md5sum": "foo",
+                        "md5sum": create_md5sum(),
                         "name": "foo",
                         "optdepends": [],
-                        "pgpsig": "signature",
+                        "pgpsig": create_base64_pgpsig(),
                         "provides": [],
                         "replaces": [],
                         "schema_version": 1,
-                        "sha256sum": "sha256sum",
-                        "url": "https://archlinux.org",
+                        "sha256sum": create_sha256sum(),
+                        "url": create_url(),
                     },
                 ],
                 "schema_version": 1,
-                "version": "1.0.0",
+                "version": create_default_full_version(),
             },
             does_not_raise(),
         ),
@@ -1077,13 +767,21 @@ def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expe
             {
                 "base": "foo",
                 "makedepends": ["bar"],
-                "packager": "someone",
+                "packager": create_default_packager(),
                 "packages": "foo",
                 "schema_version": 1,
-                "version": "1.0.0",
+                "version": create_default_full_version(),
             },
             raises(errors.RepoManagementValidationError),
         ),
+    ],
+    ids=[
+        "no schema version",
+        "schema version 1, no packages",
+        "schema version 0, no packages",
+        "schema version 9999, no packages",
+        "schema version 1, 1 package",
+        "schema version 1, package is string",
     ],
 )
 def test_outputpackagebase_from_dict(data: Dict[str, Union[Any, List[Any]]], expectation: ContextManager[str]) -> None:
@@ -1091,10 +789,29 @@ def test_outputpackagebase_from_dict(data: Dict[str, Union[Any, List[Any]]], exp
         assert isinstance(models.OutputPackageBase.from_dict(data=data), models.OutputPackageBase)
 
 
-def test_outputpackagebase_add_packages() -> None:
-    model = models.OutputPackageBase()
-    with raises(RuntimeError):
-        model.add_packages(packages=[models.package.OutputPackage()])
+@mark.parametrize(
+    "output_package_base_type, expectation",
+    [
+        ("1", does_not_raise()),
+        ("base", raises(RuntimeError)),
+    ],
+)
+def test_outputpackagebase_add_packages(
+    outputpackagebasev1: models.package.OutputPackageBaseV1,
+    outputpackagev1: models.package.OutputPackageV1,
+    output_package_base_type: str,
+    expectation: ContextManager[str],
+) -> None:
+    match output_package_base_type:
+        case "base":
+            model = models.OutputPackageBase()
+            input_ = models.package.OutputPackage()
+        case "1":
+            model = outputpackagebasev1
+            input_ = outputpackagev1
+
+    with expectation:
+        model.add_packages(packages=[input_])
 
 
 def test_outputpackagebase_get_version() -> None:
@@ -1103,10 +820,9 @@ def test_outputpackagebase_get_version() -> None:
         model.get_version()
 
 
-def test_export_schemas() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        models.package.export_schemas(output=str(tmp))
-        models.package.export_schemas(output=tmp)
+def test_export_schemas(tmpdir: local) -> None:
+    models.package.export_schemas(output=str(tmpdir))
+    models.package.export_schemas(output=Path(tmpdir))
 
     with raises(RuntimeError):
         models.package.export_schemas(output="/foobar")

@@ -38,18 +38,18 @@ def test_builddir(absolute_dir: str, invalid_absolute_dir: str) -> None:
         buildinfo.BuildDir(builddir=invalid_absolute_dir)
 
 
-def test_buildenv(buildenv: str, invalid_buildenv: str) -> None:
+def test_buildenv(default_buildenv: str, default_invalid_buildenv: str) -> None:
     with does_not_raise():
-        buildinfo.BuildEnv(buildenv=[buildenv])
+        buildinfo.BuildEnv(buildenv=[default_buildenv])
     with raises(ValidationError):
-        buildinfo.BuildEnv(buildenv=[invalid_buildenv])
+        buildinfo.BuildEnv(buildenv=[default_invalid_buildenv])
 
 
-def test_buildtool(package_name: str, invalid_package_name: str) -> None:
+def test_buildtool(default_package_name: str, default_invalid_package_name: str) -> None:
     with does_not_raise():
-        buildinfo.BuildTool(buildtool=package_name)
+        buildinfo.BuildTool(buildtool=default_package_name)
     with raises(ValidationError):
-        buildinfo.BuildTool(buildtool=invalid_package_name)
+        buildinfo.BuildTool(buildtool=default_invalid_package_name)
 
 
 def test_buildtoolver() -> None:
@@ -82,48 +82,48 @@ def test_formatv2(format_: int, expectation: ContextManager[str]) -> None:
         buildinfo.FormatV2(format_=format_)
 
 
-def test_installed(package_name: str, epoch_version_pkgrel: str, arch: str) -> None:
+def test_installed(default_package_name: str, default_full_version: str, default_arch: str) -> None:
     with does_not_raise():
-        buildinfo.Installed(installed=[f"{package_name}-{epoch_version_pkgrel}-{arch}"])
+        buildinfo.Installed(installed=[f"{default_package_name}-{default_full_version}-{default_arch}"])
 
 
 def test_invalid_installed(
-    invalid_package_name: str,
-    invalid_epoch_version_pkgrel: str,
+    default_invalid_package_name: str,
+    default_invalid_full_version: str,
 ) -> None:
     with raises(ValidationError):
-        buildinfo.Installed(installed=[f"{invalid_package_name}-{invalid_epoch_version_pkgrel}-foo"])
+        buildinfo.Installed(installed=[f"{default_invalid_package_name}-{default_invalid_full_version}-foo"])
 
 
-def test_options(option: str, invalid_option: str) -> None:
+def test_options(default_option: str, default_invalid_option: str) -> None:
     with does_not_raise():
-        buildinfo.Options(options=[option])
+        buildinfo.Options(options=[default_option])
     with raises(ValidationError):
-        buildinfo.Options(options=[invalid_option])
+        buildinfo.Options(options=[default_invalid_option])
 
 
-def test_packager(packager_name: str, email: str) -> None:
+def test_packager(default_packager: str) -> None:
     with does_not_raise():
-        buildinfo.Packager(packager=f"{packager_name} <{email}>")
+        buildinfo.Packager(packager=default_packager)
 
 
-def test_invalid_packager(invalid_packager_name: str, invalid_email: str) -> None:
+def test_invalid_packager(default_invalid_packager: str) -> None:
     with raises(ValidationError):
-        buildinfo.Packager(packager=f"{invalid_packager_name} <{invalid_email}>")
+        buildinfo.Packager(packager=default_invalid_packager)
 
 
-def test_pkgarch(arch: str) -> None:
+def test_pkgarch(default_arch: str) -> None:
     with does_not_raise():
-        buildinfo.PkgArch(pkgarch=arch)
+        buildinfo.PkgArch(pkgarch=default_arch)
     with raises(ValidationError):
         buildinfo.PkgArch(pkgarch="foo")
 
 
-def test_pkgbase(package_name: str, invalid_package_name: str) -> None:
+def test_pkgbase(default_package_name: str, default_invalid_package_name: str) -> None:
     with does_not_raise():
-        buildinfo.PkgBase(pkgbase=package_name)
+        buildinfo.PkgBase(pkgbase=default_package_name)
     with raises(ValidationError):
-        buildinfo.PkgBase(pkgbase=invalid_package_name)
+        buildinfo.PkgBase(pkgbase=default_invalid_package_name)
 
 
 def test_pkgbuildsha256sum(sha256sum: str) -> None:
@@ -133,18 +133,18 @@ def test_pkgbuildsha256sum(sha256sum: str) -> None:
         buildinfo.PkgBuildSha256Sum(pkgbuild_sha256sum="f00")
 
 
-def test_pkgname(package_name: str, invalid_package_name: str) -> None:
+def test_pkgname(default_package_name: str, default_invalid_package_name: str) -> None:
     with does_not_raise():
-        buildinfo.PkgName(pkgname=package_name)
+        buildinfo.PkgName(pkgname=default_package_name)
     with raises(ValidationError):
-        buildinfo.PkgName(pkgname=invalid_package_name)
+        buildinfo.PkgName(pkgname=default_invalid_package_name)
 
 
-def test_pkgver(epoch_version_pkgrel: str, invalid_epoch_version_pkgrel: str) -> None:
+def test_pkgver(default_full_version: str, default_invalid_full_version: str) -> None:
     with does_not_raise():
-        buildinfo.PkgVer(pkgver=epoch_version_pkgrel)
+        buildinfo.PkgVer(pkgver=default_full_version)
     with raises(ValidationError):
-        buildinfo.PkgVer(pkgver=invalid_epoch_version_pkgrel)
+        buildinfo.PkgVer(pkgver=default_invalid_full_version)
 
 
 def test_startdir(absolute_dir: str, invalid_absolute_dir: str) -> None:
@@ -201,22 +201,27 @@ def test_read_buildinfo(
                 buildinfo.read_buildinfo(buildinfo=Path("/foo"))
 
 
-def test_buildinfov2_validate_devtools_version(sha256sum: str, invalid_epoch_version_pkgrel: str) -> None:
+def test_buildinfov2_validate_devtools_version(
+    default_full_version: str,
+    default_invalid_full_version: str,
+    default_packager: str,
+    sha256sum: str,
+) -> None:
     with raises(ValidationError):
         buildinfo.BuildInfoV2(
             builddate=1,
             builddir="/foo",
             buildenv=[],
             buildtool="devtools",
-            buildtoolver=f"{invalid_epoch_version_pkgrel}-any",
+            buildtoolver=f"{default_invalid_full_version}-any",
             installed=[],
             options=[],
-            packager="Foobar McFooface <foobar@mcfooface.tld>",
+            packager=default_packager,
             pkgarch="any",
             pkgbase="foo",
             pkgbuild_sha256sum=sha256sum,
             pkgname="foo",
-            pkgver="1.0.0-1",
+            pkgver=default_full_version,
             startdir="/bar",
         )
 

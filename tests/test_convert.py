@@ -1,13 +1,24 @@
 import io
 from contextlib import nullcontext as does_not_raise
 from os.path import dirname, join, realpath
+from textwrap import dedent
 from typing import ContextManager
 
 from pytest import mark, raises
 
 from repod import convert, errors, models
 from repod.models.package import Files, PackageDesc
-from tests.conftest import FilesV9999, PackageDescV9999
+from tests.conftest import (
+    FilesV9999,
+    PackageDescV9999,
+    create_base64_pgpsig,
+    create_default_filename,
+    create_default_full_version,
+    create_default_packager,
+    create_md5sum,
+    create_sha256sum,
+    create_url,
+)
 
 RESOURCES = join(dirname(realpath(__file__)), "resources")
 
@@ -16,93 +27,458 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
     "file_data, data_type, expectation",
     [
         (
-            (
-                "%ARCH%\nfoo\n%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
-                "%BUILDDATE%\n42\n%CONFLICTS%\nfoo\nbar\n%CSIZE%\n23\n"
-                "%DEPENDS%\nfoo\nbar\n%DESC%\nfoo\n%CHECKDEPENDS%\nfoo\nbar\n"
-                "%FILENAME%\nfoo\n%GROUPS%\nfoo\nbar\n%ISIZE%\n42\n"
-                "%LICENSE%\nfoo\nbar\n%MAKEDEPENDS%\nfoo\nbar\n%MD5SUM%\nfoo\n"
-                "%NAME%\nfoo\n%OPTDEPENDS%\nfoo\nbar\n%PACKAGER%\nfoo\n"
-                "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
-                "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
-            ),
+            f"""%ARCH%
+            any
+
+            %BACKUP%
+            foo
+            bar
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+            foo
+            bar
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+            foo
+            bar
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+            foo
+            bar
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+            foo
+            bar
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+            foo
+            bar
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+            foo
+            bar
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+            foo
+            bar
+
+            %REPLACES%
+            foo
+            bar
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
             models.RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
-            (
-                "%ARCH%\nfoo\n%BACKUP%\n%BASE%\nfoo\n"
-                "%BUILDDATE%\n42\n%CONFLICTS%\n%CSIZE%\n23\n"
-                "%DEPENDS%\n%DESC%\nfoo\n%CHECKDEPENDS%\n"
-                "%FILENAME%\nfoo\n%GROUPS%\n%ISIZE%\n42\n"
-                "%LICENSE%\nfoo\nbar\n%MAKEDEPENDS%\n%MD5SUM%\nfoo\n"
-                "%NAME%\nfoo\n%OPTDEPENDS%\n%PACKAGER%\nfoo\n"
-                "%PGPSIG%\nfoo\n%PROVIDES%\n%REPLACES%\n"
-                "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
-            ),
+            f"""%ARCH%
+            any
+
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
             models.RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
-            (
-                "\n\n%ARCH%\nfoo\n%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
-                "%BUILDDATE%\n42\n%CONFLICTS%\nfoo\nbar\n%CSIZE%\n23\n"
-                "%DEPENDS%\nfoo\nbar\n%DESC%\nfoo\n%CHECKDEPENDS%\nfoo\nbar\n"
-                "%FILENAME%\nfoo\n%GROUPS%\nfoo\nbar\n%ISIZE%\n42\n"
-                "%LICENSE%\nfoo\nbar\n%MAKEDEPENDS%\nfoo\nbar\n%MD5SUM%\nfoo\n"
-                "%NAME%\nfoo\n%OPTDEPENDS%\nfoo\nbar\n%PACKAGER%\nfoo\n"
-                "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
-                "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
-            ),
+            f"""
+
+
+            %ARCH%
+            any
+
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
             models.RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
-            (
-                "\n\n%ARCH%\nfoo\n%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
-                "%BUILDDATE%\n42\n%CONFLICTS%\nfoo\nbar\n%CSIZE%\n23\n"
-                "%DEPENDS%\nfoo\nbar\n%DESC%\nfoo\n%CHECKDEPENDS%\nfoo\nbar\n"
-                "%FILENAME%\nfoo\n%GROUPS%\nfoo\nbar\n%ISIZE%\n42\n"
-                "%LICENSE%\nfoo\nbar\n%MAKEDEPENDS%\nfoo\nbar\n%MD5SUM%\nfoo\n"
-                "%NAME%\nX-X-X\n%OPTDEPENDS%\nfoo\nbar\n%PACKAGER%\nfoo\n"
-                "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
-                "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
-            ),
+            f"""
+
+            %ARCH%
+            any
+
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            X-X-X
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            foo
+
+            %VERSION%
+            1:1.0.0-1
+            """,
             models.RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
         (
-            (
-                "%ARCH%\nfoo\n%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
-                "%BUILDDATE%\n42\n%CONFLICTS%\nfoo\nbar\n%CSIZE%\nfoo\n"
-                "%DEPENDS%\nfoo\nbar\n%DESC%\nfoo\n%CHECKDEPENDS%\nfoo\nbar\n"
-                "%FILENAME%\nfoo\n%GROUPS%\nfoo\nbar\n%ISIZE%\n42\n"
-                "%LICENSE%\nfoo\nbar\n%MAKEDEPENDS%\nfoo\nbar\n%MD5SUM%\nfoo\n"
-                "%NAME%\nfoo\n%OPTDEPENDS%\nfoo\nbar\n%PACKAGER%\nfoo\n"
-                "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
-                "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
-            ),
+            f"""
+            %ARCH%
+            any
+
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            foo
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
             models.RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
-        ("%FOO%\nbar\n", models.RepoDbMemberTypeEnum.DESC, raises(errors.RepoManagementValidationError)),
         (
-            (
-                "%BACKUP%\nfoo\nbar\n%BASE%\nfoo\n"
-                "%BUILDDATE%\n42\n%CONFLICTS%\nfoo\nbar\n%CSIZE%\n23\n"
-                "%DEPENDS%\nfoo\nbar\n%DESC%\nfoo\n%CHECKDEPENDS%\nfoo\nbar\n"
-                "%FILENAME%\nfoo\n%GROUPS%\nfoo\nbar\n%ISIZE%\n42\n"
-                "%LICENSE%\nfoo\nbar\n%MAKEDEPENDS%\nfoo\nbar\n%MD5SUM%\nfoo\n"
-                "%NAME%\nfoo\n%OPTDEPENDS%\nfoo\nbar\n%PACKAGER%\nfoo\n"
-                "%PGPSIG%\nfoo\n%PROVIDES%\nfoo\nbar\n%REPLACES%\nfoo\nbar\n"
-                "%SHA256SUM%\nfoo\n%URL%\nfoo\n%VERSION%\nfoo\n"
-            ),
+            """
+            %FOO%
+            bar
+            """,
+            models.RepoDbMemberTypeEnum.DESC,
+            raises(errors.RepoManagementValidationError),
+        ),
+        (
+            f"""
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
             models.RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
         ("%FOO%\nbar\n", models.RepoDbMemberTypeEnum.UNKNOWN, raises(errors.RepoManagementFileError)),
         ("%FILES%\nfoo\n", models.RepoDbMemberTypeEnum.FILES, does_not_raise()),
         ("%FILES%\nhome/foo/bar\n", models.RepoDbMemberTypeEnum.FILES, raises(errors.RepoManagementValidationError)),
+    ],
+    ids=[
+        "desc_v1, all fields populated",
+        "desc_v1, minimum fields populated",
+        "desc_v1, minimum fields populated, leading newline",
+        "desc_v1, minimum fields populated, invalid name",
+        "desc_v1, minimum fields populated, invalid csize",
+        "desc_v1, single invalid field",
+        "desc_v1, minimum fields populated, missing %ARCH% field",
+        "unknown RepoDbMemberTypeEnum member",
+        "files_v1",
+        "files_v1, files in /home",
     ],
 )
 @mark.asyncio
@@ -111,6 +487,7 @@ async def test_file_data_to_model(
     data_type: models.RepoDbMemberTypeEnum,
     expectation: ContextManager[str],
 ) -> None:
+    file_data = "\n".join([m.strip() for m in dedent(file_data).split("\n")])
     with expectation:
         assert await convert.file_data_to_model(
             data=io.StringIO(file_data),
@@ -128,21 +505,21 @@ def test_repodbfile__init() -> None:
     [
         (
             models.package.PackageDescV1(
-                arch="foo",
+                arch="any",
                 base="foo",
                 builddate=1,
                 csize=1,
                 desc="foo",
-                filename="foo",
+                filename=create_default_filename(),
                 isize=1,
                 license=["foo"],
-                md5sum="foo",
+                md5sum=create_md5sum(),
                 name="foo",
-                packager="foo",
-                pgpsig="foo",
-                sha256sum="foo",
-                url="foo",
-                version="foo",
+                packager=create_default_packager(),
+                pgpsig=create_base64_pgpsig(),
+                sha256sum=create_sha256sum(),
+                url="https://foobar.tld",
+                version=create_default_full_version(),
             ),
             does_not_raise(),
         ),
