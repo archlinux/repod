@@ -467,30 +467,20 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
             The unmodified dict with all values of the Settings instance
         """
 
+        architecture: Optional[str] = values.get("architecture")
+        management_repo: Optional[models.ManagementRepo] = values.get("management_repo")
+        package_pool: Optional[Path] = values.get("package_pool")
         repositories: List[models.PackageRepo] = values.get("repositories")  # type: ignore[assignment]
-        architecture, management_repo, package_pool, source_pool, package_repo_base = (
-            values.get("architecture"),
-            values.get("management_repo"),
-            values.get("package_pool"),
-            values.get("source_pool"),
-            values.get("package_repo_base"),
-        )
+        source_pool: Optional[Path] = values.get("source_pool")
+        package_repo_base: Path = values.get("package_repo_base")  # type: ignore[assignment]
 
         staging_dirs = [
-            (
-                package_repo_base  # type: ignore[operator]
-                / repo.staging
-                / Path(repo.architecture or architecture)  # type: ignore[arg-type]
-            )
+            (package_repo_base / repo.staging / Path(repo.architecture or architecture))  # type: ignore[arg-type]
             for repo in repositories
             if repo.staging
         ]
         testing_dirs = [
-            (
-                package_repo_base  # type: ignore[operator]
-                / repo.testing
-                / Path(repo.architecture or architecture)  # type: ignore[arg-type]
-            )
+            (package_repo_base / repo.testing / Path(repo.architecture or architecture))  # type: ignore[arg-type]
             for repo in repositories
             if repo.testing
         ]
@@ -513,11 +503,7 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
             if not repo.source_pool and not source_pool:
                 raise ValueError(f"The repository '{repo.name}' does not have a source pool associated with it.")
 
-            repo_dir = (
-                package_repo_base  # type: ignore[operator]
-                / repo.name
-                / Path(repo.architecture or architecture)  # type: ignore[arg-type]
-            )
+            repo_dir = package_repo_base / repo.name / Path(repo.architecture or architecture)  # type: ignore[arg-type]
             _raise_on_path_in_list_of_paths(
                 path=repo_dir,
                 path_name="stable repository",
@@ -539,9 +525,7 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
 
             if repo.staging:
                 staging_dir = (
-                    package_repo_base  # type: ignore[operator]
-                    / repo.staging
-                    / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+                    package_repo_base / repo.staging / Path(repo.architecture or architecture)  # type: ignore[arg-type]
                 )
                 _raise_on_path_in_list_of_paths(
                     path=staging_dir,
@@ -552,9 +536,7 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
 
             if repo.testing:
                 testing_dir = (
-                    package_repo_base  # type: ignore[operator]
-                    / repo.testing
-                    / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+                    package_repo_base / repo.testing / Path(repo.architecture or architecture)  # type: ignore[arg-type]
                 )
                 _raise_on_path_in_list_of_paths(
                     path=testing_dir,
