@@ -370,6 +370,13 @@ def test_directory_validate_directory(parent_mock: Mock) -> None:
     assert models.Directory(directory="/foo")
 
 
+def test_packager(default_packager: str, default_invalid_packager: str) -> None:
+    with does_not_raise():
+        common_models.Packager(packager=default_packager)
+    with raises(ValidationError):
+        common_models.Packager(packager=default_invalid_packager)
+
+
 @mark.parametrize(
     "name, staging, testing, package_pool, source_pool, management_repo, url, expectation",
     [

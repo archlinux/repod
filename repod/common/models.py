@@ -1,13 +1,13 @@
 import re
 from typing import List, Optional
 
+from email_validator import EmailNotValidError, validate_email
 from pyalpm import vercmp
 from pydantic import BaseModel, HttpUrl, NonNegativeInt, conint, constr, validator
 
 from repod.common.regex import (
     ARCHITECTURE,
     BASE64,
-    EMAIL,
     EPOCH,
     FILENAME,
     MD5,
@@ -260,7 +260,18 @@ class Packager(BaseModel):
         identifies a package's packager
     """
 
-    packager: constr(regex=(rf"^{PACKAGER_NAME}\s<{EMAIL}>$"))  # type: ignore[valid-type]  # noqa: F722
+    packager: constr(regex=(rf"^{PACKAGER_NAME}\s<(.*)>$"))  # type: ignore[valid-type]  # noqa: F722
+
+    @validator("packager")
+    def validate_packager_has_valid_email(cls, packager: str) -> str:
+
+        email = packager.replace(">", "").split("<")[1]
+        try:
+            validate_email(email)
+        except EmailNotValidError as e:
+            raise ValueError(f"The packager email is not valid: {email}\n{e}")
+
+        return packager
 
 
 class PgpSig(BaseModel):

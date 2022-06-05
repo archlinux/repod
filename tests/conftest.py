@@ -165,7 +165,7 @@ def default_invalid_package_name() -> str:
 
 
 def create_default_packager() -> str:
-    return "Foobar McFooface <foobar@mcfooface.tld>"
+    return "Foobar McFooface <foobar@archlinux.org>"
 
 
 @fixture(scope="session")
@@ -174,7 +174,7 @@ def default_packager() -> str:
 
 
 def create_default_invalid_packager() -> str:
-    return "Foobar McFooface"
+    return "Foobar McFooface <foo>"
 
 
 @fixture(scope="session")

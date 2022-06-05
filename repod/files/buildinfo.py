@@ -8,15 +8,14 @@ from typing import IO, Any, Dict, List, Tuple, Union
 from pydantic import BaseModel, NonNegativeInt, conint, constr, root_validator
 
 from repod.common.enums import FieldTypeEnum
+from repod.common.models import Packager
 from repod.common.regex import (
     ABSOLUTE_PATH,
     ARCHITECTURE,
     BUILDENVS,
-    EMAIL,
     EPOCH,
     OPTIONS,
     PACKAGE_NAME,
-    PACKAGER_NAME,
     PKGREL,
     SHA256,
     VERSION,
@@ -159,18 +158,6 @@ class Options(BaseModel):
     """
 
     options: List[constr(regex=rf"^{OPTIONS}$")]  # type: ignore[valid-type]  # noqa: F722
-
-
-class Packager(BaseModel):
-    """A packager UID
-
-    Attributes
-    ----------
-    packager: str
-        A string representing a packager UID (e.g. "First Last <mail@example.tld>")
-    """
-
-    packager: constr(regex=(rf"^{PACKAGER_NAME}\s<{EMAIL}>$"))  # type: ignore[valid-type]  # noqa: F722
 
 
 class PkgArch(BaseModel):

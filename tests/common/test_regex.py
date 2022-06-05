@@ -27,14 +27,6 @@ def test_invalid_buildenvs(invalid_buildenv: str) -> None:
     assert not isinstance(fullmatch(regex.BUILDENVS, invalid_buildenv), Match)
 
 
-def test_email(email: str) -> None:
-    assert isinstance(fullmatch(regex.EMAIL, email), Match)
-
-
-def test_invalid_email(invalid_email: str) -> None:
-    assert not isinstance(fullmatch(regex.EMAIL, invalid_email), Match)
-
-
 def test_epoch(epoch: str) -> None:
     assert isinstance(fullmatch(regex.EPOCH, epoch), Match)
 
