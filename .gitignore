@@ -79,6 +79,9 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Jetbrains
+.idea/
+
 # IPython
 profile_default/
 ipython_config.py
@@ -132,3 +135,6 @@ dmypy.json
 
 # flake8
 flake8.txt
+
+# junit report
+junit-report.xml

@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Tuple
 
-from py.path import local
 from pytest import mark
 
 from repod import models, operations
@@ -17,9 +16,9 @@ async def test_db_file_as_models(files_sync_db_file: Tuple[Path, Path]) -> None:
 @mark.asyncio
 async def test_dump_db_to_json_files(
     files_sync_db_file: Tuple[Path, Path],
-    tmpdir: local,
+    tmp_path: Path,
 ) -> None:
-    await operations.dump_db_to_json_files(input_path=files_sync_db_file[0], output_path=Path(tmpdir))
+    await operations.dump_db_to_json_files(input_path=files_sync_db_file[0], output_path=tmp_path)
 
 
 @mark.asyncio

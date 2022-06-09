@@ -12,7 +12,6 @@ from typing import IO, Any, AsyncGenerator, Generator, List, Tuple
 
 import orjson
 import pytest_asyncio
-from py.path import local
 from pydantic import BaseModel
 from pytest import fixture
 
@@ -1048,7 +1047,7 @@ def outputpackagebasev1_json_files_in_dir(
     filesv1: Files,
     md5sum: str,
     sha256sum: str,
-    tmpdir: local,
+    tmp_path: Path,
     url: str,
 ) -> Path:
     for name, files in [
@@ -1079,52 +1078,52 @@ def outputpackagebasev1_json_files_in_dir(
             ],
         )
 
-        with open(tmpdir / f"{name}.json", "wb") as output_file:
+        with open(tmp_path / f"{name}.json", "wb") as output_file:
             output_file.write(
                 orjson.dumps(
                     model.dict(), option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE | orjson.OPT_SORT_KEYS
                 )
             )
 
-    return Path(tmpdir)
+    return tmp_path
 
 
 @fixture(scope="function")
-def empty_dir(tmpdir: local) -> Path:
-    directory = Path(tmpdir) / "empty"
+def empty_dir(tmp_path: Path) -> Path:
+    directory = tmp_path / "empty"
     directory.mkdir()
     return directory
 
 
 @fixture(scope="function")
-def empty_file(tmpdir: local) -> Path:
-    [foo, file_name] = mkstemp(dir=tmpdir)
+def empty_file(tmp_path: Path) -> Path:
+    [foo, file_name] = mkstemp(dir=tmp_path)
     return Path(file_name)
 
 
 @fixture(scope="function")
-def broken_json_file(tmpdir: local) -> Path:
-    [foo, json_file] = mkstemp(suffix=".json", dir=tmpdir)
+def broken_json_file(tmp_path: Path) -> Path:
+    [foo, json_file] = mkstemp(suffix=".json", dir=tmp_path)
     with open(json_file, "w") as input_file:
         input_file.write("garbage")
     return Path(json_file)
 
 
 @fixture(scope="function")
-def invalid_json_file(tmpdir: local) -> Path:
-    [foo, json_file] = mkstemp(suffix=".json", dir=tmpdir)
+def invalid_json_file(tmp_path: Path) -> Path:
+    [foo, json_file] = mkstemp(suffix=".json", dir=tmp_path)
     with open(json_file, "w") as input_file:
         input_file.write('{"foo": "bar"}')
     return Path(json_file)
 
 
 @fixture(scope="function")
-def empty_toml_file(tmpdir: local) -> Path:
-    return Path(NamedTemporaryFile(suffix=".toml", dir=Path(tmpdir), delete=False).name)
+def empty_toml_file(tmp_path: Path) -> Path:
+    return Path(NamedTemporaryFile(suffix=".toml", dir=tmp_path, delete=False).name)
 
 
 @fixture(scope="function")
-def empty_toml_files_in_dir(tmpdir: local) -> Path:
+def empty_toml_files_in_dir(tmp_path: Path) -> Path:
     for i in range(5):
-        NamedTemporaryFile(suffix=".toml", dir=Path(tmpdir), delete=False)
-    return Path(tmpdir)
+        NamedTemporaryFile(suffix=".toml", dir=tmp_path, delete=False)
+    return tmp_path

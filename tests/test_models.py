@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any, ContextManager, Dict, List, Optional, Set, Union
 from unittest.mock import Mock, patch
 
-from py.path import local
 from pydantic import ValidationError
 from pytest import mark, raises
 
@@ -827,9 +826,9 @@ def test_outputpackagebase_get_version() -> None:
         model.get_version()
 
 
-def test_export_schemas(tmpdir: local) -> None:
-    models.package.export_schemas(output=str(tmpdir))
-    models.package.export_schemas(output=Path(tmpdir))
+def test_export_schemas(tmp_path: Path) -> None:
+    models.package.export_schemas(output=str(tmp_path))
+    models.package.export_schemas(output=tmp_path)
 
     with raises(RuntimeError):
         models.package.export_schemas(output="/foobar")
