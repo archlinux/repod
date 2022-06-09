@@ -93,16 +93,7 @@ def test_json2db(
         )
 
 
-@mark.integration
-@mark.parametrize(
-    "db",
-    [
-        ("core"),
-        ("extra"),
-        ("community"),
-    ],
-)
-def test_transform_databases(db: str, empty_dir: Path, empty_file: Path) -> None:
+def transform_databases(db: str, empty_dir: Path, empty_file: Path) -> None:
     commands.run_command(
         cmd=["db2json", f"/var/lib/pacman/sync/{db}.files", empty_dir.as_posix()],
         debug=True,
@@ -113,6 +104,42 @@ def test_transform_databases(db: str, empty_dir: Path, empty_file: Path) -> None
         debug=True,
         check=True,
     )
+
+
+@mark.integration
+@mark.skipif(
+    not Path("/var/lib/pacman/sync/core.files").exists(),
+    reason="/var/lib/pacman/sync/core.files does not exist",
+)
+def test_transform_core_databases(empty_dir: Path, empty_file: Path) -> None:
+    transform_databases("core", empty_dir, empty_file)
+
+
+@mark.integration
+@mark.skipif(
+    not Path("/var/lib/pacman/sync/extra.files").exists(),
+    reason="/var/lib/pacman/sync/extra.files does not exist",
+)
+def test_transform_extra_databases(empty_dir: Path, empty_file: Path) -> None:
+    transform_databases("extra", empty_dir, empty_file)
+
+
+@mark.integration
+@mark.skipif(
+    not Path("/var/lib/pacman/sync/community.files").exists(),
+    reason="/var/lib/pacman/sync/community.files does not exist",
+)
+def test_transform_community_databases(empty_dir: Path, empty_file: Path) -> None:
+    transform_databases("community", empty_dir, empty_file)
+
+
+@mark.integration
+@mark.skipif(
+    not Path("/var/lib/pacman/sync/multilib.files").exists(),
+    reason="/var/lib/pacman/sync/multilib.files does not exist",
+)
+def test_transform_multilib_databases(empty_dir: Path, empty_file: Path) -> None:
+    transform_databases("multilib", empty_dir, empty_file)
 
 
 @mark.integration
