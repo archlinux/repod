@@ -29,6 +29,7 @@ coverage:
       coverage_report:
         coverage_format: cobertura
         path: .tox/coverage.xml
+      junit: junit-report.xml
 
 docs:
   extends: .test

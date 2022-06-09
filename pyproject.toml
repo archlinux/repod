@@ -79,8 +79,12 @@ show_missing = true
 
 [tool.coverage.run]
 branch = true
-command_line = "-m pytest -vv tests/ -m 'not integration'"
+command_line = "-m pytest --junit-xml=junit-report.xml -vv tests/ -m 'not integration'"
 omit = ["tests/*", ".tox/*", "db-write/*", "db2json/*", "dbscripts/*"]
+relative_files = true
+
+[tool.coverage.xml]
+output = ".tox/coverage.xml"
 
 [tool.isort]
 profile = "black"
