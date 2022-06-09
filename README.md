@@ -1,6 +1,4 @@
 # repod
-[![pipeline status](https://gitlab.archlinux.org/archlinux/repod/badges/master/pipeline.svg)](https://gitlab.archlinux.org/archlinux/repod/-/commits/master) [![coverage report](https://gitlab.archlinux.org/archlinux/repod/badges/master/coverage.svg)](https://gitlab.archlinux.org/archlinux/repod/-/commits/master)
-
 This project contains tooling to maintain binary package repositories for Linux
 distributions using the [pacman](https://archlinux.org/pacman/) package manager.
 
