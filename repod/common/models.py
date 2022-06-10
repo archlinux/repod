@@ -342,6 +342,18 @@ class SchemaVersionV1(BaseModel):
     schema_version: conint(ge=1, le=1) = 1  # type: ignore[valid-type]
 
 
+class SchemaVersionV2(BaseModel):
+    """A model describing a schema version 2
+
+    Attributes
+    ----------
+    schema_version: PositiveInt
+        A schema version - 2 - for a model
+    """
+
+    schema_version: conint(ge=2, le=2) = 2  # type: ignore[valid-type]
+
+
 class Sha256Sum(BaseModel):
     """A model describing a single 'sha256sum' attribute
 
