@@ -7,6 +7,7 @@ default:
 
 stages:
   - test
+  - webhook
 
 .test:
   stage: test
@@ -41,3 +42,11 @@ integration:
   extends: .test
   script:
     - tox -e integration
+
+readthedocs:
+  stage: webhook
+  script:
+    - pacman --noconfirm -Syu --needed curl
+    - curl -X POST -d "token=${READTHEDOCS_TOKEN}" https://readthedocs.org/api/v2/webhook/repod/${READTHEDOCS_PROJECT_ID}/
+  only:
+    - master@archlinux/repod
