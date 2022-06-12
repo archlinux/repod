@@ -1102,6 +1102,18 @@ def empty_file(tmp_path: Path) -> Path:
 
 
 @fixture(scope="function")
+def empty_syncdbs(tmp_path: Path) -> List[Path]:
+    directory = tmp_path / "pacman/sync"
+    files: List[Path] = [directory / "tmp.db", directory / "tmp.files"]
+
+    directory.mkdir(parents=True)
+    for file in files:
+        file.touch()
+
+    return files
+
+
+@fixture(scope="function")
 def broken_json_file(tmp_path: Path) -> Path:
     [foo, json_file] = mkstemp(suffix=".json", dir=tmp_path)
     with open(json_file, "w") as input_file:
