@@ -1,6 +1,6 @@
 from argparse import ArgumentTypeError, Namespace
 from pathlib import Path
-from typing import Dict
+from typing import List
 from unittest.mock import Mock, patch
 
 from pytest import mark
@@ -93,14 +93,70 @@ def test_json2db(
         )
 
 
-def transform_databases(db: str, empty_dir: Path, empty_file: Path) -> None:
+def transform_databases(db: str, json_dir: Path, default_syncdb: Path, files_syncdb: Path) -> None:
     commands.run_command(
-        cmd=["db2json", f"/var/lib/pacman/sync/{db}.files", empty_dir.as_posix()],
+        cmd=["db2json", f"/var/lib/pacman/sync/{db}.files", str(json_dir)],
         debug=True,
         check=True,
     )
     commands.run_command(
-        cmd=["json2db", "-f", empty_dir.as_posix(), empty_file.as_posix()],
+        cmd=["json2db", "-f", str(json_dir), str(files_syncdb)],
+        debug=True,
+        check=True,
+    )
+    commands.run_command(
+        cmd=["json2db", str(json_dir), str(default_syncdb)],
+        debug=True,
+        check=True,
+    )
+
+
+def list_databases(db_path: Path) -> None:
+    cache_path = db_path / "cache"
+    cache_path.mkdir(parents=True)
+    pacman_conf_path = cache_path / "pacman.conf"
+    pacman_conf_contents = """[options]
+    HoldPkg = pacman glibc
+    Architecture = auto
+    SigLevel = Required DatabaseOptional
+    LocalFileSigLevel = Optional
+    [tmp]
+    Include = /etc/pacman.d/mirrorlist
+    """
+
+    with open(pacman_conf_path, "w") as file:
+        print(pacman_conf_contents, file=file)
+
+    commands.run_command(
+        cmd=[
+            "pacman",
+            "--config",
+            str(pacman_conf_path),
+            "--cache",
+            str(cache_path),
+            "--logfile",
+            f"{cache_path}/pacman.log",
+            "--dbpath",
+            str(db_path),
+            "-Sl",
+            "tmp",
+        ],
+        debug=True,
+        check=True,
+    )
+    commands.run_command(
+        cmd=[
+            "pacman",
+            "--config",
+            str(pacman_conf_path),
+            "--cache",
+            str(cache_path),
+            "--logfile",
+            f"{cache_path}/pacman.log",
+            "--dbpath",
+            str(db_path),
+            "-Fl",
+        ],
         debug=True,
         check=True,
     )
@@ -111,8 +167,14 @@ def transform_databases(db: str, empty_dir: Path, empty_file: Path) -> None:
     not Path("/var/lib/pacman/sync/core.files").exists(),
     reason="/var/lib/pacman/sync/core.files does not exist",
 )
-def test_transform_core_databases(empty_dir: Path, empty_file: Path) -> None:
-    transform_databases("core", empty_dir, empty_file)
+def test_transform_core_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+    transform_databases(
+        db="core",
+        json_dir=empty_dir,
+        default_syncdb=empty_syncdbs[0],
+        files_syncdb=empty_syncdbs[1],
+    )
+    list_databases(db_path=Path(empty_syncdbs[0].parent))
 
 
 @mark.integration
@@ -120,8 +182,14 @@ def test_transform_core_databases(empty_dir: Path, empty_file: Path) -> None:
     not Path("/var/lib/pacman/sync/extra.files").exists(),
     reason="/var/lib/pacman/sync/extra.files does not exist",
 )
-def test_transform_extra_databases(empty_dir: Path, empty_file: Path) -> None:
-    transform_databases("extra", empty_dir, empty_file)
+def test_transform_extra_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+    transform_databases(
+        db="extra",
+        json_dir=empty_dir,
+        default_syncdb=empty_syncdbs[0],
+        files_syncdb=empty_syncdbs[1],
+    )
+    list_databases(db_path=Path(empty_syncdbs[0].parent))
 
 
 @mark.integration
@@ -129,8 +197,14 @@ def test_transform_extra_databases(empty_dir: Path, empty_file: Path) -> None:
     not Path("/var/lib/pacman/sync/community.files").exists(),
     reason="/var/lib/pacman/sync/community.files does not exist",
 )
-def test_transform_community_databases(empty_dir: Path, empty_file: Path) -> None:
-    transform_databases("community", empty_dir, empty_file)
+def test_transform_community_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+    transform_databases(
+        db="community",
+        json_dir=empty_dir,
+        default_syncdb=empty_syncdbs[0],
+        files_syncdb=empty_syncdbs[1],
+    )
+    list_databases(db_path=Path(empty_syncdbs[0].parent))
 
 
 @mark.integration
@@ -138,71 +212,11 @@ def test_transform_community_databases(empty_dir: Path, empty_file: Path) -> Non
     not Path("/var/lib/pacman/sync/multilib.files").exists(),
     reason="/var/lib/pacman/sync/multilib.files does not exist",
 )
-def test_transform_multilib_databases(empty_dir: Path, empty_file: Path) -> None:
-    transform_databases("multilib", empty_dir, empty_file)
-
-
-@mark.integration
-def test_transform_databases_and_use_with_pacman(empty_dir: Path) -> None:
-    dbs = ["core", "extra", "community"]
-    json_paths: Dict[str, Path] = {}
-    pacman_path = empty_dir / "pacman"
-    pacman_path.mkdir(parents=True)
-    db_path = empty_dir / "pacman/db_path"
-    db_path.mkdir(parents=True)
-    sync_path = empty_dir / "pacman/db_path/sync"
-    sync_path.mkdir(parents=True)
-    cache_path = empty_dir / "pacman/cache_path"
-    cache_path.mkdir(parents=True)
-    for db in dbs:
-        json_path = empty_dir / db
-        json_path.mkdir()
-        json_paths[db] = json_path
-
-    for (name, json_path) in json_paths.items():
-        commands.run_command(
-            cmd=["db2json", f"/var/lib/pacman/sync/{name}.files", str(json_path)],
-            debug=True,
-            check=True,
-        )
-        commands.run_command(
-            cmd=["json2db", str(json_path), f"{sync_path}/{name}.db"],
-            debug=True,
-            check=True,
-        )
-        commands.run_command(
-            cmd=["json2db", "-f", str(json_path), f"{sync_path}/{name}.files"],
-            debug=True,
-            check=True,
-        )
-
-    commands.run_command(
-        cmd=[
-            "pacman",
-            "--cache",
-            str(cache_path),
-            "--logfile",
-            f"{pacman_path}/pacman.log",
-            "--dbpath",
-            str(db_path),
-            "-Ss",
-            "linux",
-        ],
-        debug=True,
-        check=True,
+def test_transform_multilib_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+    transform_databases(
+        db="multilib",
+        json_dir=empty_dir,
+        default_syncdb=empty_syncdbs[0],
+        files_syncdb=empty_syncdbs[1],
     )
-    commands.run_command(
-        cmd=[
-            "pacman",
-            "--cache",
-            str(cache_path),
-            "--logfile",
-            f"{pacman_path}/pacman.log",
-            "--dbpath",
-            str(db_path),
-            "-Fl",
-            "linux",
-        ],
-        debug=True,
-        check=True,
-    )
+    list_databases(db_path=Path(empty_syncdbs[0].parent))
