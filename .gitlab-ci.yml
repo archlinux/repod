@@ -11,8 +11,9 @@ stages:
 .test:
   stage: test
   before_script:
-    - pacman --noconfirm -Fy
-    - pacman --noconfirm -Syu --needed base-devel git python-tox
+    - printf "[multilib]\nInclude = /etc/pacman.d/mirrorlist\n" >> /etc/pacman.conf
+    - pacman --noconfirm -Fyy
+    - pacman --noconfirm -Syyu --needed base-devel git python-tox
 
 linter:
   extends: .test
