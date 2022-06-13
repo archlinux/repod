@@ -240,3 +240,25 @@ def test_version_get_pkgrel(value: str, expectation: Optional[models.PkgRel]) ->
 )
 def test_version_vercmp(subj: str, obj: str, expectation: int) -> None:
     assert models.Version(version=subj).vercmp(version=models.Version(version=obj)) == expectation
+
+
+@mark.parametrize(
+    "subj, obj, expectation",
+    [
+        ("1.2.3-1", "1.2.3-2", True),
+        ("1.2.3-2", "1.2.3-1", False),
+    ],
+)
+def test_version_is_older_than(subj: str, obj: str, expectation: bool) -> None:
+    assert models.Version(version=subj).is_older_than(version=models.Version(version=obj)) is expectation
+
+
+@mark.parametrize(
+    "subj, obj, expectation",
+    [
+        ("1.2.3-1", "1.2.3-2", False),
+        ("1.2.3-2", "1.2.3-1", True),
+    ],
+)
+def test_version_is_newer_than(subj: str, obj: str, expectation: bool) -> None:
+    assert models.Version(version=subj).is_newer_than(version=models.Version(version=obj)) is expectation

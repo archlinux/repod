@@ -278,50 +278,6 @@ def test_isize(isize: int, expectation: ContextManager[str]) -> None:
         assert isize == common_models.ISize(isize=isize).isize
 
 
-@mark.parametrize(
-    "version, expectation",
-    [
-        ("1.2.3-0", raises(ValueError)),
-        (".1.2.3-1", raises(ValueError)),
-        ("-1.2.3-1", raises(ValueError)),
-        (":1.2.3-1", raises(ValueError)),
-        ("_1.2.3-1", raises(ValueError)),
-        ("+1.2.3-1", raises(ValueError)),
-        ("1.2.'3-1", raises(ValueError)),
-        ("1.2.3-1", does_not_raise()),
-        ("1:1.2.3-1", does_not_raise()),
-        ("1:1.2.3r500.x.y.z.1-1", does_not_raise()),
-    ],
-)
-def test_version_version_is_valid(version: str, expectation: ContextManager[str]) -> None:
-    with expectation:
-        assert version == common_models.Version(version=version).version
-
-
-@mark.parametrize(
-    "version, other_version, expectation",
-    [
-        ("1.2.3-1", "1.2.3-2", True),
-        ("1.2.3-2", "1.2.3-1", False),
-    ],
-)
-def test_version_is_older_than(version: str, other_version: str, expectation: bool) -> None:
-    model = common_models.Version(version=version)
-    assert model.is_older_than(other_version) is expectation
-
-
-@mark.parametrize(
-    "version, other_version, expectation",
-    [
-        ("1.2.3-1", "1.2.3-2", False),
-        ("1.2.3-2", "1.2.3-1", True),
-    ],
-)
-def test_version_is_newer_than(version: str, other_version: str, expectation: bool) -> None:
-    model = common_models.Version(version=version)
-    assert model.is_newer_than(other_version) is expectation
-
-
 def test_architecture_validate_architecture(default_arch: str) -> None:
     assert models.Architecture(architecture=default_arch)
 

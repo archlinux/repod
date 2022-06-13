@@ -4,7 +4,6 @@ import re
 from typing import List, Optional
 
 from email_validator import EmailNotValidError, validate_email
-from pyalpm import vercmp
 from pydantic import (
     BaseModel,
     HttpUrl,
@@ -716,32 +715,32 @@ class Version(BaseModel):
         else:  # pragma: nocover
             raise RuntimeError(f"An error occurred trying to compare two versions ({self.version}, {version})!")
 
-    def is_older_than(self, version: str) -> bool:
+    def is_older_than(self, version: Version) -> bool:
         """Check whether the version is older than a provided version
 
         Parameters
         ----------
-        version: str
-            Another version string to compare that of self to
+        version: Version
+            Another version to compare that of self to
 
         Returns
         -------
         True if self.version is older than the provided version, False otherwise.
         """
 
-        return True if vercmp(self.version, version) < 0 else False
+        return True if self.vercmp(version=version) < 0 else False
 
-    def is_newer_than(self, version: str) -> bool:
+    def is_newer_than(self, version: Version) -> bool:
         """Check whether the version is newer than a provided version
 
         Parameters
         ----------
-        version: str
-            Another version string to compare that of self to
+        version: Version
+            Another version to compare that of self to
 
         Returns
         -------
         True if self.version is newer than the provided version, False otherwise.
         """
 
-        return True if vercmp(self.version, version) > 0 else False
+        return True if self.vercmp(version=version) > 0 else False
