@@ -28,6 +28,14 @@ from repod.common.regex import (
     VERSION,
 )
 
+PYALPM_VERCMP = False
+try:
+    from pyalpm import vercmp as pyalpm_vercmp
+
+    PYALPM_VERCMP = True
+except ImportError:  # pragma: nocover
+    pass
+
 
 class Arch(BaseModel):
     """A model describing a single 'arch' attribute
@@ -503,6 +511,7 @@ class PkgVer(BaseModel):
         """Compare the pkgver with another
 
         The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
+        If PYALPM_VERCMP is True, pyalpm has been imported and its implementation of vercmp() is used.
 
         Returns
         -------
@@ -511,6 +520,9 @@ class PkgVer(BaseModel):
             0 if self.pkgver is equal to pkgver
             1 if self.pkgver is newer than pkgver
         """
+
+        if PYALPM_VERCMP:
+            return int(pyalpm_vercmp(self.pkgver, pkgver.pkgver))
 
         self_pkgver_list = self.as_list()
         pkgver_list = pkgver.as_list()
@@ -649,6 +661,7 @@ class Version(BaseModel):
         """Compare the version with another
 
         The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
+        If PYALPM_VERCMP is True, pyalpm has been imported and its implementation of vercmp() is used.
 
         Returns
         -------
@@ -657,6 +670,9 @@ class Version(BaseModel):
             0 if self.version is equal to version
             1 if self.version is newer than version
         """
+
+        if PYALPM_VERCMP:
+            return int(pyalpm_vercmp(self.version, version.version))
 
         match_pkgver_pkgrel = False
         self_epoch = self.get_epoch()

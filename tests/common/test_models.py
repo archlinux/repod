@@ -1,5 +1,6 @@
 from contextlib import nullcontext as does_not_raise
 from typing import ContextManager, List, Optional, Union
+from unittest.mock import patch
 
 from pydantic import ValidationError
 from pytest import mark, raises
@@ -162,8 +163,10 @@ def test_pkgver_as_list(value: str, expectation: List[str]) -> None:
         ("20220202", "20220102", 1),
     ],
 )
-def test_pkgver_vercmp(subj: str, obj: str, expectation: int) -> None:
-    assert models.PkgVer(pkgver=subj).vercmp(pkgver=models.PkgVer(pkgver=obj)) == expectation
+@mark.parametrize("pyalpm_vercmp", [(True), (False)])
+def test_pkgver_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    with patch("repod.common.models.PYALPM_VERCMP", pyalpm_vercmp):
+        assert models.PkgVer(pkgver=subj).vercmp(pkgver=models.PkgVer(pkgver=obj)) == expectation
 
 
 @mark.parametrize(
@@ -238,8 +241,10 @@ def test_version_get_pkgrel(value: str, expectation: Optional[models.PkgRel]) ->
         ("1.0.0-1", "1:1.0.0-1", -1),
     ],
 )
-def test_version_vercmp(subj: str, obj: str, expectation: int) -> None:
-    assert models.Version(version=subj).vercmp(version=models.Version(version=obj)) == expectation
+@mark.parametrize("pyalpm_vercmp", [(True), (False)])
+def test_version_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    with patch("repod.common.models.PYALPM_VERCMP", pyalpm_vercmp):
+        assert models.Version(version=subj).vercmp(version=models.Version(version=obj)) == expectation
 
 
 @mark.parametrize(
