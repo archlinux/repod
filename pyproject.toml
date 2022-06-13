@@ -113,5 +113,7 @@ disallow_incomplete_defs = true
 show_error_codes = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+# requiring setuptools to get around flaky pip behavior (we actually don't need it)
+# https://github.com/pypa/pip/issues/6100
+requires = ["setuptools", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
