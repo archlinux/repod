@@ -106,7 +106,7 @@ class Files(BaseModel):
     """
 
     @classmethod
-    def from_dict(self, data: Dict[str, List[str]]) -> Files:
+    def from_dict(cls, data: Dict[str, List[str]]) -> Files:
         """Class method to create one of Files' subclasses from a dict
 
         This method is supposed to be called with data derived from a 'files' file.
@@ -341,7 +341,7 @@ class OutputPackageBase(BaseModel):
     """
 
     @classmethod
-    def from_dict(self, data: Dict[str, Union[Any, List[Any]]]) -> OutputPackageBase:
+    def from_dict(cls, data: Dict[str, Union[Any, List[Any]]]) -> OutputPackageBase:
         """Create an instance of one of OutputPackageBase's subclasses from a dict
 
         This method expects data derived from reading a pkgbase JSON file from the management repository.
@@ -601,7 +601,7 @@ class PackageDesc(BaseModel):
     """
 
     @classmethod
-    def from_dict(self, data: Dict[str, Union[int, str, List[str]]]) -> PackageDesc:
+    def from_dict(cls, data: Dict[str, Union[int, str, List[str]]]) -> PackageDesc:
         """Create an instance of one of PackageDesc's subclasses from a dict
 
         This method should be used with data derived from reading a 'desc' file from a repository sync database.

@@ -250,7 +250,7 @@ class BuildInfo(BaseModel):
     """
 
     @classmethod
-    def from_file(self, data: StringIO) -> BuildInfo:
+    def from_file(cls, data: StringIO) -> BuildInfo:
         """Create an instance of BuildInfo from an io.StringIO representing the contents of a BUILDINFO file
 
         Parameters
