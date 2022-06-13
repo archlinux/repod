@@ -303,7 +303,7 @@ class MTree(BaseModel):
     entries: List[MTreeEntry]
 
     @classmethod
-    def from_file(self, data: io.StringIO) -> MTree:
+    def from_file(cls, data: io.StringIO) -> MTree:
         """Create an instance of MTree from an io.StringIO representing the contents of an mtree file
 
         Parameters

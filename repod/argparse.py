@@ -23,7 +23,7 @@ class ArgParseFactory:
         )
 
     @classmethod
-    def db2json(self) -> argparse.ArgumentParser:
+    def db2json(cls) -> argparse.ArgumentParser:
         """A class method to create an ArgumentParser for the db2json script
 
         Returns
@@ -32,15 +32,13 @@ class ArgParseFactory:
             An ArgumentParser instance specific for the db2json script
         """
 
-        instance = self(
-            description="Read a repository database and write all contained pkgbases to one JSON file each."
-        )
+        instance = cls(description="Read a repository database and write all contained pkgbases to one JSON file each.")
         instance.parser.add_argument(
-            "db_file", type=self.string_to_file_path, default=None, help="the repository database to read"
+            "db_file", type=cls.string_to_file_path, default=None, help="the repository database to read"
         )
         instance.parser.add_argument(
             "output_dir",
-            type=self.string_to_dir_path,
+            type=cls.string_to_dir_path,
             default=".",
             help="the directory into which to write the JSON output files (defaults to current directory)",
         )
@@ -48,7 +46,7 @@ class ArgParseFactory:
         return instance.parser
 
     @classmethod
-    def json2db(self) -> argparse.ArgumentParser:
+    def json2db(cls) -> argparse.ArgumentParser:
         """A class method to create an ArgumentParser for the json2db script
 
         Returns
@@ -57,7 +55,7 @@ class ArgParseFactory:
             An ArgumentParser instance specific for the json2db script
         """
 
-        instance = self(
+        instance = cls(
             description="Read a set of JSON files from a directory and create a repository database from them."
         )
         instance.parser.add_argument(
@@ -68,13 +66,13 @@ class ArgParseFactory:
         )
         instance.parser.add_argument(
             "input_dir",
-            type=self.string_to_dir_path,
+            type=cls.string_to_dir_path,
             default=".",
             help="the directory from which to read the JSON files (defaults to current directory)",
         )
         instance.parser.add_argument(
             "db_file",
-            type=self.string_to_writable_file_path,
+            type=cls.string_to_writable_file_path,
             default=None,
             help="the repository database to write to (the parent directory needs to exist)",
         )
@@ -82,7 +80,7 @@ class ArgParseFactory:
         return instance.parser
 
     @classmethod
-    def string_to_writable_file_path(self, input_: str) -> Path:
+    def string_to_writable_file_path(cls, input_: str) -> Path:
         """Convert an input string into a Path to a file
 
         This method checks whether an (existing) file is writable. If the file does not exist the parent directory is
@@ -120,7 +118,7 @@ class ArgParseFactory:
         return path
 
     @classmethod
-    def string_to_file_path(self, input_: str) -> Path:
+    def string_to_file_path(cls, input_: str) -> Path:
         """Convert an input string into a Path to a file
 
         Parameters
@@ -147,7 +145,7 @@ class ArgParseFactory:
         return path
 
     @classmethod
-    def string_to_dir_path(self, input_: str) -> Path:
+    def string_to_dir_path(cls, input_: str) -> Path:
         """Convert an input string into a Path to a directory
 
         Parameters
