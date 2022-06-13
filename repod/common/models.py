@@ -1,9 +1,19 @@
+from __future__ import annotations
+
 import re
 from typing import List, Optional
 
 from email_validator import EmailNotValidError, validate_email
 from pyalpm import vercmp
-from pydantic import BaseModel, HttpUrl, NonNegativeInt, conint, constr, validator
+from pydantic import (
+    BaseModel,
+    HttpUrl,
+    NonNegativeInt,
+    PositiveInt,
+    conint,
+    constr,
+    validator,
+)
 
 from repod.common.regex import (
     ARCHITECTURE,
@@ -364,6 +374,228 @@ class Url(BaseModel):
     url: HttpUrl
 
 
+class Epoch(BaseModel):
+    """A model dscribing a single 'epoch' attribute
+
+    The epoch denotes a downgrade in version of a given package (a version with an epoch trumps one without)
+
+    Attributes
+    ----------
+    epoch: PositiveInt
+        A string representing a valid epoch of a package
+    """
+
+    epoch: PositiveInt
+
+    def vercmp(self, epoch: Epoch) -> int:
+        """Compare the epoch with another
+
+        The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
+
+        Returns
+        -------
+        int
+            -1 if self.epoch is older than epoch
+            0 if self.epoch is equal to epoch
+            1 if self.epoch is newer than epoch
+        """
+
+        if self.epoch > epoch.epoch:
+            return 1
+        elif self.epoch < epoch.epoch:
+            return -1
+        else:
+            return 0
+
+
+class PkgRel(BaseModel):
+    """A model dscribing a single 'pkgrel' attribute
+
+    The pkgrel denotes the build version of a given package
+
+    Attributes
+    ----------
+    pkgrel: str
+        A string representing a valid pkgrel of a package
+    """
+
+    pkgrel: constr(regex=rf"^{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
+
+    def as_list(self) -> List[str]:
+        """Return the pkgrel components as list
+
+        The version string is split by "."
+
+        Returns
+        -------
+        List[str]
+            A list of strings representing the components of the pkgrel
+        """
+
+        return [str(part) for part in self.pkgrel.split(".")]
+
+    def vercmp(self, pkgrel: PkgRel) -> int:
+        """Compare the pkgrel with another
+
+        The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
+
+        Returns
+        -------
+        int
+            -1 if self.pkgrel is older than pkgrel
+            0 if self.pkgrel is equal to pkgrel
+            1 if self.pkgrel is newer than pkgrel
+        """
+
+        self_pkgrel_list = self.as_list()
+        pkgrel_list = pkgrel.as_list()
+        len_self_pkgrel = len(self_pkgrel_list)
+        len_pkgrel = len(pkgrel_list)
+        # assume equal versions as default
+        cmp = 0
+
+        # use the shortest list length as iterator and break on first discrepancy
+        for i in range(min([len_self_pkgrel, len_pkgrel])):
+            if self_pkgrel_list[i] > pkgrel_list[i]:
+                cmp = 1
+                break
+            if self_pkgrel_list[i] < pkgrel_list[i]:
+                cmp = -1
+                break
+
+        if cmp == 0:
+            if len_self_pkgrel > len_pkgrel:
+                cmp = 1
+            elif len_self_pkgrel < len_pkgrel:
+                cmp = -1
+            else:
+                cmp = 0
+
+        return cmp
+
+
+class PkgVer(BaseModel):
+    """A model dscribing a single 'pkgver' attribute
+
+    The pkgver denotes the upstream version of a given package
+
+    Attributes
+    ----------
+    pkgver: str
+        A string representing a valid pkgver of a package
+    """
+
+    pkgver: constr(regex=rf"^({VERSION})$")  # type: ignore[valid-type]  # noqa: F722
+
+    def as_list(self) -> List[str]:
+        """Return the pkgver components as list
+
+        The version string is split by "." and subsequently also by "_" (if any)
+
+        Returns
+        -------
+        List[str]
+            A list of strings representing the components of the pkgver
+        """
+
+        return [part for part in re.split(r"[_.+]+", self.pkgver) if part]
+
+    def vercmp(self, pkgver: PkgVer) -> int:
+        """Compare the pkgver with another
+
+        The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
+
+        Returns
+        -------
+        int
+            -1 if self.pkgver is older than pkgver
+            0 if self.pkgver is equal to pkgver
+            1 if self.pkgver is newer than pkgver
+        """
+
+        self_pkgver_list = self.as_list()
+        pkgver_list = pkgver.as_list()
+        len_self_pkgver = len(self_pkgver_list)
+        len_pkgver = len(pkgver_list)
+        # assume equal versions as default
+        cmp = 0
+
+        # use the shortest list length as iterator and break on first discrepancy
+        for i in range(min([len_self_pkgver, len_pkgver])):
+            self_part_all_digit = all(part.isdigit() for part in self_pkgver_list[i])
+            part_all_digit = all(part.isdigit() for part in pkgver_list[i])
+            self_part_all_alpha = all(part.isalpha() for part in self_pkgver_list[i])
+            part_all_alpha = all(part.isalpha() for part in pkgver_list[i])
+            self_part_all_alnum = all(part.isalnum() for part in self_pkgver_list[i])
+            part_all_alnum = all(part.isalnum() for part in pkgver_list[i])
+
+            match (
+                self_part_all_digit,
+                part_all_digit,
+                self_part_all_alpha,
+                part_all_alpha,
+                self_part_all_alnum,
+                part_all_alnum,
+            ):
+                # all digit based versions always trump all alphabetic ones
+                case (True, False, False, True, True, True):
+                    cmp = 1
+                    break
+                # all digit based versions always trump all alphabetic ones
+                case (False, True, True, False, True, True):
+                    cmp = -1
+                    break
+                case (True, False, False, False, True, True):
+                    digit_part = ""
+                    # NOTE: the loop is guaranteed to run at least once, but pytest can not detect that
+                    for j in range(len(pkgver_list[i])):  # pragma: nocover
+                        part = pkgver_list[i][j]
+                        if j == 0 and part.isalpha():
+                            cmp = 1
+                            break
+                        if part.isdigit():
+                            digit_part += part
+                        else:
+                            cmp = 1 if self_pkgver_list[i] >= digit_part else -1
+                            break
+
+                    break
+                case (False, True, False, False, True, True):
+                    digit_part = ""
+                    # NOTE: the loop is guaranteed to run at least once, but pytest can not detect that
+                    for j in range(len(self_pkgver_list[i])):  # pragma: nocover
+                        part = self_pkgver_list[i][j]
+                        if j == 0 and part.isalpha():
+                            cmp = -1
+                            break
+                        if part.isdigit():
+                            digit_part += part
+                        else:
+                            cmp = -1 if pkgver_list[i] >= digit_part else 1
+                            break
+
+                    break
+                case _:
+                    if self_pkgver_list[i] > pkgver_list[i]:
+                        cmp = 1
+                        break
+                    elif self_pkgver_list[i] < pkgver_list[i]:
+                        cmp = -1
+                        break
+                    else:
+                        cmp = 0
+
+        if cmp == 0:
+            if len_self_pkgver > len_pkgver:
+                cmp = 1
+            elif len_self_pkgver < len_pkgver:
+                cmp = -1
+            else:
+                cmp = 0
+
+        return cmp
+
+
 class Version(BaseModel):
     """A model describing a single 'version' attribute
 
@@ -375,6 +607,114 @@ class Version(BaseModel):
     """
 
     version: constr(regex=rf"^({EPOCH}|){VERSION}-{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
+
+    def get_epoch(self) -> Optional[Epoch]:
+        """Return the epoch of the version
+
+        Returns
+        -------
+        Optional[int]
+            An optional string representing the epoch of the version
+        """
+
+        if ":" in self.version:
+            return Epoch(epoch=self.version.split(":")[0])
+        else:
+            return None
+
+    def get_pkgver(self) -> PkgVer:
+        """Return the pkgver of the version
+
+        Returns
+        -------
+        PkgVer
+            A PkgVer representing the pkgver of the version
+        """
+
+        pkgver_pkgrel = self.version.split(":")[1] if ":" in self.version else self.version
+        return PkgVer(pkgver=str(pkgver_pkgrel.split("-")[0]))
+
+    def get_pkgrel(self) -> PkgRel:
+        """Return the pkgrel of the version
+
+        Returns
+        -------
+        PkgRel
+            A PkgRel representing the pkgrel of the version
+        """
+
+        pkgver_pkgrel = self.version.split(":")[1] if ":" in self.version else self.version
+        return PkgRel(pkgrel=str(pkgver_pkgrel.split("-")[1]))
+
+    def vercmp(self, version: Version) -> int:
+        """Compare the version with another
+
+        The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
+
+        Returns
+        -------
+        int
+            -1 if self.version is older than version
+            0 if self.version is equal to version
+            1 if self.version is newer than version
+        """
+
+        match_pkgver_pkgrel = False
+        self_epoch = self.get_epoch()
+        epoch = version.get_epoch()
+
+        # compare epoch
+        match (isinstance(self_epoch, Epoch), isinstance(epoch, Epoch)):
+            case (False, False):
+                match_pkgver_pkgrel = True
+            case (True, True):
+                match self_epoch.vercmp(epoch=epoch):  # type: ignore[arg-type,union-attr]
+                    case 1:
+                        return 1
+                    case 0:
+                        match_pkgver_pkgrel = True
+                    case -1:
+                        return -1
+                    # NOTE: the catch all can never be reached because vercmp() only returns -1, 0 or 1
+                    case _:  # pragma: nocover
+                        raise RuntimeError(
+                            f"An error occurred trying to compare two epoch versions ({self_epoch}, {epoch})!"
+                        )
+            case (True, False):
+                return 1
+            case (False, True):
+                return -1
+            # NOTE: the catch all can never be reached because get_epoch() only returns Epoch or None
+            case _:  # pragma: nocover
+                raise RuntimeError(f"An error occurred detecting whether epochs exist ({self.version}, {version})!")
+
+        # compare pkgver and pkgrel
+        if match_pkgver_pkgrel:
+            match self.get_pkgver().vercmp(pkgver=version.get_pkgver()):
+                case -1:
+                    return -1
+                case 0:
+                    match self.get_pkgrel().vercmp(pkgrel=version.get_pkgrel()):
+                        case -1:
+                            return -1
+                        case 1:
+                            return 1
+                        case 0:
+                            return 0
+                        # NOTE: the catch all can never be reached because vercmp() only returns -1, 0 or 1
+                        case _:  # pragma: nocover
+                            raise RuntimeError(
+                                f"An error occurred trying to compare two pkgrel versions ({self.version}, {version})!"
+                            )
+                case 1:
+                    return 1
+                # NOTE: the catch all can never be reached because vercmp() only returns -1, 0 or 1
+                case _:  # pragma: nocover
+                    raise RuntimeError(
+                        f"An error occurred trying to compare two pkgver versions ({self.version}, {version})!"
+                    )
+        else:  # pragma: nocover
+            raise RuntimeError(f"An error occurred trying to compare two versions ({self.version}, {version})!")
 
     def is_older_than(self, version: str) -> bool:
         """Check whether the version is older than a provided version
