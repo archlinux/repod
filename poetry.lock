@@ -340,14 +340,6 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
-name = "pyalpm"
-version = "0.10.6"
-description = "libalpm bindings for Python 3"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "pycodestyle"
 version = "2.8.0"
 description = "Python style guide checker"
@@ -698,7 +690,7 @@ testing = ["coverage (>=4)", "coverage-enable-subprocess (>=1)", "flaky (>=3)", 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "2af18e7a12e5f49d69511d21dea112bb645a594d98617fd3584eb0568dc2d157"
+content-hash = "39433d86e3be85f89fb4a90392e54d281ce31bff606b214cf7d393a8aad378e8"
 
 [metadata.files]
 aiofiles = [
@@ -978,9 +970,6 @@ pluggy = [
 py = [
     {file = "py-1.11.0-py2.py3-none-any.whl", hash = "sha256:607c53218732647dff4acdfcd50cb62615cedf612e72d1724fb1a0cc6405b378"},
     {file = "py-1.11.0.tar.gz", hash = "sha256:51c75c4126074b472f746a24399ad32f6053d1b34b68d2fa41e558e6f4a98719"},
-]
-pyalpm = [
-    {file = "pyalpm-0.10.6.tar.gz", hash = "sha256:99e6ec73b8c46bb12466013f228f831ee0d18e8ab664b91a01c2a3c40de07c7f"},
 ]
 pycodestyle = [
     {file = "pycodestyle-2.8.0-py2.py3-none-any.whl", hash = "sha256:720f8b39dde8b293825e7ff02c475f3077124006db4f440dcbc9a20b76548a20"},
