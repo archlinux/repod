@@ -4,7 +4,7 @@ from tarfile import ReadError, TarFile
 from tarfile import open as tarfile_open
 from typing import IO, Dict, Literal, Optional, Union
 
-from magic import from_buffer
+import magic
 from pyzstd import CParameter, ZstdDict, ZstdFile
 
 from repod.common.enums import CompressionTypeEnum
@@ -62,7 +62,15 @@ def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
     """
 
     with open(path, "rb") as f:
-        file = " ".join(from_buffer(f.read(2048)).split()[0:3]).lower().strip(",")
+        file_start_bytes: bytes = f.read(2048)
+
+    # Try and detect the instance of the libmagic shared library (loaded via
+    # ctypes) used by the magic.py shipped with file.
+    if hasattr(magic, "detect_from_content"):
+        file = magic.detect_from_content(file_start_bytes).name
+    else:
+        file = magic.from_buffer(file_start_bytes)
+    file = " ".join(file.split()[0:3]).lower().strip(",")
     debug(f"Type of file {path} detected as: {file}")
 
     match file:
