@@ -61,7 +61,8 @@ def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
         A member of CompressionTypeEnum, that reflects the compression type of tar file at path
     """
 
-    file = " ".join(from_buffer(open(path, "rb").read(2048)).split()[0:3]).lower().strip(",")
+    with open(path, "rb") as f:
+        file = " ".join(from_buffer(f.read(2048)).split()[0:3]).lower().strip(",")
     debug(f"Type of file {path} detected as: {file}")
 
     match file:
