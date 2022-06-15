@@ -1,11 +1,3 @@
-from .config import (  # noqa: F401
-    Architecture,
-    Directory,
-    ManagementRepo,
-    PackagePool,
-    PackageRepo,
-    SourcePool,
-)
 from .package import Files, OutputPackage, OutputPackageBase, PackageDesc  # noqa: F401
 from .repo import (  # noqa: F401
     RepoDbMemberData,
