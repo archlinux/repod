@@ -9,6 +9,7 @@ from pydantic.env_settings import SettingsSourceCallable
 
 from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
+    MANAGEMENT_REPO,
     PACKAGE_REPO_BASE,
     SETTINGS_LOCATION,
     SETTINGS_OVERRIDE_LOCATION,
@@ -156,6 +157,7 @@ class ManagementRepo(Directory):
         A URL describing the VCS upstream of the management repository
     """
 
+    directory = MANAGEMENT_REPO
     url: AnyUrl
 
     @validator("url")
