@@ -1,12 +1,134 @@
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Iterator, Tuple
+from typing import Any, ContextManager, Dict, Iterator, Optional, Tuple
 from unittest.mock import Mock, call, patch
 
-from pytest import fixture, raises
+from pytest import fixture, mark, raises
 
-from repod import models
 from repod.config import settings
+
+
+def test_architecture_validate_architecture(default_arch: str) -> None:
+    assert settings.Architecture(architecture=default_arch)
+
+    with raises(ValueError):
+        settings.Architecture(architecture="foo")
+
+
+@mark.parametrize(
+    "url, expectation",
+    [
+        ("https://foo.bar", does_not_raise()),
+        ("ssh://git@foo.bar", does_not_raise()),
+        ("ssh://foo.bar", raises(ValueError)),
+        ("http://foo.bar", raises(ValueError)),
+    ],
+)
+def test_mangement_repo(
+    url: str,
+    expectation: ContextManager[str],
+    empty_dir: Path,
+) -> None:
+    with expectation:
+        assert settings.ManagementRepo(
+            directory=empty_dir,
+            url=url,
+        )
+
+
+@patch(
+    "os.access",
+    Mock(side_effect=[False, False, True, True]),
+)
+@patch("repod.config.settings.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
+@patch("repod.config.settings.Path.is_dir", Mock(side_effect=[False, True, True]))
+@patch("repod.config.settings.Path.parent", return_value=Mock())
+def test_directory_validate_directory(parent_mock: Mock) -> None:
+    parent_mock.exists.side_effect = [False, True, True, True]
+    parent_mock.is_dir.side_effect = [False, True, True]
+    with raises(ValueError):
+        settings.Directory(directory="foo")
+    for _ in range(5):
+        with raises(ValueError):
+            settings.Directory(directory="/foo")
+    assert settings.Directory(directory="/foo")
+    assert settings.Directory(directory="/foo")
+
+
+@mark.parametrize(
+    "name, staging, testing, package_pool, source_pool, management_repo, url, expectation",
+    [
+        (Path("foo"), None, None, False, False, False, None, does_not_raise()),
+        (Path("foo"), Path("bar"), None, False, False, False, None, does_not_raise()),
+        (Path("foo"), Path("bar"), Path("baz"), False, False, False, None, does_not_raise()),
+        ("foo", None, None, False, False, False, None, does_not_raise()),
+        ("foo", "bar", None, False, False, False, None, does_not_raise()),
+        ("foo", "bar", "baz", False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), None, None, False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), None, False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), None, None, False, False, True, "https://foo.bar", does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), None, False, False, True, "https://foo.bar", does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), False, False, True, "https://foo.bar", does_not_raise()),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), True, False, True, "https://foo.bar", raises(ValueError)),
+        (Path("foo-bar123"), Path("bar"), Path("baz"), False, True, True, "https://foo.bar", raises(ValueError)),
+        (Path(" foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path(" bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar "), Path(" baz"), False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path("foo"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, Path("foo"), False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, None, True, True, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar"), None, True, True, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar"), Path("baz"), True, True, False, None, raises(ValueError)),
+        (Path("foo"), Path("bar"), Path("bar"), False, False, False, None, raises(ValueError)),
+        (Path("FOO"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("FOO"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("FOO"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("/foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("/foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("/foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path(".foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path(".foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path(".foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("-foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("-foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("-foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("foo/bar"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo/bar"), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo/bar"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("."), None, None, False, False, False, None, raises(ValueError)),
+        (Path("."), Path("bar"), None, False, False, False, None, raises(ValueError)),
+        (Path("."), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+    ],
+)
+def test_package_repo(
+    name: Path,
+    staging: Optional[Path],
+    testing: Optional[Path],
+    package_pool: bool,
+    source_pool: bool,
+    management_repo: bool,
+    url: Optional[str],
+    expectation: ContextManager[str],
+    empty_dir: Path,
+) -> None:
+    with expectation:
+        assert settings.PackageRepo(
+            name=name,
+            testing=testing,
+            staging=staging,
+            package_pool=empty_dir if package_pool else None,
+            source_pool=empty_dir if source_pool else None,
+            management_repo=settings.ManagementRepo(
+                directory=empty_dir,
+                url=url,
+            )
+            if management_repo
+            else None,
+        )
 
 
 @patch("tomli.load", return_value={})
@@ -968,21 +1090,21 @@ def settings_params(request: Any, empty_dir: Path) -> Iterator[Tuple[Dict[str, A
     yield (
         {
             "architecture": request.param[0] or None,
-            "management_repo": models.ManagementRepo(
+            "management_repo": settings.ManagementRepo(
                 directory=empty_dir / request.param[1][0],
                 url=request.param[1][1],
             )
             if request.param[1]
             else None,
             "repositories": [
-                models.PackageRepo(
+                settings.PackageRepo(
                     architecture=repo_settings[0] if repo_settings[0] else None,
                     name=repo_settings[1],
                     package_pool=(empty_dir / repo_settings[2]) if repo_settings[2] else None,
                     source_pool=(empty_dir / repo_settings[3]) if repo_settings[3] else None,
                     staging=repo_settings[4],
                     testing=repo_settings[5],
-                    management_repo=models.ManagementRepo(
+                    management_repo=settings.ManagementRepo(
                         directory=empty_dir / repo_settings[6][0],
                         url=repo_settings[6][1],
                     )
