@@ -9,7 +9,8 @@ from typing import AsyncIterator, Iterator
 import aiofiles
 import orjson
 
-from repod import convert, defaults, errors, models
+from repod import convert, errors, models
+from repod.config.defaults import DB_DIR_MODE, DB_FILE_MODE, DB_GROUP, DB_USER
 from repod.files.common import extract_file_from_tarfile, open_tarfile  # noqa: F401
 
 
@@ -178,9 +179,9 @@ async def _stream_package_base_to_db(
         directory = tarfile.TarInfo(dirname)
         directory.type = tarfile.DIRTYPE
         directory.mtime = int(time.time())
-        directory.uname = defaults.DB_USER
-        directory.gname = defaults.DB_GROUP
-        directory.mode = int(defaults.DB_DIR_MODE, base=8)
+        directory.uname = DB_USER
+        directory.gname = DB_GROUP
+        directory.mode = int(DB_DIR_MODE, base=8)
         db.addfile(directory)
 
         desc_content = io.StringIO()
@@ -188,9 +189,9 @@ async def _stream_package_base_to_db(
         desc_file = tarfile.TarInfo(f"{dirname}/desc")
         desc_file.size = len(desc_content.getvalue().encode())
         desc_file.mtime = int(time.time())
-        desc_file.uname = defaults.DB_USER
-        desc_file.gname = defaults.DB_GROUP
-        desc_file.mode = int(defaults.DB_FILE_MODE, base=8)
+        desc_file.uname = DB_USER
+        desc_file.gname = DB_GROUP
+        desc_file.mode = int(DB_FILE_MODE, base=8)
         db.addfile(desc_file, io.BytesIO(desc_content.getvalue().encode()))
         if db_type == models.RepoDbTypeEnum.FILES:
             files_content = io.StringIO()
@@ -198,7 +199,7 @@ async def _stream_package_base_to_db(
             files_file = tarfile.TarInfo(f"{dirname}/files")
             files_file.size = len(files_content.getvalue().encode())
             files_file.mtime = int(time.time())
-            files_file.uname = defaults.DB_USER
-            files_file.gname = defaults.DB_GROUP
-            files_file.mode = int(defaults.DB_FILE_MODE, base=8)
+            files_file.uname = DB_USER
+            files_file.gname = DB_GROUP
+            files_file.mode = int(DB_FILE_MODE, base=8)
             db.addfile(files_file, io.BytesIO(files_content.getvalue().encode()))

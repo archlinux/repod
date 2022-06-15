@@ -6,7 +6,20 @@ import tomli
 from pydantic import BaseSettings, root_validator, validator
 from pydantic.env_settings import SettingsSourceCallable
 
-from repod import defaults, models
+from repod.config.defaults import (
+    PACKAGE_REPO_BASE,
+    SETTINGS_LOCATION,
+    SETTINGS_OVERRIDE_LOCATION,
+    SOURCE_REPO_BASE,
+)
+from repod.models import (
+    Architecture,
+    Directory,
+    ManagementRepo,
+    PackagePool,
+    PackageRepo,
+    SourcePool,
+)
 
 
 def _raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
@@ -102,10 +115,10 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
 
     output_dict: Dict[str, Any] = {}
     config_files: List[Path] = []
-    if defaults.SETTINGS_LOCATION.exists():
-        config_files += [defaults.SETTINGS_LOCATION]
-    if defaults.SETTINGS_OVERRIDE_LOCATION.exists():
-        config_files += sorted(defaults.SETTINGS_OVERRIDE_LOCATION.glob("*.conf"))
+    if SETTINGS_LOCATION.exists():
+        config_files += [SETTINGS_LOCATION]
+    if SETTINGS_OVERRIDE_LOCATION.exists():
+        config_files += sorted(SETTINGS_OVERRIDE_LOCATION.glob("*.conf"))
 
     for config_file in config_files:
         with open(config_file, "rb") as file:
@@ -113,7 +126,7 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
     return output_dict
 
 
-class Settings(models.Architecture, BaseSettings, models.PackagePool, models.SourcePool):
+class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
     """A class to describe a configuration for repod
 
     Attributes
@@ -123,12 +136,12 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
     package_repo_base: Path
         A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to binary package files and their signatures (defaults to defaults.PACKAGE_REPO_BASE)
+        used for storing symlinks to binary package files and their signatures (defaults to PACKAGE_REPO_BASE)
     source_repo_base: Path
         A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to source tarballs (defaults to defaults.SOURCE_REPO_BASE)
+        used for storing symlinks to source tarballs (defaults to SOURCE_REPO_BASE)
     architecture: Optional[str]
-        An optional Architecture string (see repod.common.defaults.ARCHITECTURES), that if set is used for each package
+        An optional Architecture string (see Architecture), that if set is used for each package
         repository to set its CPU architecture unless a package repository defines an architecture itself
         NOTE: It is mandatory to provide an architecture for each package repository!
     management_repo: Optional[ManagementRepo]
@@ -147,10 +160,10 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
         NOTE: It is mandatory to provide a source pool for each package repository!
     """
 
-    repositories: List[models.PackageRepo]
-    management_repo: Optional[models.ManagementRepo]
-    package_repo_base: Path = defaults.PACKAGE_REPO_BASE
-    source_repo_base: Path = defaults.SOURCE_REPO_BASE
+    repositories: List[PackageRepo]
+    management_repo: Optional[ManagementRepo]
+    package_repo_base: Path = PACKAGE_REPO_BASE
+    source_repo_base: Path = SOURCE_REPO_BASE
 
     class Config:
         env_file_encoding = "utf-8"
@@ -170,7 +183,7 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
             )
 
     @validator("repositories")
-    def validate_repositories(cls, repositories: List[models.PackageRepo]) -> List[models.PackageRepo]:
+    def validate_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
         """A validator for the repositories attribute, ensuring that there is at least one repository defined
 
         Parameters
@@ -223,9 +236,9 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
         package_repo_base: Path = values.get("package_repo_base")  # type: ignore[assignment]
         source_repo_base: Path = values.get("source_repo_base")  # type: ignore[assignment]
         for directory in [package_repo_base, source_repo_base]:
-            models.Directory.validate_directory(directory=directory)
+            Directory.validate_directory(directory=directory)
 
-        repositories: List[models.PackageRepo] = values.get("repositories")  # type: ignore[assignment]
+        repositories: List[PackageRepo] = values.get("repositories")  # type: ignore[assignment]
         management_repo, package_pool, source_pool = (
             values.get("management_repo"),
             values.get("package_pool"),
@@ -468,9 +481,9 @@ class Settings(models.Architecture, BaseSettings, models.PackagePool, models.Sou
         """
 
         architecture: Optional[str] = values.get("architecture")
-        management_repo: Optional[models.ManagementRepo] = values.get("management_repo")
+        management_repo: Optional[ManagementRepo] = values.get("management_repo")
         package_pool: Optional[Path] = values.get("package_pool")
-        repositories: List[models.PackageRepo] = values.get("repositories")  # type: ignore[assignment]
+        repositories: List[PackageRepo] = values.get("repositories")  # type: ignore[assignment]
         source_pool: Optional[Path] = values.get("source_pool")
         package_repo_base: Path = values.get("package_repo_base")  # type: ignore[assignment]
 
