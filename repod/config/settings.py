@@ -396,7 +396,7 @@ class PackageRepo(Architecture, PackagePool, SourcePool):
         return values
 
 
-def _raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
+def raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
     """Raise on two Path instances pointing at the same file
 
     Parameters
@@ -422,7 +422,7 @@ def _raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_n
         )
 
 
-def _raise_on_path_in_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
+def raise_on_path_in_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
     """Raise when a Path instance is located in another
 
     Parameters
@@ -448,7 +448,7 @@ def _raise_on_path_in_other(path: Path, path_name: str, other: Path, other_name:
         )
 
 
-def _raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: List[Path], other_name: str) -> None:
+def raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: List[Path], other_name: str) -> None:
     """Raise when a Path instance is in a list of Path instances
 
     Parameters
@@ -469,8 +469,8 @@ def _raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: List[
     """
 
     for test_path in path_list:
-        _raise_on_path_equals_other(path=path, path_name=path_name, other=test_path, other_name=other_name)
-        _raise_on_path_in_other(path=path, path_name=path_name, other=test_path, other_name=other_name)
+        raise_on_path_equals_other(path=path, path_name=path_name, other=test_path, other_name=other_name)
+        raise_on_path_in_other(path=path, path_name=path_name, other=test_path, other_name=other_name)
 
 
 def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
@@ -631,50 +631,50 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
             [repo.source_pool for repo in repositories if repo.source_pool] + [source_pool] if source_pool else []
         )
 
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=source_repo_base,
             path_name="source repository base",
             path_list=management_repo_dirs,
             other_name="management repository",
         )
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=source_repo_base,
             path_name="source repository base",
             path_list=package_pool_dirs,
             other_name="package pool",
         )
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=source_repo_base,
             path_name="source repository base",
             path_list=source_pool_dirs,
             other_name="source pool",
         )
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=source_repo_base,
             path_name="source repository base",
             path_list=[package_repo_base],
             other_name="package repository base",
         )
 
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=package_repo_base,
             path_name="package repository base",
             path_list=package_pool_dirs,
             other_name="package pool",
         )
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=package_repo_base,
             path_name="package repository base",
             path_list=source_pool_dirs,
             other_name="source pool",
         )
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=package_repo_base,
             path_name="package repository base",
             path_list=[source_repo_base],
             other_name="source repository base",
         )
-        _raise_on_path_in_list_of_paths(
+        raise_on_path_in_list_of_paths(
             path=package_repo_base,
             path_name="package repository base",
             path_list=management_repo_dirs,
@@ -682,25 +682,25 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
         )
 
         for source_pool_dir in source_pool_dirs:
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=source_pool_dir,
                 path_name="source pool",
                 path_list=package_pool_dirs,
                 other_name="package pool",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=source_pool_dir,
                 path_name="source pool",
                 path_list=management_repo_dirs,
                 other_name="management repository",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=source_pool_dir,
                 path_name="source pool",
                 path_list=[package_repo_base],
                 other_name="package repository base",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=source_pool_dir,
                 path_name="source pool",
                 path_list=[source_repo_base],
@@ -708,25 +708,25 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
             )
 
         for package_pool_dir in package_pool_dirs:
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=package_pool_dir,
                 path_name="package pool",
                 path_list=source_pool_dirs,
                 other_name="source pool",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=package_pool_dir,
                 path_name="package pool",
                 path_list=management_repo_dirs,
                 other_name="management repository",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=package_pool_dir,
                 path_name="package pool",
                 path_list=[package_repo_base],
                 other_name="package repository base",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=package_pool_dir,
                 path_name="package pool",
                 path_list=[source_repo_base],
@@ -734,25 +734,25 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
             )
 
         for management_repo_dir in management_repo_dirs:
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=management_repo_dir,
                 path_name="management repository",
                 path_list=package_pool_dirs,
                 other_name="package pool",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=management_repo_dir,
                 path_name="management repository",
                 path_list=source_pool_dirs,
                 other_name="source pool",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=management_repo_dir,
                 path_name="management repository",
                 path_list=[package_repo_base],
                 other_name="package repository base",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=management_repo_dir,
                 path_name="management repository",
                 path_list=[source_repo_base],
@@ -764,37 +764,37 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
             repo_source_pool = repo.source_pool or source_pool
 
             if repo_package_pool:
-                _raise_on_path_equals_other(
+                raise_on_path_equals_other(
                     path=package_repo_base,
                     path_name="package repository base",
                     other=repo_package_pool,
                     other_name="repository package pool",
                 )
-                _raise_on_path_in_other(
+                raise_on_path_in_other(
                     path=package_repo_base,
                     path_name="package repository base",
                     other=repo_package_pool,
                     other_name="repository package pool",
                 )
-                _raise_on_path_in_other(
+                raise_on_path_in_other(
                     path=repo_package_pool,
                     path_name="repository package pool",
                     other=package_repo_base,
                     other_name="package repository base",
                 )
-                _raise_on_path_equals_other(
+                raise_on_path_equals_other(
                     path=source_repo_base,
                     path_name="source repository base",
                     other=repo_package_pool,
                     other_name="repository package pool",
                 )
-                _raise_on_path_in_other(
+                raise_on_path_in_other(
                     path=source_repo_base,
                     path_name="source repository base",
                     other=repo_package_pool,
                     other_name="repository package pool",
                 )
-                _raise_on_path_in_other(
+                raise_on_path_in_other(
                     path=repo_package_pool,
                     path_name="repository package pool",
                     other=source_repo_base,
@@ -802,25 +802,25 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
                 )
 
             if repo_source_pool:
-                _raise_on_path_equals_other(
+                raise_on_path_equals_other(
                     path=package_repo_base,
                     path_name="package repository base",
                     other=repo_source_pool,
                     other_name="repository source pool",
                 )
-                _raise_on_path_in_other(
+                raise_on_path_in_other(
                     path=package_repo_base,
                     path_name="package repository base",
                     other=repo_source_pool,
                     other_name="repository source pool",
                 )
-                _raise_on_path_equals_other(
+                raise_on_path_equals_other(
                     path=source_repo_base,
                     path_name="source repository base",
                     other=repo_source_pool,
                     other_name="repository source pool",
                 )
-                _raise_on_path_in_other(
+                raise_on_path_in_other(
                     path=source_repo_base,
                     path_name="source repository base",
                     other=repo_source_pool,
@@ -891,19 +891,19 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
                 raise ValueError(f"The repository '{repo.name}' does not have a source pool associated with it.")
 
             repo_dir = package_repo_base / repo.name / Path(repo.architecture or architecture)  # type: ignore[arg-type]
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=repo_dir,
                 path_name="stable repository",
                 path_list=staging_dirs,
                 other_name="staging repository",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=repo_dir,
                 path_name="stable repository",
                 path_list=testing_dirs,
                 other_name="testing repository",
             )
-            _raise_on_path_in_list_of_paths(
+            raise_on_path_in_list_of_paths(
                 path=repo_dir,
                 path_name="stable repository",
                 path_list=management_repo_dirs,
@@ -914,7 +914,7 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
                 staging_dir = (
                     package_repo_base / repo.staging / Path(repo.architecture or architecture)  # type: ignore[arg-type]
                 )
-                _raise_on_path_in_list_of_paths(
+                raise_on_path_in_list_of_paths(
                     path=staging_dir,
                     path_name="the staging repository",
                     path_list=testing_dirs,
@@ -925,7 +925,7 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
                 testing_dir = (
                     package_repo_base / repo.testing / Path(repo.architecture or architecture)  # type: ignore[arg-type]
                 )
-                _raise_on_path_in_list_of_paths(
+                raise_on_path_in_list_of_paths(
                     path=testing_dir,
                     path_name="testing repository",
                     path_list=staging_dirs,
