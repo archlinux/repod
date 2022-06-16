@@ -85,8 +85,10 @@ def test_pkgrel_as_list(value: str, expectation: List[str]) -> None:
         ("1.1", "1.2", -1),
     ],
 )
-def test_pkgrel_vercmp(subj: str, obj: str, expectation: int) -> None:
-    assert models.PkgRel(pkgrel=subj).vercmp(pkgrel=models.PkgRel(pkgrel=obj)) == expectation
+@mark.parametrize("pyalpm_vercmp", [(True), (False)])
+def test_pkgrel_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
+        assert models.PkgRel(pkgrel=subj).vercmp(pkgrel=models.PkgRel(pkgrel=obj)) == expectation
 
 
 @mark.parametrize(
@@ -147,6 +149,7 @@ def test_pkgver_as_list(value: str, expectation: List[str]) -> None:
         ("1.11a", "1.1", 1),
         ("1.1_a", "1.1", 1),
         ("1.1", "1.1_a", -1),
+        ("1.1", "1.1.a", -1),
         ("1.a", "1.1", -1),
         ("1.1", "1.a", 1),
         ("1.a1", "1.1", -1),
@@ -161,11 +164,21 @@ def test_pkgver_as_list(value: str, expectation: List[str]) -> None:
         ("a1b", "a1a", 1),
         ("20220102", "20220202", -1),
         ("20220202", "20220102", 1),
+        ("1.0..", "1.0.", 0),
+        ("1.0.", "1.0", 1),
+        ("1..0", "1.0", 1),
+        ("1..0", "1..0", 0),
+        ("1..0", "1..1", -1),
+        ("1.0", "1+0", 0),
+        ("1.1a1", "1.111", -1),
+        ("01", "1", 0),
+        ("001a", "1a", 0),
+        ("1.a001a.1", "1.a1a.1", 0),
     ],
 )
 @mark.parametrize("pyalpm_vercmp", [(True), (False)])
 def test_pkgver_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
-    with patch("repod.common.models.PYALPM_VERCMP", pyalpm_vercmp):
+    with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
         assert models.PkgVer(pkgver=subj).vercmp(pkgver=models.PkgVer(pkgver=obj)) == expectation
 
 
@@ -243,7 +256,7 @@ def test_version_get_pkgrel(value: str, expectation: Optional[models.PkgRel]) ->
 )
 @mark.parametrize("pyalpm_vercmp", [(True), (False)])
 def test_version_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
-    with patch("repod.common.models.PYALPM_VERCMP", pyalpm_vercmp):
+    with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
         assert models.Version(version=subj).vercmp(version=models.Version(version=obj)) == expectation
 
 
