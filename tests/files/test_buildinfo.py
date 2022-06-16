@@ -2,6 +2,7 @@ from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from pathlib import Path
 from random import sample
+from re import Match, fullmatch
 from tempfile import TemporaryDirectory
 from typing import ContextManager
 from unittest.mock import patch
@@ -9,6 +10,7 @@ from unittest.mock import patch
 from pydantic import ValidationError
 from pytest import mark, raises
 
+from repod.common.enums import tar_compression_types_for_filename_regex
 from repod.errors import (
     RepoManagementError,
     RepoManagementFileError,
@@ -244,7 +246,13 @@ def test_export_schemas() -> None:
     reason="Package cache in /var/cache/pacman/pkg/ does not exist",
 )
 async def test_read_buildinfo_files() -> None:
-    packages = sorted(Path("/var/cache/pacman/pkg/").glob("*.zst"))
+    packages = sorted(
+        [
+            path
+            for path in list(Path("/var/cache/pacman/pkg/").iterdir())
+            if isinstance(fullmatch(rf"^.*\.pkg\.tar({tar_compression_types_for_filename_regex()})$", str(path)), Match)
+        ]
+    )
     if len(packages) > 50:
         packages = sample(packages, 50)
     for package in packages:
