@@ -20,19 +20,21 @@ class FieldTypeEnum(IntEnum):
 
 
 class CompressionTypeEnum(Enum):
-    """An IntEnum to distinguish different compression types of a tar file
+    """An Enum to distinguish different compression types of a tar file
+
+    The member values represents the name of possible file suffixes (without leading dot)
 
     Attributes
     ----------
-    NONE: int
+    NONE: ""
         No compression
-    BZIP2: int
+    BZIP2: "bz2"
         The bzip2 compression
-    GZIP: int
+    GZIP: "gz"
         The gzip compression
-    LZMA: int
+    LZMA: "xz"
         The lzma compression
-    ZSTANDARD: int
+    ZSTANDARD: "zst"
         The zstandard compression
     """
 
