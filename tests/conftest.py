@@ -1169,6 +1169,40 @@ async def files_sync_db_file(
         yield (sync_db_tarfile, sync_db_symlink)
 
 
+@fixture(
+    scope="function",
+    params=[name for name in CompressionTypeEnum],
+    ids=[name.value for name in CompressionTypeEnum],
+)
+def default_package_file(
+    default_arch: str,
+    default_package_name: str,
+    default_full_version: str,
+    text_file: Path,
+    tmp_path: Path,
+    valid_mtree_file: Path,
+    valid_buildinfov2_file: Path,
+    valid_pkginfov2_file: Path,
+    request: Any,
+) -> Path:
+    compression = request.param
+    suffix = "." + str(request.param.value) if request.param.value else ""
+    pkg_name = Path(f"{default_package_name}-{default_full_version}-{default_arch}.pkg.tar{suffix}")
+    pkg_path = tmp_path / pkg_name
+    text_file_symlink = text_file.parent / "symlink_to_text_file"
+    text_file_symlink.symlink_to("text_file")
+
+    with open_tarfile(path=pkg_path, compression=compression, mode="x") as tarfile:
+        tarfile.add(valid_buildinfov2_file, ".BUILDINFO")
+        tarfile.add(valid_mtree_file, ".MTREE")
+        tarfile.add(valid_pkginfov2_file, ".PKGINFO")
+        tarfile.add(text_file, "text_file")
+        tarfile.add(text_file_symlink, "text_file_symlink")
+        tarfile.add(tmp_path, "empty_dir", recursive=False)
+
+    return pkg_path
+
+
 @fixture(scope="function")
 def outputpackagebasev1_json_files_in_dir(
     base64_pgpsig: str,
