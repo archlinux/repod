@@ -1,5 +1,6 @@
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
+from logging import DEBUG
 from pathlib import Path
 from random import sample
 from re import Match, fullmatch
@@ -7,7 +8,7 @@ from typing import ContextManager
 from unittest.mock import patch
 
 from pydantic import ValidationError
-from pytest import mark, raises
+from pytest import LogCaptureFixture, mark, raises
 
 from repod.common.enums import tar_compression_types_for_filename_regex
 from repod.errors import (
@@ -87,15 +88,23 @@ def test_export_schemas(tmp_path: Path) -> None:
 
 
 def test_pkginfo_from_file(
+    caplog: LogCaptureFixture,
     pkginfov1_stringio: StringIO,
     pkginfov2_stringio: StringIO,
 ) -> None:
+    caplog.set_level(DEBUG)
     with does_not_raise():
         assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov1_stringio), pkginfo.PkgInfoV1)
         assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov2_stringio), pkginfo.PkgInfoV2)
 
     with raises(RepoManagementError):
         pkginfo.PkgInfo.from_file(data=StringIO(initial_value="foo = bar\n"))
+
+    with raises(RepoManagementError):
+        pkginfo.PkgInfo.from_file(data=StringIO(initial_value="foo = bar = baz\n"))
+
+    with raises(RepoManagementError):
+        pkginfo.PkgInfo.from_file(data=StringIO(initial_value=" \n"))
 
 
 @mark.integration

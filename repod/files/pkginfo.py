@@ -184,6 +184,7 @@ class PkgInfo(BaseModel):
         entries: Dict[str, Union[int, str, List[str]]] = {}
 
         for line in data:
+            debug(f"Parsing .PKGINFO line: {line}")
             if line.startswith("#"):
                 for keyword in PKGINFO_COMMENT_ASSIGNMENTS.keys():
                     if keyword in line:
@@ -191,8 +192,13 @@ class PkgInfo(BaseModel):
                         value = line.strip().split()[-1]
                         assignment_key = PKGINFO_COMMENT_ASSIGNMENTS.get(key)
             else:
-                key, value = [x.strip() for x in line.strip().split(" = ", 2)]
-                assignment_key = PKGINFO_ASSIGNMENTS.get(key)
+                try:
+                    key, value = [x.strip() for x in line.strip().split(" = ", 2)]
+                    assignment_key = PKGINFO_ASSIGNMENTS.get(key)
+                except ValueError as e:
+                    raise RepoManagementFileError(
+                        f"An error occurred while trying to parse the .PKGINFO line {line}\n{e}"
+                    )
 
             if isinstance(assignment_key, tuple):
                 match assignment_key[1]:
