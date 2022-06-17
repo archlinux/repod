@@ -265,6 +265,25 @@ def invalid_buildenv(request: Any) -> str:
 
 @fixture(
     scope="session",
+    params=[name.value for name in CompressionTypeEnum],
+)
+def compression_type(request: Any) -> str:
+    return str("." + request.param if request.param else request.param)
+
+
+@fixture(
+    scope="session",
+    params=[
+        ".foo",
+        "_foo",
+    ],
+)
+def invalid_compression_type(request: Any) -> str:
+    return str(request.param)
+
+
+@fixture(
+    scope="session",
     params=[
         "foobar@mcfooface.tld",
         "foo.bar@mcfooface.tld",
