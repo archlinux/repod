@@ -37,15 +37,20 @@ def test_invalid_epoch(invalid_epoch: str) -> None:
 
 def test_filename(
     arch: str,
+    compression_type: str,
     epoch: str,
     package_name: str,
     pkgrel: str,
     version: str,
 ) -> None:
-    assert isinstance(fullmatch(regex.FILENAME, f"{package_name}-{epoch}{version}-{pkgrel}-{arch}.pkg.tar.zst"), Match)
+    assert isinstance(
+        fullmatch(regex.FILENAME, f"{package_name}-{epoch}{version}-{pkgrel}-{arch}.pkg.tar{compression_type}"),
+        Match,
+    )
 
 
 def test_invalid_filename(
+    invalid_compression_type: str,
     invalid_epoch: str,
     invalid_package_name: str,
     invalid_pkgrel: str,
@@ -53,7 +58,11 @@ def test_invalid_filename(
 ) -> None:
     assert not isinstance(
         fullmatch(
-            regex.FILENAME, f"{invalid_package_name}-{invalid_epoch}{invalid_version}{invalid_pkgrel}-foo.pkg.tar.zst"
+            regex.FILENAME,
+            (
+                f"{invalid_package_name}-{invalid_epoch}{invalid_version}{invalid_pkgrel}-"
+                f"foo.pkg{invalid_compression_type}"
+            ),
         ),
         Match,
     )
