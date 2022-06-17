@@ -9,6 +9,28 @@ additionals, which are only relevant for the package manager and the repository
 management software (e.g. to create entries in the :ref:`management repository`
 and :ref:`sync database`).
 
+.. _package:
+
+Package
+-------
+
+The metadata contained in a package is described by several components, which
+are described in more detail in the sections for :ref:`mtree`, :ref:`buildinfo`
+and :ref:`pkginfo`.
+
+Package files are read and their contents parsed, which can subsequently be
+described by a JSON schema.
+
+Below is a list of currently understood versions of the schema.
+
+.. _packagev1:
+
+PackageV1
+^^^^^^^^^
+
+.. literalinclude:: schema/PackageV1.json
+   :language: json
+
 .. _mtree:
 
 .MTREE
