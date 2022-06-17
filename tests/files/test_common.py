@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from tarfile import TarFile
-from typing import ContextManager, Optional, Tuple
+from typing import ContextManager, List, Optional, Set, Tuple, Union
 from unittest.mock import patch
 
 from pytest import mark, raises
@@ -79,17 +79,35 @@ def test_open_tarfile_relative_path() -> None:
             assert isinstance(tarfile_file, TarFile)
 
 
-async def test_extract_file_from_tarfile(zst_file: Path) -> None:
-    with common.ZstdTarFile(zst_file) as tarfile:
-        for member in tarfile.getmembers():
-            if member.name.endswith(".txt"):
-                assert await common.extract_file_from_tarfile(tarfile=tarfile, file=member.name)
-            else:
-                with raises(RepoManagementFileNotFoundError):
-                    assert await common.extract_file_from_tarfile(tarfile=tarfile, file=member.name)
-
-                with raises(RepoManagementFileNotFoundError):
-                    assert await common.extract_file_from_tarfile(tarfile=tarfile, file=f"{member.name}foobar")
+@mark.parametrize(
+    "file, as_stringio, gzip_compressed, expectation",
+    [
+        (".BUILDINFO", True, False, does_not_raise()),
+        (".MTREE", True, True, does_not_raise()),
+        (".PKGINFO", True, False, does_not_raise()),
+        (".BUILDINFO", False, False, does_not_raise()),
+        (".MTREE", False, True, does_not_raise()),
+        (".PKGINFO", False, False, does_not_raise()),
+        ("foo", False, False, raises(RepoManagementFileNotFoundError)),
+        ("empty_dir", False, False, raises(RepoManagementFileNotFoundError)),
+        (".PKGINFO", False, True, raises(RepoManagementFileError)),
+    ],
+)
+async def test_extract_file_from_tarfile(
+    file: str,
+    as_stringio: bool,
+    gzip_compressed: bool,
+    expectation: ContextManager[str],
+    default_package_file: Path,
+) -> None:
+    with common.open_tarfile(path=default_package_file, compression=None, mode="r") as tarfile:
+        with expectation:
+            await common.extract_file_from_tarfile(
+                tarfile=tarfile,
+                file=file,
+                as_stringio=as_stringio,
+                gzip_compressed=gzip_compressed,
+            )
 
 
 def test_zstdtarfile_raises(zst_file: Path) -> None:
@@ -143,3 +161,21 @@ def test_compression_type_of_tarfile(
             path = Path("foo.foo")
     with expectation:
         assert common.compression_type_of_tarfile(path=path) == result
+
+
+@mark.parametrize(
+    "names, expectation",
+    [
+        ([".BUILDINFO", ".MTREE", ".PKGINFO", "text_file"], True),
+        ({".BUILDINFO", ".MTREE", ".PKGINFO", "text_file"}, True),
+        (["foo", "bar"], False),
+        ({"foo", "bar"}, False),
+    ],
+)
+def test_names_in_tarfile(
+    names: Union[List[str], Set[str]],
+    expectation: bool,
+    default_package_file: Path,
+) -> None:
+    with common.open_tarfile(path=default_package_file, compression=None, mode="r") as tarfile:
+        assert common.names_in_tarfile(tarfile=tarfile, names=names) is expectation
