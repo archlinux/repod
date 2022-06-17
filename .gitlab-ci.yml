@@ -24,7 +24,7 @@ linter:
 coverage:
   extends: .test
   script:
-    - tox -e coverage
+    - tox -e coverage-linux
   coverage: '/TOTAL.*\s([.\d]+)%/'
   artifacts:
     reports:
