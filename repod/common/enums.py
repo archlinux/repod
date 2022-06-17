@@ -84,4 +84,4 @@ def tar_compression_types_for_filename_regex() -> str:
         no compression)
     """
 
-    return r"|".join([type_.value for type_ in CompressionTypeEnum]).replace("|", "|.")
+    return r"|".join([type_.value for type_ in CompressionTypeEnum]).replace("|", r"|\.")
