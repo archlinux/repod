@@ -1,4 +1,5 @@
 import gzip
+import sys
 from copy import deepcopy
 from io import BytesIO, StringIO
 from os import chdir
@@ -1271,3 +1272,15 @@ def empty_toml_files_in_dir(tmp_path: Path) -> Path:
     for i in range(5):
         NamedTemporaryFile(suffix=".toml", dir=tmp_path, delete=False)
     return tmp_path
+
+
+def params_for_vercmp() -> Any:
+    if "linux" not in sys.platform:
+        return [False]
+    else:
+        return [True, False]
+
+
+@fixture(scope="session", params=params_for_vercmp())
+def pyalpm_vercmp_fun(request: Any) -> Any:
+    return request.param

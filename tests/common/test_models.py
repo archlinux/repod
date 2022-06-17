@@ -3,7 +3,7 @@ from typing import ContextManager, List, Optional, Union
 from unittest.mock import patch
 
 from pydantic import ValidationError
-from pytest import mark, raises
+from pytest import lazy_fixture, mark, raises
 
 from repod.common import models
 from tests.conftest import (
@@ -85,7 +85,7 @@ def test_pkgrel_as_list(value: str, expectation: List[str]) -> None:
         ("1.1", "1.2", -1),
     ],
 )
-@mark.parametrize("pyalpm_vercmp", [(True), (False)])
+@mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgrel_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
         assert models.PkgRel(pkgrel=subj).vercmp(pkgrel=models.PkgRel(pkgrel=obj)) == expectation
@@ -176,7 +176,7 @@ def test_pkgver_as_list(value: str, expectation: List[str]) -> None:
         ("1.a001a.1", "1.a1a.1", 0),
     ],
 )
-@mark.parametrize("pyalpm_vercmp", [(True), (False)])
+@mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgver_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
         assert models.PkgVer(pkgver=subj).vercmp(pkgver=models.PkgVer(pkgver=obj)) == expectation
@@ -254,7 +254,7 @@ def test_version_get_pkgrel(value: str, expectation: Optional[models.PkgRel]) ->
         ("1.0.0-1", "1:1.0.0-1", -1),
     ],
 )
-@mark.parametrize("pyalpm_vercmp", [(True), (False)])
+@mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_version_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
         assert models.Version(version=subj).vercmp(version=models.Version(version=obj)) == expectation
