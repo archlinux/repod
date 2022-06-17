@@ -6,20 +6,37 @@ default:
   image: "archlinux:latest"
 
 stages:
+  - check
   - test
+  - build
+  - publish
   - webhook
+
+variables:
+  BUILD_PUBLISH_PACKAGES: python-poetry python-tox
+  SYSTEM_PACKAGES: pyalpm python-aiofiles python-email-validator python-jinja python-magic python-orjson python-pydantic python-pyzstd python-subprocess-tee python-tomli
+  SYSTEM_INSTALL_PACKAGES: python-build python-installer python-poetry python-setuptools python-wheel
+  SYSTEM_TEST_PACKAGES: python-coverage python-pytest python-pytest-asyncio python-pytest-lazy-fixture python-sphinx python-sphinx_rtd_theme
+  TEST_PACKAGES: base-devel python-poetry python-tox
+
+.check:
+  stage: check
+  before_script:
+    - |
+      read -r -a deps <<< "${TEST_PACKAGES}"
+      pacman --noconfirm -Syu --needed "${deps[@]}"
+
+linter:
+  extends: .check
+  script:
+    - tox -e linter
 
 .test:
   stage: test
   before_script:
-    - printf "[multilib]\nInclude = /etc/pacman.d/mirrorlist\n" >> /etc/pacman.conf
-    - pacman --noconfirm -Fyy
-    - pacman --noconfirm -Syyu --needed base-devel git python-poetry python-tox
-
-linter:
-  extends: .test
-  script:
-    - tox -e linter
+    - |
+      read -r -a deps <<< "${TEST_PACKAGES}"
+      pacman --noconfirm -Syu --needed "${deps[@]}"
 
 coverage:
   extends: .test
@@ -33,20 +50,91 @@ coverage:
         path: .tox/coverage.xml
       junit: junit-report.xml
 
-docs:
-  extends: .test
-  script:
-    - tox -e docs
+.integration_test:
+  stage: test
+  before_script:
+    - printf "[multilib]\nInclude = /etc/pacman.d/mirrorlist\n" >> /etc/pacman.conf
+    - pacman --noconfirm -Fy
+    - |
+      read -r -a test_deps <<< "${TEST_PACKAGES}"
+      pacman --noconfirm -Syu --needed "${test_deps[@]}"
 
 integration:
-  extends: .test
+  extends: .integration_test
   script:
     - tox -e integration
 
+.system_test:
+  stage: test
+  before_script:
+    - |
+      read -r -a system_deps <<< "${SYSTEM_PACKAGES}"
+      read -r -a test_deps <<< "${SYSTEM_TEST_PACKAGES}"
+      pacman --noconfirm -Syu --needed "${system_deps[@]}" "${test_deps[@]}"
+
+system_coverage:
+  extends: .system_test
+  script:
+    - pytest -vv tests/ -m 'not integration and not regex'
+
+.system_integration_test:
+  stage: test
+  before_script:
+    - printf "[multilib]\nInclude = /etc/pacman.d/mirrorlist\n" >> /etc/pacman.conf
+    - pacman --noconfirm -Fy
+    - |
+      read -r -a install_deps <<< "${SYSTEM_INSTALL_PACKAGES}"
+      read -r -a system_deps <<< "${SYSTEM_PACKAGES}"
+      read -r -a test_deps <<< "${SYSTEM_TEST_PACKAGES}"
+      pacman --noconfirm -Syu --needed "${install_deps[@]}" "${system_deps[@]}" "${test_deps[@]}"
+    - python -m build --wheel --skip-dependency-check --no-isolation
+    - python -m installer dist/*.whl
+
+system_integration:
+  extends: .system_integration_test
+  script:
+    - pytest -vv tests/ -m 'integration'
+
+.build:
+  stage: build
+  before_script:
+    - |
+      read -r -a deps <<< "${BUILD_PUBLISH_PACKAGES}"
+      pacman --noconfirm -Syu --needed "${deps[@]}"
+
+build:
+  extends: .build
+  script:
+    - poetry build
+
+docs:
+  extends: .build
+  script:
+    - tox -e docs
+
 readthedocs:
   stage: webhook
-  script:
+  before_script:
     - pacman --noconfirm -Syu --needed curl
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_PATH == "archlinux/repod"'
+  script:
     - curl -X POST -d "token=${READTHEDOCS_TOKEN}" https://readthedocs.org/api/v2/webhook/repod/${READTHEDOCS_PROJECT_ID}/
-  only:
-    - master@archlinux/repod
+
+regex:
+  extends: .test
+  script:
+    - tox -e regex
+
+pypi_publish:
+  before_script:
+    - |
+      read -r -a deps <<< "${BUILD_PUBLISH_PACKAGES}"
+      pacman --noconfirm -Syu --needed "${deps[@]}"
+  rules:
+    - if: '$POETRY_PYPI_TOKEN_PYPI && $CI_COMMIT_TAG && $CI_PROJECT_PATH == "archlinux/repod"'
+  script:
+    - poetry publish --build
+  stage: publish
+  tags:
+    - secure
