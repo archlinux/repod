@@ -915,7 +915,7 @@ def pkginfov1_stringio(
         depend = bar
         """
 
-    yield StringIO(initial_value="\n".join([m.strip() for m in dedent(file_data).split("\n")]))
+    yield StringIO(initial_value="\n".join([line.strip() for line in dedent(file_data).split("\n") if line]))
 
 
 @fixture(scope="function")
@@ -947,7 +947,7 @@ def pkginfov2_stringio(
         depend = bar
         """
 
-    yield StringIO(initial_value="\n".join([m.strip() for m in dedent(file_data).split("\n")]))
+    yield StringIO(initial_value="\n".join([line.strip() for line in dedent(file_data).split("\n") if line]))
 
 
 @fixture(scope="function")
