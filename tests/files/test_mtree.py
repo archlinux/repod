@@ -4,18 +4,14 @@ from pathlib import Path
 from random import choice, randrange, sample
 from re import Match, fullmatch
 from string import ascii_lowercase, digits
-from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import IO, ContextManager, Literal, Optional, Union
+from tempfile import TemporaryDirectory
+from typing import ContextManager, Optional
 
 from pydantic import ValidationError
 from pytest import mark, raises
 
 from repod.common.enums import tar_compression_types_for_filename_regex
-from repod.errors import (
-    RepoManagementFileError,
-    RepoManagementFileNotFoundError,
-    RepoManagementValidationError,
-)
+from repod.errors import RepoManagementValidationError
 from repod.files import mtree
 from repod.files.common import extract_file_from_tarfile, open_tarfile
 
@@ -335,41 +331,6 @@ def test_mtree_get_paths(valid_mtree: mtree.MTree) -> None:
     assert valid_mtree.get_paths()
 
 
-@mark.parametrize(
-    "file_is, expectation",
-    [
-        ("exists", does_not_raise()),
-        ("bytesIO", does_not_raise()),
-        ("dir", raises(RepoManagementFileNotFoundError)),
-        ("does_not_exist", raises(RepoManagementFileNotFoundError)),
-        ("not_gzip", raises(RepoManagementFileError)),
-    ],
-)
-def test_read_mtree(
-    file_is: Literal["exists", "dir", "does_not_exist", "not_gzip", "bytesIO"],
-    expectation: ContextManager[str],
-    valid_mtree_file: Path,
-    valid_mtree_bytesio: IO[bytes],
-) -> None:
-    path: Union[Path, IO[bytes]]
-    with TemporaryDirectory() as temp_dir:
-        match file_is:
-            case "exists":
-                path = valid_mtree_file
-            case "dir":
-                path = Path(temp_dir)
-            case "does_not_exist":
-                path = Path(temp_dir) / "foo"
-            case "not_gzip":
-                with NamedTemporaryFile(delete=False, dir=temp_dir) as temp_file:
-                    temp_file.write(b"foo")
-                    path = Path(temp_file.name)
-            case "bytesIO":
-                path = valid_mtree_bytesio
-        with expectation:
-            assert isinstance(mtree.read_mtree(mtree=path), StringIO)
-
-
 @mark.parametrize("valid, expectation", [(True, does_not_raise()), (False, raises(RepoManagementValidationError))])
 def test_mtree_from_file(
     valid: bool,
@@ -416,11 +377,11 @@ async def test_read_mtree_files() -> None:
     for package in packages:
         assert isinstance(
             mtree.MTree.from_file(
-                data=mtree.read_mtree(
-                    await extract_file_from_tarfile(
-                        tarfile=open_tarfile(package),
-                        file=".MTREE",
-                    )
+                await extract_file_from_tarfile(  # type: ignore[arg-type]
+                    tarfile=open_tarfile(package),
+                    file=".MTREE",
+                    as_stringio=True,
+                    gzip_compressed=True,
                 )
             ),
             mtree.MTree,

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import gzip
 import io
 import re
 from pathlib import Path
-from typing import IO, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -17,11 +16,7 @@ from pydantic import (
 
 from repod.common.models import SchemaVersionV1
 from repod.common.regex import ABSOLUTE_MTREE_PATH, MD5, RELATIVE_MTREE_PATH, SHA256
-from repod.errors import (
-    RepoManagementFileError,
-    RepoManagementFileNotFoundError,
-    RepoManagementValidationError,
-)
+from repod.errors import RepoManagementValidationError
 
 
 class SystemGID(BaseModel):
@@ -411,38 +406,6 @@ class MTree(BaseModel):
             path_list.append(path)
 
         return path_list
-
-
-def read_mtree(mtree: Union[Path, IO[bytes]]) -> io.StringIO:
-    """Read a (gzip compressed) mtree file or bytes stream
-
-    Parameters
-    ----------
-    path: Union[Path, IO[bytes]]
-        A Path to an mtree file or the IO[bytes] representing an mtree file
-
-    Raises
-    ------
-    RepoManagementFileNotFoundError
-        If the file specified by path can not be found or is not a file
-    RepoManagementFileError
-        If the file specified by path is not a gzip compressed file or the gzip file is corrupted
-
-    Returns
-    -------
-    io.StringIO
-        A text stream representing the contents of the mtree file
-    """
-
-    if isinstance(mtree, Path):
-        if not (mtree.exists() and mtree.is_file()):
-            raise RepoManagementFileNotFoundError(f"The provided path does not exist or is not a file: {mtree}")
-
-    try:
-        with gzip.open(mtree) as mtree_file:
-            return io.StringIO(io.BytesIO(mtree_file.read()).read().decode("utf-8"))
-    except gzip.BadGzipFile as e:
-        raise RepoManagementFileError(f"An error occured trying to read the gzip compressed mtree file {mtree}\n{e}\n")
 
 
 def export_schemas(output: Union[Path, str]) -> None:

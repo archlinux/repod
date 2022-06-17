@@ -5,17 +5,12 @@ from random import sample
 from re import Match, fullmatch
 from tempfile import TemporaryDirectory
 from typing import ContextManager
-from unittest.mock import patch
 
 from pydantic import ValidationError
 from pytest import mark, raises
 
 from repod.common.enums import tar_compression_types_for_filename_regex
-from repod.errors import (
-    RepoManagementError,
-    RepoManagementFileError,
-    RepoManagementFileNotFoundError,
-)
+from repod.errors import RepoManagementError
 from repod.files import buildinfo
 from repod.files.common import extract_file_from_tarfile, open_tarfile
 
@@ -168,41 +163,6 @@ def test_buildinfo_from_file(
         buildinfo.BuildInfo.from_file(data=StringIO(initial_value="foo = bar\n"))
 
 
-@mark.parametrize(
-    "file_is, raises_os_error, expectation",
-    [
-        ("file", False, does_not_raise()),
-        ("file", True, raises(RepoManagementFileError)),
-        ("missing", False, raises(RepoManagementFileNotFoundError)),
-        ("missing", True, raises(RepoManagementFileNotFoundError)),
-        ("bytesio", False, does_not_raise()),
-    ],
-)
-def test_read_buildinfo(
-    file_is: str,
-    raises_os_error: bool,
-    expectation: ContextManager[str],
-    valid_buildinfov1_file: Path,
-    valid_buildinfov2_file: Path,
-) -> None:
-    with expectation:
-        match file_is:
-            case "file":
-                for buildinfo_path in [valid_buildinfov1_file, valid_buildinfov2_file]:
-                    if raises_os_error:
-                        with patch("builtins.open") as open_mock:
-                            open_mock.side_effect = OSError
-                            buildinfo.read_buildinfo(buildinfo=buildinfo_path)
-                    else:
-                        buildinfo.read_buildinfo(buildinfo=buildinfo_path)
-            case "bytesio":
-                for buildinfo_path in [valid_buildinfov1_file, valid_buildinfov2_file]:
-                    with open(buildinfo_path, "rb") as buildinfo_file:
-                        buildinfo.read_buildinfo(buildinfo=buildinfo_file)
-            case "missing":
-                buildinfo.read_buildinfo(buildinfo=Path("/foo"))
-
-
 def test_buildinfov2_validate_devtools_version(
     default_full_version: str,
     default_invalid_full_version: str,
@@ -259,11 +219,10 @@ async def test_read_buildinfo_files() -> None:
         print(f"DEBUG::: Reading .BUILDINFO file from package {package}...")
         assert isinstance(
             buildinfo.BuildInfo.from_file(
-                data=buildinfo.read_buildinfo(
-                    await extract_file_from_tarfile(
-                        tarfile=open_tarfile(package),
-                        file=".BUILDINFO",
-                    )
+                await extract_file_from_tarfile(  # type: ignore[arg-type]
+                    tarfile=open_tarfile(package),
+                    file=".BUILDINFO",
+                    as_stringio=True,
                 )
             ),
             buildinfo.BuildInfo,

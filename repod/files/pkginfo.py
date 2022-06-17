@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from logging import debug
 from pathlib import Path
-from typing import IO, Dict, List, Set, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 
 from pydantic import BaseModel, constr
 
@@ -32,11 +32,7 @@ from repod.common.models import (
     Version,
 )
 from repod.common.regex import PKGTYPE, VERSION
-from repod.errors import (
-    RepoManagementError,
-    RepoManagementFileError,
-    RepoManagementFileNotFoundError,
-)
+from repod.errors import RepoManagementError, RepoManagementFileError
 
 PKGINFO_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "pkgname": ("name", FieldTypeEnum.STRING),
@@ -391,39 +387,6 @@ class PkgInfoV2(
     """
 
     pass
-
-
-def read_pkginfo(pkginfo: Union[Path, IO[bytes]]) -> StringIO:
-    """Read a .PKGINFO file or byte stream
-
-    Parameters
-    ----------
-    path: Path
-        A Path to a .BUILDINFO file or a byte stream representing the file
-
-    Raises
-    ------
-    RepoManagementFileNotFoundError
-        If the file specified by path can not be found or is not a file
-    RepoManagementFileError
-        If an error is encountered while trying to read the file
-
-    Returns
-    -------
-    StringIO
-        A text stream representing the contents of the .BUILDINFO file or byte stream
-    """
-
-    if isinstance(pkginfo, Path):
-        if not (pkginfo.exists() and pkginfo.is_file()):
-            raise RepoManagementFileNotFoundError(f"The provided path does not exist or is not a file: {pkginfo}")
-        try:
-            with open(pkginfo) as pkginfo_file:
-                return StringIO(initial_value=pkginfo_file.read())
-        except OSError as e:
-            raise RepoManagementFileError(f"An error occurred trying to read the .PKGINFO file {pkginfo}\n{e}\n")
-    else:
-        return StringIO(initial_value=pkginfo.read().decode("utf-8"))
 
 
 def export_schemas(output: Union[Path, str]) -> None:

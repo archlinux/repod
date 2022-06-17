@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from pathlib import Path
 from re import fullmatch
-from typing import IO, Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from pydantic import BaseModel, NonNegativeInt, conint, constr, root_validator
 
@@ -20,11 +20,7 @@ from repod.common.regex import (
     SHA256,
     VERSION,
 )
-from repod.errors import (
-    RepoManagementError,
-    RepoManagementFileError,
-    RepoManagementFileNotFoundError,
-)
+from repod.errors import RepoManagementError
 
 BUILDINFO_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "builddate": ("builddate", FieldTypeEnum.INT),
@@ -427,39 +423,6 @@ class BuildInfoV2(
             )
 
         return values
-
-
-def read_buildinfo(buildinfo: Union[Path, IO[bytes]]) -> StringIO:
-    """Read a .BUILDINFO file or byte stream
-
-    Parameters
-    ----------
-    path: Path
-        A Path to a .BUILDINFO file or a byte stream representing the file
-
-    Raises
-    ------
-    RepoManagementFileNotFoundError
-        If the file specified by path can not be found or is not a file
-    RepoManagementFileError
-        If an error is encountered while trying to read the file
-
-    Returns
-    -------
-    StringIO
-        A text stream representing the contents of the .BUILDINFO file or byte stream
-    """
-
-    if isinstance(buildinfo, Path):
-        if not (buildinfo.exists() and buildinfo.is_file()):
-            raise RepoManagementFileNotFoundError(f"The provided path does not exist or is not a file: {buildinfo}")
-        try:
-            with open(buildinfo) as buildinfo_file:
-                return StringIO(initial_value=buildinfo_file.read())
-        except OSError as e:
-            raise RepoManagementFileError(f"An error occured trying to read the .BUILDINFO file {buildinfo}\n{e}\n")
-    else:
-        return StringIO(initial_value=buildinfo.read().decode("utf-8"))
 
 
 def export_schemas(output: Union[Path, str]) -> None:
