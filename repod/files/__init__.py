@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import io
 import re
@@ -12,6 +14,7 @@ import orjson
 from repod import convert, errors, models
 from repod.config.defaults import DB_DIR_MODE, DB_FILE_MODE, DB_GROUP, DB_USER
 from repod.files.common import extract_file_from_tarfile, open_tarfile  # noqa: F401
+from repod.files.package import Package  # noqa: F401
 
 
 async def _extract_db_member_package_name(name: str) -> str:
