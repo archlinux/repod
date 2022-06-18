@@ -4,9 +4,9 @@ from .util import cmp
 
 PYALPM_VERCMP = False
 try:
-    from pyalpm import vercmp as pyalpm_vercmp
+    from pyalpm import vercmp as pyalpm_vercmp  # pragma: no-cover-nonlinux
 
-    PYALPM_VERCMP = True
+    PYALPM_VERCMP = True  # pragma: no-cover-nonlinux
 except ImportError:  # pragma: nocover
     pass
 
@@ -26,8 +26,8 @@ def vercmp(a: str, b: str) -> int:  # noqa: C901
          1 if b is newer than a
     """
 
-    if PYALPM_VERCMP:
-        return int(pyalpm_vercmp(a, b))
+    if PYALPM_VERCMP:  # pragma: no-cover-nonlinux
+        return int(pyalpm_vercmp(a, b))  # pragma: no-cover-nonlinux
 
     # easy comparison to see if versions are identical
     if a == b:
@@ -151,8 +151,8 @@ def pkg_vercmp(a: str, b: str) -> int:
          1 if b is newer than a
     """
 
-    if PYALPM_VERCMP:
-        return int(pyalpm_vercmp(a, b))
+    if PYALPM_VERCMP:  # pragma: no-cover-nonlinux
+        return int(pyalpm_vercmp(a, b))  # pragma: no-cover-nonlinux
 
     epoch1 = a.split(":")[0] if ":" in a else ""
     epoch2 = b.split(":")[0] if ":" in b else ""

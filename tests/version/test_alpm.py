@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from pytest import mark
+from pytest_lazyfixture import lazy_fixture
 
 from repod.version.alpm import pkg_vercmp, vercmp
 
@@ -56,7 +57,7 @@ from repod.version.alpm import pkg_vercmp, vercmp
         ("", "a", 1),
     ],
 )
-@mark.parametrize("pyalpm_vercmp", [True, False])
+@mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_vercmp(first: str, second: str, expectation: int, pyalpm_vercmp: bool) -> None:
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
         assert vercmp(a=first, b=second) == expectation
@@ -70,7 +71,7 @@ def test_vercmp(first: str, second: str, expectation: int, pyalpm_vercmp: bool) 
         ("1:2-3", "1:2-4", -1),
     ],
 )
-@mark.parametrize("pyalpm_vercmp", [True, False])
+@mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgver_vercmp(first: str, second: str, expectation: int, pyalpm_vercmp: bool) -> None:
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
         assert pkg_vercmp(a=first, b=second) == expectation

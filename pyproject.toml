@@ -37,6 +37,8 @@ flake8 = "^4.0.1"
 black = "^22.1.0"
 coverage = "^6.1"
 pytest-asyncio = "^0.18.0"
+pytest-lazy-fixture = "^0.6.3"
+coverage-conditional-plugin = "^0.5.0"
 Sphinx = "^5.0.0"
 sphinx-rtd-theme = "^1.0.0"
 
@@ -85,9 +87,13 @@ branch = true
 command_line = "-m pytest --junit-xml=junit-report.xml -vv tests/ -m 'not integration'"
 omit = ["tests/*", ".tox/*", "db-write/*", "db2json/*", "dbscripts/*"]
 relative_files = true
+plugins = ["coverage_conditional_plugin"]
 
 [tool.coverage.xml]
 output = ".tox/coverage.xml"
+
+[tool.coverage.coverage_conditional_plugin.rules]
+no-cover-nonlinux = "'linux' not in sys.platform"
 
 [tool.isort]
 profile = "black"
