@@ -17,6 +17,44 @@ from repod.config.defaults import (
 )
 
 
+def validate_directory(directory: Path) -> Path:
+    """A validator for an absolute and writable directory Path
+
+    Parameters
+    ----------
+    directory: Path
+        A Path instance to validate
+
+    Raises
+    ------
+    ValueError
+        If directory is not absolute, not a directory, not writable, or if the directory's parent is not writable
+        (in case the directory does not exist yet
+
+    Returns
+    -------
+    Path
+        A validated Path instances representing an absolute directory
+    """
+
+    if not directory.is_absolute():
+        raise ValueError(f"The directory '{directory}' is not an absolute path.")
+    if directory.exists():
+        if not directory.is_dir():
+            raise ValueError(f"Not a directory: '{directory}'.")
+        if not os.access(directory, os.W_OK):
+            raise ValueError(f"The directory '{directory}' is not writable.")
+    else:
+        if not directory.parent.exists():
+            raise ValueError(f"The parent directory of '{directory}' does not exist")
+        if not directory.parent.is_dir():
+            raise ValueError(f"The parent of '{directory}' is not a directory.")
+        if not os.access(directory.parent, os.W_OK):
+            raise ValueError(f"The parent directory of '{directory}' is not writable.")
+
+    return directory
+
+
 class Architecture(BaseModel):
     """A model describing a single "architecture" attribute
 
@@ -27,56 +65,6 @@ class Architecture(BaseModel):
     """
 
     architecture: Optional[constr(regex=f"^{ARCHITECTURE}$")]  # type: ignore[valid-type]  # noqa: F722
-
-
-class Directory(BaseModel):
-    """A model describing a single "directory" attribute
-
-    Attributes
-    ----------
-    directory: Path
-        A Path instance that identifies an absolute directory location for e.g. binary packages or source tarball data
-    """
-
-    directory: Path
-
-    @validator("directory")
-    def validate_directory(cls, directory: Path) -> Path:
-        """A validator for the directory attribute
-
-        Parameters
-        ----------
-        directory: Path
-            A Path instance to validate
-
-        Raises
-        ------
-        ValueError
-            If directory is not absolute, not a directory, not writable, or if the directory's parent is not writable
-            (in case the directory does not exist yet
-
-        Returns
-        -------
-        Path
-            A validated Path instances representing an absolute directory
-        """
-
-        if not directory.is_absolute():
-            raise ValueError(f"The directory '{directory}' is not an absolute path.")
-        if directory.exists():
-            if not directory.is_dir():
-                raise ValueError(f"Not a directory: '{directory}'.")
-            if not os.access(directory, os.W_OK):
-                raise ValueError(f"The directory '{directory}' is not writable.")
-        else:
-            if not directory.parent.exists():
-                raise ValueError(f"The parent directory of '{directory}' does not exist")
-            if not directory.parent.is_dir():
-                raise ValueError(f"The parent of '{directory}' is not a directory.")
-            if not os.access(directory.parent, os.W_OK):
-                raise ValueError(f"The parent directory of '{directory}' is not writable.")
-
-        return directory
 
 
 class PackagePool(BaseModel):
@@ -97,8 +85,8 @@ class PackagePool(BaseModel):
         Parameters
         ----------
         package_pool: Optional[Path]
-            An optional Path instance to validate. If a Path instance is provided, Directory.validate_directory() is
-            used for validation
+            An optional Path instance to validate. If a Path instance is provided, validate_directory() is used for
+            validation
 
         Returns
         -------
@@ -109,7 +97,7 @@ class PackagePool(BaseModel):
         if package_pool is None:
             return package_pool
         else:
-            return Path(Directory.validate_directory(directory=package_pool))
+            return Path(validate_directory(directory=package_pool))
 
 
 class SourcePool(BaseModel):
@@ -130,8 +118,8 @@ class SourcePool(BaseModel):
         Parameters
         ----------
         source_pool: Optional[Path]
-            An optional Path instance to validate. If a Path instance is provided, Directory.validate_directory() is
-            used for validation
+            An optional Path instance to validate. If a Path instance is provided, validate_directory() is used for
+            validation
 
         Returns
         -------
@@ -142,10 +130,10 @@ class SourcePool(BaseModel):
         if source_pool is None:
             return source_pool
         else:
-            return Path(Directory.validate_directory(directory=source_pool))
+            return Path(validate_directory(directory=source_pool))
 
 
-class ManagementRepo(Directory):
+class ManagementRepo(BaseModel):
     """A model describing all required attributes to describe a repository used for managing one or more package
     repositories
 
@@ -157,8 +145,25 @@ class ManagementRepo(Directory):
         A URL describing the VCS upstream of the management repository
     """
 
-    directory = MANAGEMENT_REPO
+    directory: Path = MANAGEMENT_REPO
     url: AnyUrl
+
+    @validator("directory")
+    def validate_directory(cls, directory: Path) -> Path:
+        """A validator for the directory attribute
+
+        Parameters
+        ----------
+        directory: Path
+            A Path, that describes the location for the ManagementRepo
+
+        Returns
+        -------
+        Path
+            A validated Path
+        """
+
+        return Path(validate_directory(directory=directory))
 
     @validator("url")
     def validate_url(cls, url: AnyUrl) -> AnyUrl:
@@ -610,7 +615,7 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
         package_repo_base: Path = values.get("package_repo_base")  # type: ignore[assignment]
         source_repo_base: Path = values.get("source_repo_base")  # type: ignore[assignment]
         for directory in [package_repo_base, source_repo_base]:
-            Directory.validate_directory(directory=directory)
+            validate_directory(directory=directory)
 
         repositories: List[PackageRepo] = values.get("repositories")  # type: ignore[assignment]
         management_repo, package_pool, source_pool = (

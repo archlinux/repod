@@ -43,16 +43,16 @@ def test_mangement_repo(
 @patch("repod.config.settings.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
 @patch("repod.config.settings.Path.is_dir", Mock(side_effect=[False, True, True]))
 @patch("repod.config.settings.Path.parent", return_value=Mock())
-def test_directory_validate_directory(parent_mock: Mock) -> None:
+def test_validate_directory(parent_mock: Mock) -> None:
     parent_mock.exists.side_effect = [False, True, True, True]
     parent_mock.is_dir.side_effect = [False, True, True]
     with raises(ValueError):
-        settings.Directory(directory="foo")
+        settings.validate_directory(directory=Path("foo"))
     for _ in range(5):
         with raises(ValueError):
-            settings.Directory(directory="/foo")
-    assert settings.Directory(directory="/foo")
-    assert settings.Directory(directory="/foo")
+            settings.validate_directory(directory=Path("/foo"))
+    assert settings.validate_directory(directory=Path("/foo"))
+    assert settings.validate_directory(directory=Path("/foo"))
 
 
 @mark.parametrize(
