@@ -11,6 +11,34 @@ include = [
   {path = 'tests/*', format = 'sdist'},
   {path = 'docs/*', format = 'sdist'},
 ]
+readme = "README.md"
+homepage = "https://gitlab.archlinux.org/archlinux/repod"
+repository = "https://gitlab.archlinux.org/archlinux/repod"
+documentation = "https://repod.readthedocs.io"
+keywords = ["arch linux", "repository", "pacman", "packages"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Database",
+  "Topic :: Database :: Database Engines/Servers",
+  "Topic :: Documentation :: Sphinx",
+  "Topic :: Internet",
+  "Topic :: Security :: Cryptography",
+  "Topic :: Software Development",
+  "Topic :: System :: Archiving :: Packaging",
+  "Topic :: System :: Operating System",
+  "Topic :: System :: Software Distribution",
+  "Topic :: Utilities",
+  "Typing :: Typed",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://gitlab.archlinux.org/archlinux/repod/-/issues/"
 
 [tool.poetry.dependencies]
 python = "^3.10"
