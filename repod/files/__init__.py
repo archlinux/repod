@@ -11,10 +11,13 @@ from typing import AsyncIterator, Iterator
 import aiofiles
 import orjson
 
-from repod import convert, errors, models
+from repod import errors
 from repod.config.defaults import DB_DIR_MODE, DB_FILE_MODE, DB_GROUP, DB_USER
+from repod.convert import RepoDbFile
 from repod.files.common import extract_file_from_tarfile, open_tarfile  # noqa: F401
 from repod.files.package import Package  # noqa: F401
+from repod.repo.management import OutputPackageBase
+from repod.repo.package import RepoDbMemberData, RepoDbMemberTypeEnum, RepoDbTypeEnum
 
 
 async def _extract_db_member_package_name(name: str) -> str:
@@ -35,9 +38,9 @@ async def _extract_db_member_package_name(name: str) -> str:
 
 async def _db_file_member_as_model(
     db_file: tarfile.TarFile, regex: str = "(/desc|/files)$"
-) -> AsyncIterator[models.RepoDbMemberData]:
+) -> AsyncIterator[RepoDbMemberData]:
     """Iterate over the members of a database file, represented by an instance of tarfile.TarFile and yield the members
-    as instances of models.RepoDbMemberData
+    as instances of RepoDbMemberData
 
     The method filters the list of evaluated members using a regular expression. Depending on member name one of
     RepoDbMemberTypeEnum is chosen.
@@ -52,13 +55,13 @@ async def _db_file_member_as_model(
     """
 
     for name in [name for name in db_file.getnames() if re.search(regex, name)]:
-        file_type = models.RepoDbMemberTypeEnum.UNKNOWN
+        file_type = RepoDbMemberTypeEnum.UNKNOWN
         if re.search("(/desc)$", name):
-            file_type = models.RepoDbMemberTypeEnum.DESC
+            file_type = RepoDbMemberTypeEnum.DESC
         if re.search("(/files)$", name):
-            file_type = models.RepoDbMemberTypeEnum.FILES
+            file_type = RepoDbMemberTypeEnum.FILES
 
-        yield models.RepoDbMemberData(
+        yield RepoDbMemberData(
             member_type=file_type,
             name=await _extract_db_member_package_name(name=name),
             data=io.StringIO(
@@ -98,8 +101,8 @@ async def _json_files_in_directory(path: Path) -> AsyncIterator[Path]:
         yield json_file
 
 
-async def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
-    """Read a JSON file that represents a pkgbase and return it as models.OutputPackageBase
+async def _read_pkgbase_json_file(path: Path) -> OutputPackageBase:
+    """Read a JSON file that represents a pkgbase and return it as OutputPackageBase
 
     Parameters
     ----------
@@ -111,17 +114,17 @@ async def _read_pkgbase_json_file(path: Path) -> models.OutputPackageBase:
     errors.RepoManagementFileError
         If the JSON file can not be decoded
     errors.RepoManagementValidationError
-        If the JSON file can not be validated using models.OutputPackageBase
+        If the JSON file can not be validated using OutputPackageBase
 
     Returns
     -------
-    models.OutputPackageBase
+    OutputPackageBase
         A pydantic model representing a pkgbase
     """
 
     async with aiofiles.open(path, "r") as input_file:
         try:
-            model = models.OutputPackageBase.from_dict(data=orjson.loads(await input_file.read()))
+            model = OutputPackageBase.from_dict(data=orjson.loads(await input_file.read()))
             return model
         except orjson.JSONDecodeError as e:
             raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
@@ -159,9 +162,9 @@ def _write_db_file(path: Path, compression: str = "gz") -> Iterator[tarfile.TarF
 
 async def _stream_package_base_to_db(
     db: tarfile.TarFile,
-    model: models.OutputPackageBase,
-    repodbfile: convert.RepoDbFile,
-    db_type: models.RepoDbTypeEnum,
+    model: OutputPackageBase,
+    repodbfile: RepoDbFile,
+    db_type: RepoDbTypeEnum,
 ) -> None:
     """Stream descriptor files for packages of a pkgbase to a repository database
 
@@ -171,9 +174,11 @@ async def _stream_package_base_to_db(
     ----------
     db: tarfile.TarFile
         The repository database to stream to
-    model: models.OutputPackageBase
+    model: OutputPackageBase
         The model to use for streaming descriptor files to the repository database
-    db_type: models.RepoDbTypeEnum
+    repodbfile: RepoDbFile
+        An instance of RepoDbFile used for output rendering
+    db_type: RepoDbTypeEnum
         The type of database to stream to
     """
 
@@ -196,7 +201,7 @@ async def _stream_package_base_to_db(
         desc_file.gname = DB_GROUP
         desc_file.mode = int(DB_FILE_MODE, base=8)
         db.addfile(desc_file, io.BytesIO(desc_content.getvalue().encode()))
-        if db_type == models.RepoDbTypeEnum.FILES:
+        if db_type == RepoDbTypeEnum.FILES:
             files_content = io.StringIO()
             await repodbfile.render_files_template(model=files_model, output=files_content)
             files_file = tarfile.TarInfo(f"{dirname}/files")

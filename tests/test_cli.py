@@ -5,7 +5,8 @@ from unittest.mock import Mock, patch
 
 from pytest import mark
 
-from repod import cli, commands, errors, models
+from repod import cli, commands, errors
+from repod.repo.package import RepoDbTypeEnum
 
 
 @mark.parametrize(
@@ -47,12 +48,12 @@ def test_db2json(
 @mark.parametrize(
     "files, db_type, fail_argparse, fail_create",
     [
-        (True, models.RepoDbTypeEnum.FILES, False, False),
-        (False, models.RepoDbTypeEnum.DEFAULT, False, False),
-        (True, models.RepoDbTypeEnum.FILES, True, False),
-        (False, models.RepoDbTypeEnum.DEFAULT, True, False),
-        (True, models.RepoDbTypeEnum.FILES, False, True),
-        (False, models.RepoDbTypeEnum.DEFAULT, False, True),
+        (True, RepoDbTypeEnum.FILES, False, False),
+        (False, RepoDbTypeEnum.DEFAULT, False, False),
+        (True, RepoDbTypeEnum.FILES, True, False),
+        (False, RepoDbTypeEnum.DEFAULT, True, False),
+        (True, RepoDbTypeEnum.FILES, False, True),
+        (False, RepoDbTypeEnum.DEFAULT, False, True),
     ],
 )
 @patch("repod.operations.create_db_from_json_files")
@@ -63,7 +64,7 @@ def test_json2db(
     argparsefactory_mock: Mock,
     create_db_from_json_files_mock: Mock,
     files: bool,
-    db_type: models.RepoDbTypeEnum,
+    db_type: RepoDbTypeEnum,
     fail_argparse: bool,
     fail_create: bool,
 ) -> None:

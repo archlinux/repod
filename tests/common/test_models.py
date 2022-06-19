@@ -13,6 +13,30 @@ from tests.conftest import (
 
 
 @mark.parametrize(
+    "builddate, expectation",
+    [
+        (-1, raises(ValueError)),
+        (1, does_not_raise()),
+    ],
+)
+def test_builddate(builddate: int, expectation: ContextManager[str]) -> None:
+    with expectation:
+        assert builddate == models.BuildDate(builddate=builddate).builddate
+
+
+@mark.parametrize(
+    "csize, expectation",
+    [
+        (-1, raises(ValueError)),
+        (1, does_not_raise()),
+    ],
+)
+def test_csize(csize: int, expectation: ContextManager[str]) -> None:
+    with expectation:
+        assert csize == models.CSize(csize=csize).csize
+
+
+@mark.parametrize(
     "value, expectation",
     [
         ("1", does_not_raise()),
@@ -40,6 +64,53 @@ def test_epoch(value: Union[str, int], expectation: ContextManager[str]) -> None
 )
 def test_epoch_vercmp(subj: Union[int, str], obj: Union[int, str], expectation: int) -> None:
     assert models.Epoch(epoch=subj).vercmp(epoch=models.Epoch(epoch=obj)) == expectation
+
+
+@mark.parametrize(
+    "file_list, expectation",
+    [
+        (None, does_not_raise()),
+        ([], does_not_raise()),
+        (["foo"], does_not_raise()),
+        (["home/foo"], raises(ValidationError)),
+    ],
+)
+def test_file_list(file_list: Optional[List[str]], expectation: ContextManager[str]) -> None:
+    with expectation:
+        models.FileList(files=file_list)
+
+
+@mark.parametrize(
+    "isize, expectation",
+    [
+        (-1, raises(ValueError)),
+        (1, does_not_raise()),
+    ],
+)
+def test_isize(isize: int, expectation: ContextManager[str]) -> None:
+    with expectation:
+        assert isize == models.ISize(isize=isize).isize
+
+
+@mark.parametrize(
+    "name, expectation",
+    [
+        (".foo", raises(ValueError)),
+        ("-foo", raises(ValueError)),
+        ("foo'", raises(ValueError)),
+        ("foo", does_not_raise()),
+    ],
+)
+def test_name(name: str, expectation: ContextManager[str]) -> None:
+    with expectation:
+        assert name == models.Name(name=name).name
+
+
+def test_packager(default_packager: str, default_invalid_packager: str) -> None:
+    with does_not_raise():
+        models.Packager(packager=default_packager)
+    with raises(ValidationError):
+        models.Packager(packager=default_invalid_packager)
 
 
 @mark.parametrize(

@@ -1,5 +1,10 @@
-from .package import Files, OutputPackage, OutputPackageBase, PackageDesc  # noqa: F401
-from .repo import (  # noqa: F401
+from repod.repo.management import (  # noqa: F401
+    Files,
+    OutputPackage,
+    OutputPackageBase,
+    PackageDesc,
+)
+from repod.repo.package import (  # noqa: F401
     RepoDbMemberData,
     RepoDbMemberType,
     RepoDbMemberTypeEnum,

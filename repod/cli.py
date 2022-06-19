@@ -2,7 +2,8 @@ import asyncio
 from argparse import ArgumentTypeError
 from sys import exit
 
-from repod import argparse, errors, models, operations
+from repod import argparse, errors, operations
+from repod.repo.package import RepoDbTypeEnum
 
 
 def db2json() -> None:
@@ -38,7 +39,7 @@ def json2db() -> None:
             operations.create_db_from_json_files(
                 input_path=args.input_dir,
                 output_path=args.db_file,
-                db_type=models.RepoDbTypeEnum.FILES if args.files else models.RepoDbTypeEnum.DEFAULT,
+                db_type=RepoDbTypeEnum.FILES if args.files else RepoDbTypeEnum.DEFAULT,
             )
         )
     except (errors.RepoManagementError, ArgumentTypeError) as e:

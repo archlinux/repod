@@ -4,13 +4,15 @@ from typing import Tuple
 
 from pytest import mark, raises
 
-from repod import convert, errors, files, models
+from repod import convert, errors, files
+from repod.repo.management.outputpackage import OutputPackageBaseV1
+from repod.repo.package import RepoDbMemberData, RepoDbTypeEnum
 
 
 @mark.asyncio
 async def test__read_db_file_member_as_model(files_sync_db_file: Tuple[Path, Path]) -> None:
     async for member in files._db_file_member_as_model(db_file=files.open_tarfile(files_sync_db_file[0])):
-        assert isinstance(member, models.RepoDbMemberData)
+        assert isinstance(member, RepoDbMemberData)
 
 
 @mark.parametrize(
@@ -62,10 +64,10 @@ async def test__write_db_file(empty_dir: Path) -> None:
 
 @mark.asyncio
 async def test__stream_package_base_to_db(
-    outputpackagebasev1: models.package.OutputPackageBaseV1,
+    outputpackagebasev1: OutputPackageBaseV1,
     empty_file: Path,
 ) -> None:
-    for db_type in [models.RepoDbTypeEnum.DEFAULT, models.RepoDbTypeEnum.FILES]:
+    for db_type in [RepoDbTypeEnum.DEFAULT, RepoDbTypeEnum.FILES]:
         with files._write_db_file(path=empty_file) as database:
             await files._stream_package_base_to_db(
                 db=database,

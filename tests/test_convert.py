@@ -6,8 +6,9 @@ from typing import ContextManager
 
 from pytest import mark, raises
 
-from repod import convert, errors, models
-from repod.models.package import Files, PackageDesc
+from repod import convert, errors
+from repod.repo.package import Files, PackageDesc, RepoDbMemberTypeEnum
+from repod.repo.package.syncdb import FilesV1, PackageDescV1
 from tests.conftest import (
     FilesV9999,
     PackageDescV9999,
@@ -109,7 +110,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %VERSION%
             1:1.0.0-1
             """,
-            models.RepoDbMemberTypeEnum.DESC,
+            RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
@@ -177,7 +178,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %VERSION%
             1:1.0.0-1
             """,
-            models.RepoDbMemberTypeEnum.DESC,
+            RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
@@ -248,7 +249,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %VERSION%
             1:1.0.0-1
             """,
-            models.RepoDbMemberTypeEnum.DESC,
+            RepoDbMemberTypeEnum.DESC,
             does_not_raise(),
         ),
         (
@@ -318,7 +319,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %VERSION%
             1:1.0.0-1
             """,
-            models.RepoDbMemberTypeEnum.DESC,
+            RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
         (
@@ -387,7 +388,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %VERSION%
             1:1.0.0-1
             """,
-            models.RepoDbMemberTypeEnum.DESC,
+            RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
         (
@@ -395,7 +396,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %FOO%
             bar
             """,
-            models.RepoDbMemberTypeEnum.DESC,
+            RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
         (
@@ -461,12 +462,12 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %VERSION%
             1:1.0.0-1
             """,
-            models.RepoDbMemberTypeEnum.DESC,
+            RepoDbMemberTypeEnum.DESC,
             raises(errors.RepoManagementValidationError),
         ),
-        ("%FOO%\nbar\n", models.RepoDbMemberTypeEnum.UNKNOWN, raises(errors.RepoManagementFileError)),
-        ("%FILES%\nfoo\n", models.RepoDbMemberTypeEnum.FILES, does_not_raise()),
-        ("%FILES%\nhome/foo/bar\n", models.RepoDbMemberTypeEnum.FILES, raises(errors.RepoManagementValidationError)),
+        ("%FOO%\nbar\n", RepoDbMemberTypeEnum.UNKNOWN, raises(errors.RepoManagementFileError)),
+        ("%FILES%\nfoo\n", RepoDbMemberTypeEnum.FILES, does_not_raise()),
+        ("%FILES%\nhome/foo/bar\n", RepoDbMemberTypeEnum.FILES, raises(errors.RepoManagementValidationError)),
     ],
     ids=[
         "desc_v1, all fields populated",
@@ -484,7 +485,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
 @mark.asyncio
 async def test_file_data_to_model(
     file_data: str,
-    data_type: models.RepoDbMemberTypeEnum,
+    data_type: RepoDbMemberTypeEnum,
     expectation: ContextManager[str],
 ) -> None:
     file_data = "\n".join([m.strip() for m in dedent(file_data).split("\n")])
@@ -504,7 +505,7 @@ def test_repodbfile__init() -> None:
     "model, expectation",
     [
         (
-            models.package.PackageDescV1(
+            PackageDescV1(
                 arch="any",
                 base="foo",
                 builddate=1,
@@ -543,7 +544,7 @@ async def test_repodbfile_render_desc_template(model: PackageDesc, expectation: 
 @mark.parametrize(
     "model, expectation",
     [
-        (models.package.FilesV1(files=["foo", "bar"]), does_not_raise()),
+        (FilesV1(files=["foo", "bar"]), does_not_raise()),
         (FilesV9999(), raises(errors.RepoManagementFileNotFoundError)),
     ],
 )

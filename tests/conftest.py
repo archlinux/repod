@@ -22,13 +22,10 @@ from repod.convert import RepoDbFile
 from repod.files import _stream_package_base_to_db, open_tarfile
 from repod.files.common import ZstdTarFile
 from repod.files.mtree import MTree, MTreeEntryV1
-from repod.models import Files, OutputPackageBase, PackageDesc, RepoDbTypeEnum
-from repod.models.package import (
-    FilesV1,
-    OutputPackageBaseV1,
-    OutputPackageV1,
-    PackageDescV1,
-)
+from repod.repo.management import OutputPackageBase
+from repod.repo.management.outputpackage import OutputPackageBaseV1, OutputPackageV1
+from repod.repo.package import Files, PackageDesc, RepoDbTypeEnum
+from repod.repo.package.syncdb import FilesV1, PackageDescV1
 
 
 class SchemaVersion9999(BaseModel):

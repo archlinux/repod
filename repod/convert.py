@@ -3,13 +3,24 @@ from typing import Dict, List, Set, Union
 
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 
-from repod import errors, models
+from repod import errors
 from repod.common.enums import FieldTypeEnum
+from repod.repo.package import (
+    Files,
+    PackageDesc,
+    RepoDbMemberTypeEnum,
+    get_desc_json_field_type,
+    get_desc_json_keys,
+    get_desc_json_name,
+    get_files_json_field_type,
+    get_files_json_keys,
+    get_files_json_name,
+)
 
 
 async def file_data_to_model(
-    data: io.StringIO, data_type: models.RepoDbMemberTypeEnum, name: str
-) -> Union[models.Files, models.PackageDesc]:
+    data: io.StringIO, data_type: RepoDbMemberTypeEnum, name: str
+) -> Union[Files, PackageDesc]:
     """Read the contents of a 'desc' or 'files' file (provided as io.StringIO) and convert it to a pydantic model
 
     Parameters
@@ -31,7 +42,7 @@ async def file_data_to_model(
 
     Returns
     -------
-    Union[models.PackageDesc, models.Files]
+    Union[PackageDesc, Files]
         A pydantic model, representing a 'desc' or a 'files' entry of a repository sync database
     """
 
@@ -43,10 +54,10 @@ async def file_data_to_model(
     string_list_types: Dict[str, List[str]] = {}
 
     match data_type:
-        case models.RepoDbMemberTypeEnum.DESC:
-            keys = models.get_desc_json_keys()
-        case models.RepoDbMemberTypeEnum.FILES:
-            keys = models.get_files_json_keys()
+        case RepoDbMemberTypeEnum.DESC:
+            keys = get_desc_json_keys()
+        case RepoDbMemberTypeEnum.FILES:
+            keys = get_files_json_keys()
         case _:
             raise errors.RepoManagementFileError(
                 f"Unknown file type encountered while attempting to read data for package '{name}' "
@@ -60,12 +71,12 @@ async def file_data_to_model(
 
         if line in keys:
             match data_type:
-                case models.RepoDbMemberTypeEnum.DESC:
-                    current_header = models.get_desc_json_name(key=line)
-                    current_type = models.get_desc_json_field_type(line)
-                case models.RepoDbMemberTypeEnum.FILES:
-                    current_header = models.get_files_json_name(key=line)
-                    current_type = models.get_files_json_field_type(line)
+                case RepoDbMemberTypeEnum.DESC:
+                    current_header = get_desc_json_name(key=line)
+                    current_type = get_desc_json_field_type(line)
+                case RepoDbMemberTypeEnum.FILES:
+                    current_header = get_files_json_name(key=line)
+                    current_type = get_files_json_field_type(line)
                 case _:  # pragma: no cover
                     pass
             # FIXME: find better way to provide a default (None or empty list for STRING_LIST as they all are
@@ -92,21 +103,21 @@ async def file_data_to_model(
                     f"\n{data.getvalue()}\n{e}"
                 )
 
-    model: Union[models.PackageDesc, models.Files]
+    model: Union[PackageDesc, Files]
 
     match data_type:
-        case models.RepoDbMemberTypeEnum.DESC:
+        case RepoDbMemberTypeEnum.DESC:
             desc_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
             try:
-                model = models.PackageDesc.from_dict(desc_dict)
+                model = PackageDesc.from_dict(desc_dict)
             except errors.RepoManagementValidationError as e:
                 raise errors.RepoManagementValidationError(
                     f"An error occured while validating the 'desc' file of package '{name}':\n"
                     f"\n{data.getvalue()}\n{e}"
                 )
-        case models.RepoDbMemberTypeEnum.FILES:
+        case RepoDbMemberTypeEnum.FILES:
             try:
-                model = models.Files.from_dict(data=string_list_types)
+                model = Files.from_dict(data=string_list_types)
             except errors.RepoManagementValidationError as e:
                 raise errors.RepoManagementValidationError(
                     f"An error occured while validating the 'files' file of package '{name}':\n"
@@ -144,14 +155,14 @@ class RepoDbFile:
             enable_async=enable_async,
         )
 
-    async def render_desc_template(self, model: models.PackageDesc, output: io.StringIO) -> None:
+    async def render_desc_template(self, model: PackageDesc, output: io.StringIO) -> None:
         """Use the 'desc_v*' template to write a string to an output stream based on a model
 
         The specific desc template is chosen based upon the model's schema_version attribute.
 
         Parameters
         ----------
-        model: models.PackageDesc
+        model: PackageDesc
             A pydantic model with the required attributes to properly render a template for a 'desc' file
         output: io.StringIO
             An output stream to write to
@@ -170,12 +181,12 @@ class RepoDbFile:
             )
         output.write(await template.render_async(model.dict()))
 
-    async def render_files_template(self, model: models.Files, output: io.StringIO) -> None:
+    async def render_files_template(self, model: Files, output: io.StringIO) -> None:
         """Use the 'files' template to write a string to an output stream based on a model
 
         Parameters
         ----------
-        model: models.Files
+        model: Files
             A pydantic model with the required attributes to properly render a template for a 'files' file
         output: io.StringIO
             An output stream to write to
