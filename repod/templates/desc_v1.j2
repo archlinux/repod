@@ -32,9 +32,11 @@
 %SHA256SUM%
 {{ sha256sum }}
 
+{% if pgpsig %}
 %PGPSIG%
 {{ pgpsig }}
 
+{% endif %}
 %URL%
 {{ url }}
 

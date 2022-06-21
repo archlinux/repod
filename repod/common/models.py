@@ -295,7 +295,7 @@ class PgpSig(BaseModel):
         identifies a package's PGP signature
     """
 
-    pgpsig: constr(regex=f"^{BASE64}$")  # type: ignore[valid-type]  # noqa: F722
+    pgpsig: Optional[constr(regex=f"^{BASE64}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class Provides(BaseModel):

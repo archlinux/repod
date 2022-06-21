@@ -13,6 +13,7 @@ from tests.conftest import (
     FilesV9999,
     PackageDescV9999,
     create_base64_pgpsig,
+    create_default_description,
     create_default_filename,
     create_default_full_version,
     create_default_packager,
@@ -117,30 +118,20 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             f"""%ARCH%
             any
 
-            %BACKUP%
-
             %BASE%
             foo
 
             %BUILDDATE%
             42
 
-            %CONFLICTS%
-
             %CSIZE%
             23
-
-            %DEPENDS%
 
             %DESC%
             foo
 
-            %CHECKDEPENDS%
-
             %FILENAME%
             {create_default_filename()}
-
-            %GROUPS%
 
             %ISIZE%
             42
@@ -149,15 +140,11 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             foo
             bar
 
-            %MAKEDEPENDS%
-
             %MD5SUM%
             {create_md5sum()}
 
             %NAME%
             foo
-
-            %OPTDEPENDS%
 
             %PACKAGER%
             {create_default_packager()}
@@ -165,9 +152,52 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
             %PGPSIG%
             {create_base64_pgpsig()}
 
-            %PROVIDES%
+            %SHA256SUM%
+            {create_sha256sum()}
 
-            %REPLACES%
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            RepoDbMemberTypeEnum.DESC,
+            does_not_raise(),
+        ),
+        (
+            f"""%ARCH%
+            any
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CSIZE%
+            23
+
+            %DESC%
+            foo
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %PACKAGER%
+            {create_default_packager()}
 
             %SHA256SUM%
             {create_sha256sum()}
@@ -472,6 +502,7 @@ RESOURCES = join(dirname(realpath(__file__)), "resources")
     ids=[
         "desc_v1, all fields populated",
         "desc_v1, minimum fields populated",
+        "desc_v1, minimum fields populated, no pgpsig",
         "desc_v1, minimum fields populated, leading newline",
         "desc_v1, minimum fields populated, invalid name",
         "desc_v1, minimum fields populated, invalid csize",
@@ -510,7 +541,7 @@ def test_repodbfile__init() -> None:
                 base="foo",
                 builddate=1,
                 csize=1,
-                desc="foo",
+                desc=create_default_description(),
                 filename=create_default_filename(),
                 isize=1,
                 license=["foo"],
@@ -518,6 +549,26 @@ def test_repodbfile__init() -> None:
                 name="foo",
                 packager=create_default_packager(),
                 pgpsig=create_base64_pgpsig(),
+                sha256sum=create_sha256sum(),
+                url="https://foobar.tld",
+                version=create_default_full_version(),
+            ),
+            does_not_raise(),
+        ),
+        (
+            PackageDescV1(
+                arch="any",
+                base="foo",
+                builddate=1,
+                csize=1,
+                desc=create_default_description(),
+                filename=create_default_filename(),
+                isize=1,
+                license=["foo"],
+                md5sum=create_md5sum(),
+                name="foo",
+                packager=create_default_packager(),
+                pgpsig=None,
                 sha256sum=create_sha256sum(),
                 url="https://foobar.tld",
                 version=create_default_full_version(),
