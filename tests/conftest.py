@@ -20,8 +20,11 @@ from repod.common.defaults import ARCHITECTURES
 from repod.common.enums import CompressionTypeEnum, PkgTypeEnum
 from repod.convert import RepoDbFile
 from repod.files import _stream_package_base_to_db, open_tarfile
+from repod.files.buildinfo import BuildInfo, BuildInfoV1, BuildInfoV2
 from repod.files.common import ZstdTarFile
 from repod.files.mtree import MTree, MTreeEntryV1
+from repod.files.package import PackageV1
+from repod.files.pkginfo import PkgInfo, PkgInfoV1, PkgInfoV2
 from repod.repo.management import OutputPackageBase
 from repod.repo.management.outputpackage import OutputPackageBaseV1, OutputPackageV1
 from repod.repo.package import Files, PackageDesc, RepoDbTypeEnum
@@ -129,7 +132,7 @@ def create_default_option() -> str:
     return "foo"
 
 
-@fixture(scope="function")
+@fixture(scope="session")
 def default_option() -> str:
     return create_default_option()
 
@@ -735,6 +738,46 @@ def valid_mtree_bytesio(valid_mtree_file: Path) -> Generator[IO[bytes], None, No
 
 
 @fixture(scope="function")
+def packagev1(
+    default_filename: str,
+    md5sum: str,
+    sha256sum: str,
+    valid_buildinfov1: BuildInfo,
+    valid_mtree: MTree,
+    valid_pkginfov1: PkgInfo,
+) -> PackageV1:
+    return PackageV1(
+        buildinfo=valid_buildinfov1,
+        csize=1,
+        filename=default_filename,
+        md5sum=md5sum,
+        mtree=valid_mtree,
+        pkginfo=valid_pkginfov1,
+        sha256sum=sha256sum,
+    )
+
+
+@fixture(scope="function")
+def packagev1_pkginfov2(
+    default_filename: str,
+    md5sum: str,
+    sha256sum: str,
+    valid_buildinfov1: BuildInfo,
+    valid_mtree: MTree,
+    valid_pkginfov2: PkgInfo,
+) -> PackageV1:
+    return PackageV1(
+        buildinfo=valid_buildinfov1,
+        csize=1,
+        filename=default_filename,
+        md5sum=md5sum,
+        mtree=valid_mtree,
+        pkginfo=valid_pkginfov2,
+        sha256sum=sha256sum,
+    )
+
+
+@fixture(scope="function")
 def temp_dir() -> Generator[Path, None, None]:
     with TemporaryDirectory() as temp_dir:
         yield Path(temp_dir)
@@ -885,6 +928,61 @@ def valid_buildinfov2_file(buildinfov2_stringio: StringIO) -> Generator[Path, No
         yield Path(buildinfo_file.name)
 
 
+@fixture(scope="session")
+def valid_buildinfov1(
+    default_arch: str,
+    default_buildenv: str,
+    default_full_version: str,
+    default_option: str,
+    default_packager: str,
+    sha256sum: str,
+    url: str,
+) -> BuildInfo:
+    return BuildInfoV1(
+        builddate=1,
+        builddir="/build",
+        buildenv=[default_buildenv],
+        format_=1,
+        installed=["bar-1:1.0.1-1-any", "baz-1:1.0.1-1-any"],
+        options=[default_option],
+        packager=default_packager,
+        pkgarch=default_arch,
+        pkgbase="foo",
+        pkgbuild_sha256sum=sha256sum,
+        pkgname="foo",
+        pkgver=default_full_version,
+    )
+
+
+@fixture(scope="session")
+def valid_buildinfov2(
+    default_arch: str,
+    default_buildenv: str,
+    default_full_version: str,
+    default_option: str,
+    default_packager: str,
+    sha256sum: str,
+    url: str,
+) -> BuildInfo:
+    return BuildInfoV2(
+        builddate=1,
+        builddir="/build",
+        buildenv=[default_buildenv],
+        buildtool="buildtool",
+        buildtoolver=default_full_version,
+        format_=1,
+        installed=["bar-1:1.0.1-1-any", "baz-1:1.0.1-1-any"],
+        options=[default_option],
+        packager=default_packager,
+        pkgarch=default_arch,
+        pkgbase="foo",
+        pkgbuild_sha256sum=sha256sum,
+        pkgname="foo",
+        pkgver=default_full_version,
+        startdir="/startdir",
+    )
+
+
 @fixture(scope="function")
 def pkginfov1_stringio(
     default_arch: str,
@@ -963,6 +1061,78 @@ def valid_pkginfov2_file(pkginfov2_stringio: StringIO) -> Generator[Path, None, 
             print(pkginfov2_stringio.getvalue(), file=f)
 
         yield Path(file.name)
+
+
+@fixture(scope="session")
+def valid_pkginfov1(
+    default_arch: str,
+    default_description: str,
+    default_full_version: str,
+    default_license: str,
+    default_packager: str,
+    default_version: str,
+    url: str,
+) -> PkgInfo:
+    return PkgInfoV1(
+        arch=default_arch,
+        backup=None,
+        base="foo",
+        builddate=1,
+        checkdepends=None,
+        conflicts=None,
+        depends=None,
+        desc=default_description,
+        fakeroot_version=default_version,
+        groups=None,
+        isize=1,
+        packager=default_packager,
+        license=[default_license],
+        makedepends=None,
+        makepkg_version=default_version,
+        name="foo",
+        optdepends=None,
+        provides=None,
+        replaces=None,
+        url=url,
+        version=default_full_version,
+    )
+
+
+@fixture(scope="session")
+def valid_pkginfov2(
+    default_arch: str,
+    default_description: str,
+    default_full_version: str,
+    default_license: str,
+    default_packager: str,
+    default_pkgtype: str,
+    default_version: str,
+    url: str,
+) -> PkgInfo:
+    return PkgInfoV2(
+        arch=default_arch,
+        backup=None,
+        base="foo",
+        builddate=1,
+        checkdepends=None,
+        conflicts=None,
+        depends=None,
+        desc=default_description,
+        fakeroot_version=default_version,
+        groups=None,
+        isize=1,
+        packager=default_packager,
+        license=[default_license],
+        makedepends=None,
+        makepkg_version=default_version,
+        name="foo",
+        optdepends=None,
+        pkgtype=default_pkgtype,
+        provides=None,
+        replaces=None,
+        url=url,
+        version=default_full_version,
+    )
 
 
 @fixture(scope="function")
@@ -1181,11 +1351,13 @@ def default_package_file(
     valid_buildinfov2_file: Path,
     valid_pkginfov2_file: Path,
     request: Any,
-) -> Path:
+) -> Tuple[Path, ...]:
     compression = request.param
     suffix = "." + str(request.param.value) if request.param.value else ""
     pkg_name = Path(f"{default_package_name}-{default_full_version}-{default_arch}.pkg.tar{suffix}")
+    sig_name = Path(f"{default_package_name}-{default_full_version}-{default_arch}.pkg.tar{suffix}.sig")
     pkg_path = tmp_path / pkg_name
+    sig_path = tmp_path / sig_name
     text_file_symlink = text_file.parent / "symlink_to_text_file"
     text_file_symlink.symlink_to("text_file")
 
@@ -1197,7 +1369,10 @@ def default_package_file(
         tarfile.add(text_file_symlink, "text_file_symlink")
         tarfile.add(tmp_path, "empty_dir", recursive=False)
 
-    return pkg_path
+    with open(sig_path, "wb") as sig_file:
+        sig_file.write(b"THIS IS NOT A VALID SIGNATURE")
+
+    return tuple([pkg_path, sig_path])
 
 
 @fixture(scope="function")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from logging import debug
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -33,8 +34,38 @@ from repod.common.models import (
     Url,
     Version,
 )
+from repod.files import package
 from repod.repo.package.syncdb import Files, FilesV1, PackageDesc, PackageDescV1
 
+OUTPUT_PACKAGE_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
+    1: {
+        "required": {
+            "arch",
+            "builddate",
+            "csize",
+            "desc",
+            "filename",
+            "isize",
+            "license",
+            "md5sum",
+            "name",
+            "sha256sum",
+            "url",
+        },
+        "optional": {
+            "backup",
+            "checkdepends",
+            "conflicts",
+            "depends",
+            "files",
+            "groups",
+            "optdepends",
+            "pgpsig",
+            "provides",
+            "replaces",
+        },
+    },
+}
 OUTPUT_PACKAGE_BASE_VERSIONS: Dict[int, Dict[str, Union[int, Set[str]]]] = {
     1: {
         "required": {
@@ -58,7 +89,73 @@ class OutputPackage(BaseModel):
     This class should not be instantiated directly. Use one of its subclasses instead!
     """
 
-    pass
+    @classmethod
+    def from_package(cls, package: package.Package) -> OutputPackage:
+        """Create an OutputPackage from a Package
+
+        Parameters
+        ----------
+        package: Path
+            The path to a package file
+        signature: Optional[Path]
+            The optional path to a signature file for package
+
+        Returns
+        -------
+        OutputPackage
+            An instance of one of OutputPackage's child classes
+        """
+
+        outputpackage_version = 0
+        data = package.top_level_dict()
+        keys = set(data.keys())
+
+        debug(f"Creating OutputPackage from Package {data.get('filename')}...")
+
+        for version in range(len(OUTPUT_PACKAGE_VERSIONS), 0, -1):
+            debug(f"Testing Package keys against OutputPackage version {version}...")
+            if len(OUTPUT_PACKAGE_VERSIONS[version]["required"] - {"files"} - keys) == 0:
+                debug(f"OutputPackage version {version} matches the provided Package keys!")
+                outputpackage_version = version
+                break
+
+        match outputpackage_version:
+            case 1:
+                return OutputPackageV1(
+                    arch=package.pkginfo.arch,  # type: ignore[attr-defined]
+                    backup=package.pkginfo.backup,  # type: ignore[attr-defined]
+                    builddate=package.pkginfo.builddate,  # type: ignore[attr-defined]
+                    checkdepends=package.pkginfo.checkdepends,  # type: ignore[attr-defined]
+                    conflicts=package.pkginfo.checkdepends,  # type: ignore[attr-defined]
+                    csize=package.csize,  # type: ignore[attr-defined]
+                    depends=package.pkginfo.depends,  # type: ignore[attr-defined]
+                    desc=package.pkginfo.desc,  # type: ignore[attr-defined]
+                    filename=package.filename,  # type: ignore[attr-defined]
+                    files=Files.from_dict(
+                        {
+                            "files": [
+                                str(path)[1:]
+                                for path in package.mtree.get_paths(show_all=False)  # type: ignore[attr-defined]
+                            ],
+                        }
+                    ),
+                    groups=package.pkginfo.groups,  # type: ignore[attr-defined]
+                    isize=package.pkginfo.isize,  # type: ignore[attr-defined]
+                    license=package.pkginfo.license,  # type: ignore[attr-defined]
+                    md5sum=package.md5sum,  # type: ignore[attr-defined]
+                    name=package.pkginfo.name,  # type: ignore[attr-defined]
+                    optdepends=package.pkginfo.optdepends,  # type: ignore[attr-defined]
+                    pgpsig=package.pgpsig,  # type: ignore[attr-defined]
+                    provides=package.pkginfo.provides,  # type: ignore[attr-defined]
+                    replaces=package.pkginfo.replaces,  # type: ignore[attr-defined]
+                    sha256sum=package.sha256sum,  # type: ignore[attr-defined]
+                    url=package.pkginfo.url,  # type: ignore[attr-defined]
+                )
+            case _:
+                raise RuntimeError(
+                    "An error occurred trying to create an OutputPackage from a Package! "
+                    f"Unable to find matching version for Package keys: {keys}"
+                )
 
 
 class OutputPackageV1(
@@ -261,6 +358,104 @@ class OutputPackageBase(BaseModel):
                 raise errors.RepoManagementValidationError(
                     f"The unsupported schema version ({used_schema_version}) has been encountered, when "
                     f"attempting to read data:\n{data}"
+                )
+
+    @classmethod
+    def from_package(cls, packages: List[package.Package]) -> OutputPackageBase:
+        """Create an OutputPackageBase from a list of Packages of the same pkgbase, pkgtype and version
+
+        Parameters
+        ----------
+        packages: List[Package]
+            A list of Packages to create an OutputPackageBase for
+
+        Raises
+        ------
+        ValueError
+            If packages is an empty list,
+            if more than one pkgbase is used in the list of packages,
+            if duplicate package names are found in the list of packages,
+            if mismatching versions are found in the list of packages,
+            or if mismatching pkgtypes are found in the list of packages
+
+        Returns
+        -------
+        OutputPackageBase
+            An OutputPackageBase that is based on packages
+        """
+
+        if len(packages) == 0:
+            raise ValueError("At least one Package needs to be provided to create an OutputPackageBase.")
+
+        pkgbases = set([str(pkg.top_level_dict().get("pkgbase")) for pkg in packages])
+        if len(pkgbases) > 1:
+            raise ValueError(
+                "Only one pkgbase can be used per OutputPackageBase, but Packages with the following pkgbases are "
+                f"provided: {', '.join(pkgbases)}"
+            )
+
+        names = [
+            str(pkg.top_level_dict().get("name")) for pkg in packages if pkg.top_level_dict().get("name") is not None
+        ]
+        if len(names) != len(set(names)):
+            raise ValueError(
+                "An error occured creating an OutputPackageBase from Packages: "
+                f"No duplicate packages are allowed, but the following Package names are provided: {', '.join(names)}"
+            )
+
+        versions = set([str(pkg.top_level_dict().get("version")) for pkg in packages])
+        if len(versions) != 1:
+            raise ValueError(
+                "Only one version can be used per OutputPackageBase, but Packages with the following versions are "
+                f"provided: {', '.join(versions)}"
+            )
+
+        pkgtypes = set(
+            [
+                str(pkg.top_level_dict().get("pkgtype"))
+                for pkg in packages
+                if pkg.top_level_dict().get("pkgtype") is not None
+            ]
+        )
+        if len(pkgtypes) > 1:
+            raise ValueError(
+                "An error occurred while trying to create an OutputPackageBase from Packages: "
+                f"Only one pkgtype can be present in the list of used Packages, but several ({', '.join(pkgtypes)}) "
+                "are provided!"
+            )
+
+        outputpackagebase_version = 0
+        data = packages[0].top_level_dict()
+        keys = set(data.keys())
+
+        debug(f"Creating OutputPackageBase from Packages {', '.join(names)}...")
+        for version in range(len(OUTPUT_PACKAGE_BASE_VERSIONS), 0, -1):
+            debug(f"Testing Package keys against OutputPackageBase version {version}...")
+            if (
+                len(
+                    OUTPUT_PACKAGE_BASE_VERSIONS[version]["required"]  # type: ignore[arg-type]
+                    - {"packages"}  # type: ignore[operator]
+                    - keys  # type: ignore[operator]
+                )
+                == 0
+            ):
+                debug(f"OutputPackageBase version {version} matches the provided Package keys!")
+                outputpackagebase_version = version
+                break
+
+        match outputpackagebase_version:
+            case 1:
+                return OutputPackageBaseV1(
+                    base=packages[0].pkginfo.base,  # type: ignore[attr-defined]
+                    makedepends=packages[0].pkginfo.makedepends,  # type: ignore[attr-defined]
+                    packager=packages[0].pkginfo.packager,  # type: ignore[attr-defined]
+                    packages=[OutputPackage.from_package(package=pkg) for pkg in packages],
+                    version=packages[0].pkginfo.version,  # type: ignore[attr-defined]
+                )
+            case _:
+                raise RuntimeError(
+                    "An error occurred while attempting to create an OutputPackageBase!"
+                    f"Unable to find matching version for Package keys: {keys}"
                 )
 
     def add_packages(self, packages: List[OutputPackage]) -> None:

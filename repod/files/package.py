@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from logging import debug
+from base64 import b64encode
+from hashlib import md5, sha256
+from logging import debug, info
 from pathlib import Path
-from typing import Union
+from typing import Any, Dict, Optional, Union
 
 from pydantic import BaseModel
 
+from repod.common.models import CSize, FileName, Md5Sum, PgpSig, Sha256Sum
 from repod.errors import RepoManagementFileError
 from repod.files.buildinfo import BuildInfo
 from repod.files.common import (  # noqa: F401
@@ -31,11 +34,42 @@ class Package(BaseModel):
     """
 
     @classmethod
-    async def from_file(cls, path: Path) -> Package:
-        package_version = 0
+    async def from_file(cls, package: Path, signature: Optional[Path] = None) -> Package:
+        """Create a Package from a package file and an optional signature
 
-        debug(f"Opening package file {path} for reading...")
-        with open_tarfile(path) as tarfile:
+        Parameters
+        ----------
+        package: Path
+            The path to a package file
+        signature: Optional[Path]
+            The optional path to a signature file for package
+
+        Returns
+        -------
+        Package
+            A Package representing the metadata contained in package and the optional signature file
+        """
+
+        package_version = 0
+        package_md5sum = ""
+        package_sha256sum = ""
+        pgpsig: Optional[str] = None
+
+        if signature:
+            debug(f"Opening signature file {signature} for reading...")
+            with open(signature, "rb") as signature_file:
+                pgpsig = b64encode(signature_file.read()).decode("utf-8")
+                debug(f"Created pgpsig: {pgpsig}")
+        else:
+            info(f"No signature file for package {package} provided, commencing without...")
+
+        info(f"Creating checksums for package {package}...")
+        with open(package, "rb") as package_file:
+            package_md5sum = md5(package_file.read()).hexdigest()
+            package_sha256sum = sha256(package_file.read()).hexdigest()
+
+        debug(f"Opening package file {package} for reading...")
+        with open_tarfile(package) as tarfile:
             for version in range(len(PACKAGE_VERSIONS), 0, -1):
                 debug(f"Testing data against Package version {version}...")
                 if names_in_tarfile(tarfile=tarfile, names=PACKAGE_VERSIONS[version]["required"]):
@@ -53,6 +87,9 @@ class Package(BaseModel):
                                 as_stringio=True,
                             )
                         ),
+                        csize=package.stat().st_size,
+                        filename=package.name,
+                        md5sum=package_md5sum,
                         mtree=MTree.from_file(
                             data=await extract_file_from_tarfile(  # type: ignore[arg-type]
                                 tarfile=tarfile,
@@ -61,6 +98,7 @@ class Package(BaseModel):
                                 gzip_compressed=True,
                             ),
                         ),
+                        pgpsig=pgpsig,
                         pkginfo=PkgInfo.from_file(
                             data=await extract_file_from_tarfile(  # type: ignore[arg-type]
                                 tarfile=tarfile,
@@ -68,24 +106,55 @@ class Package(BaseModel):
                                 as_stringio=True,
                             ),
                         ),
+                        sha256sum=package_sha256sum,
                     )
                 case _:
                     raise RepoManagementFileError(
-                        f"The provided file {path} does not match any known package versions!"
+                        f"The provided file {package} does not match any known package versions!"
                     )
 
+    def top_level_dict(self) -> Dict[str, Any]:
+        """Flatten the keys and values tracked by Package (one level deep) and return them in a dict
 
-class PackageV1(Package):
+        NOTE: Duplicate entries are merged!
+
+        Returns
+        -------
+        Dict[str, Any]
+            A flattened dict representation of Package
+        """
+
+        top_level: Dict[str, Any] = {}
+        for key, value in self.dict().items():
+            if isinstance(value, dict):
+                top_level.update(value)
+            else:
+                top_level.update({key: value})
+
+        return top_level
+
+
+class PackageV1(CSize, FileName, Md5Sum, Package, PgpSig, Sha256Sum):
     """Package representation version 1
 
     Attributes
     ----------
     buildinfo: BuildInfo
         A .BUILDINFO file representation
+    csize: CSize
+        The file size of the Package
+    filename: FileName
+        The filename of the Package
+    md5sum: str
+        An MD5 checksum for the package
     mtree: MTree
         An .MTREE file representation
+    pgpsig: Optional[str]
+        An optional PGP signature (in base64 representation) for the package
     pkginfo: PkgInfo
         A .PKGINFO file representation
+    sha256sum: str
+        A SHA256 checksum for the package
     """
 
     buildinfo: BuildInfo

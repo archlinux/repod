@@ -1,10 +1,12 @@
 from contextlib import nullcontext as does_not_raise
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, ContextManager, Dict, List, Union
 
 from pytest import mark, raises
 
 from repod.errors import RepoManagementValidationError
+from repod.files.package import Package
 from repod.repo.management import outputpackage
 from repod.repo.package import syncdb
 from tests.conftest import (
@@ -17,6 +19,15 @@ from tests.conftest import (
     create_sha256sum,
     create_url,
 )
+
+
+def test_outputpackage_from_packagev1(packagev1: Package) -> None:
+    outputpackage.OutputPackage.from_package(package=packagev1)
+
+
+def test_outputpackage_from_package() -> None:
+    with raises(RuntimeError):
+        outputpackage.OutputPackage.from_package(package=Package())
 
 
 @mark.parametrize(
@@ -157,6 +168,49 @@ async def test_output_package_base_v1_get_packages_as_models(
 def test_outputpackagebase_from_dict(data: Dict[str, Union[Any, List[Any]]], expectation: ContextManager[str]) -> None:
     with expectation:
         assert isinstance(outputpackage.OutputPackageBase.from_dict(data=data), outputpackage.OutputPackageBase)
+
+
+def test_outputpackagebase_from_package() -> None:
+    with raises(RuntimeError):
+        outputpackage.OutputPackageBase.from_package(packages=[Package()])
+
+
+def test_outputpackagebase_from_packagev1(packagev1: Package) -> None:
+    assert outputpackage.OutputPackageBase.from_package(packages=[packagev1])
+
+
+def test_outputpackagebase_from_package_raise_on_no_package() -> None:
+    with raises(ValueError):
+        assert outputpackage.OutputPackageBase.from_package(packages=[])
+
+
+def test_outputpackagebase_from_packagev1_raise_on_multiple_pkgbases(packagev1: Package) -> None:
+    package_b = deepcopy(packagev1)
+    package_b.buildinfo.pkgbase = "wrong"  # type: ignore[attr-defined]
+    with raises(ValueError):
+        outputpackage.OutputPackageBase.from_package(packages=[packagev1, package_b])
+
+
+def test_outputpackagebase_from_packagev1_raise_on_duplicate_names(packagev1: Package) -> None:
+    package_b = deepcopy(packagev1)
+    with raises(ValueError):
+        outputpackage.OutputPackageBase.from_package(packages=[packagev1, package_b])
+
+
+def test_outputpackagebase_from_packagev1_raise_on_version_mismatch(packagev1: Package) -> None:
+    package_b = deepcopy(packagev1)
+    package_b.pkginfo.name = "different"  # type: ignore[attr-defined]
+    package_b.pkginfo.version = "wrong"  # type: ignore[attr-defined]
+    with raises(ValueError):
+        outputpackage.OutputPackageBase.from_package(packages=[packagev1, package_b])
+
+
+def test_outputpackagebase_from_packagev1_raise_on_pkgtype_mismatch(packagev1_pkginfov2: Package) -> None:
+    package_b = deepcopy(packagev1_pkginfov2)
+    package_b.pkginfo.name = "different"  # type: ignore[attr-defined]
+    package_b.pkginfo.pkgtype = "debug"  # type: ignore[attr-defined]
+    with raises(ValueError):
+        outputpackage.OutputPackageBase.from_package(packages=[packagev1_pkginfov2, package_b])
 
 
 @mark.parametrize(

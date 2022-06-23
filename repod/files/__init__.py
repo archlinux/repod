@@ -11,12 +11,11 @@ from typing import AsyncIterator, Iterator
 import aiofiles
 import orjson
 
-from repod import errors
+from repod import convert, errors
 from repod.config.defaults import DB_DIR_MODE, DB_FILE_MODE, DB_GROUP, DB_USER
-from repod.convert import RepoDbFile
 from repod.files.common import extract_file_from_tarfile, open_tarfile  # noqa: F401
 from repod.files.package import Package  # noqa: F401
-from repod.repo.management import OutputPackageBase
+from repod.repo import management
 from repod.repo.package import RepoDbMemberData, RepoDbMemberTypeEnum, RepoDbTypeEnum
 
 
@@ -101,7 +100,7 @@ async def _json_files_in_directory(path: Path) -> AsyncIterator[Path]:
         yield json_file
 
 
-async def _read_pkgbase_json_file(path: Path) -> OutputPackageBase:
+async def _read_pkgbase_json_file(path: Path) -> management.OutputPackageBase:
     """Read a JSON file that represents a pkgbase and return it as OutputPackageBase
 
     Parameters
@@ -124,7 +123,7 @@ async def _read_pkgbase_json_file(path: Path) -> OutputPackageBase:
 
     async with aiofiles.open(path, "r") as input_file:
         try:
-            model = OutputPackageBase.from_dict(data=orjson.loads(await input_file.read()))
+            model = management.OutputPackageBase.from_dict(data=orjson.loads(await input_file.read()))
             return model
         except orjson.JSONDecodeError as e:
             raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
@@ -162,8 +161,8 @@ def _write_db_file(path: Path, compression: str = "gz") -> Iterator[tarfile.TarF
 
 async def _stream_package_base_to_db(
     db: tarfile.TarFile,
-    model: OutputPackageBase,
-    repodbfile: RepoDbFile,
+    model: management.OutputPackageBase,
+    repodbfile: convert.RepoDbFile,
     db_type: RepoDbTypeEnum,
 ) -> None:
     """Stream descriptor files for packages of a pkgbase to a repository database

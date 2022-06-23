@@ -98,9 +98,9 @@ async def test_extract_file_from_tarfile(
     as_stringio: bool,
     gzip_compressed: bool,
     expectation: ContextManager[str],
-    default_package_file: Path,
+    default_package_file: Tuple[Path, ...],
 ) -> None:
-    with common.open_tarfile(path=default_package_file, compression=None, mode="r") as tarfile:
+    with common.open_tarfile(path=default_package_file[0], compression=None, mode="r") as tarfile:
         with expectation:
             await common.extract_file_from_tarfile(
                 tarfile=tarfile,
@@ -175,7 +175,7 @@ def test_compression_type_of_tarfile(
 def test_names_in_tarfile(
     names: Union[List[str], Set[str]],
     expectation: bool,
-    default_package_file: Path,
+    default_package_file: Tuple[Path, ...],
 ) -> None:
-    with common.open_tarfile(path=default_package_file, compression=None, mode="r") as tarfile:
+    with common.open_tarfile(path=default_package_file[0], compression=None, mode="r") as tarfile:
         assert common.names_in_tarfile(tarfile=tarfile, names=names) is expectation
