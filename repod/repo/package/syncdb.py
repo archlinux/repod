@@ -377,6 +377,7 @@ class PackageDesc(BaseModel):
 
             return None
 
+        debug(f"Creating Files from data: {data}")
         detected_version = derive_package_desc_version(data=set(data.keys()))
         debug(f"Detected schema version of 'desc' file: {detected_version}")
 
@@ -394,6 +395,74 @@ class PackageDesc(BaseModel):
                     )
             case _:
                 raise RepoManagementValidationError(f"The data format of the 'desc' file is unknown:\n{data}")
+
+    @classmethod
+    async def from_stream(cls, data: io.StringIO) -> PackageDesc:
+        """Initialize a PackageDesc from an input stream
+
+        Parameters
+        ----------
+        data: io.StringIO
+            A buffered I/O that represents a 'desc' file
+
+        Raises
+        ------
+        errors.RepoManagementValidationError
+            If a pydantic.error_wrappers.ValidationError is raised (e.g. due to a missing attribute) or if a ValueError
+            is raised when converting data
+
+        Returns
+        -------
+        PackageDesc
+            A PackageDesc instance based on data
+        """
+
+        current_header = ""
+        current_type: FieldTypeEnum
+        int_types: Dict[str, int] = {}
+        string_types: Dict[str, str] = {}
+        string_list_types: Dict[str, List[str]] = {}
+        keys = get_desc_json_keys()
+
+        for line in data:
+            line = line.strip()
+            if not line:
+                continue
+
+            if line in keys:
+                current_header = get_desc_json_name(key=line)
+                current_type = get_desc_json_field_type(line)
+                # FIXME: find better way to provide a default (None or empty list for STRING_LIST as they all are
+                # Optional[List[str]]
+                if current_header and current_type == FieldTypeEnum.STRING_LIST:
+                    string_list_types[current_header] = []
+
+                continue
+
+            if current_header:
+                try:
+                    match current_type:
+                        case FieldTypeEnum.STRING_LIST:
+                            string_list_types[current_header] += [line]
+                        case FieldTypeEnum.STRING:
+                            string_types[current_header] = line
+                        case FieldTypeEnum.INT:
+                            int_types[current_header] = int(line)
+                        case _:  # pragma: no cover
+                            pass
+                except ValueError as e:
+                    raise RepoManagementValidationError(
+                        "An error occured while attempting to cast values for a 'desc' file!\n"
+                        f"\n{data.getvalue()}\n{e}"
+                    )
+
+        desc_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
+        try:
+            return PackageDesc.from_dict(desc_dict)
+        except RepoManagementValidationError as e:
+            raise RepoManagementValidationError(
+                "An error occured while validating a 'desc' file!\n" f"\n{data.getvalue()}\n{e}"
+            )
 
     async def render(self, output: io.StringIO) -> None:
         """Use a 'desc' jinja template to write the PackageDesc contents to an output stream
@@ -679,6 +748,54 @@ class Files(BaseModel):
                 raise RepoManagementValidationError(
                     f"The data format '{detected_version}' of the 'files' file is unknown:\n{data}"
                 )
+
+    @classmethod
+    async def from_stream(cls, data: io.StringIO) -> Files:
+        """Initialize a Files from an input stream
+
+        Parameters
+        ----------
+        data: io.StringIO
+            A buffered I/O that represents the contents of a 'files' file
+
+        Raises
+        ------
+        errors.RepoManagementValidationError
+            If a pydantic.error_wrappers.ValidationError is raised (e.g. due to a missing attribute)
+
+        Returns
+        -------
+        Files
+            A Files instance based on data
+        """
+
+        current_header = ""
+        current_type: FieldTypeEnum
+        string_list_types: Dict[str, List[str]] = {}
+        keys = get_files_json_keys()
+
+        for line in data:
+            line = line.strip()
+            if not line:
+                continue
+
+            if line in keys:
+                current_header = get_files_json_name(key=line)
+                current_type = get_files_json_field_type(line)
+                debug(f"Found header {current_header} of type {current_type}")
+                string_list_types[current_header] = []
+                continue
+
+            if current_header:
+                debug(f"Adding value {line} for header {current_header}")
+                string_list_types[current_header] += [line]
+
+        try:
+            return Files.from_dict(data=string_list_types)
+        except RepoManagementValidationError as e:
+            raise RepoManagementValidationError(
+                f"An error occured while validating a 'files' file!\n" f"\n{data.getvalue()}\n{e}"
+            )
 
     async def render(self, output: io.StringIO) -> None:
         """Use a 'files' jinja template to write the Files contents to an output stream

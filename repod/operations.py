@@ -6,7 +6,6 @@ import aiofiles
 import orjson
 
 from repod.common.enums import CompressionTypeEnum
-from repod.convert import file_data_to_model
 from repod.files import (
     _db_file_member_as_model,
     _json_files_in_directory,
@@ -47,15 +46,9 @@ async def db_file_as_models(
         async for member in _db_file_member_as_model(db_file=db_tarfile):
             match member.member_type:
                 case RepoDbMemberTypeEnum.DESC:
-                    desc_data: PackageDesc = await file_data_to_model(  # type: ignore[assignment]
-                        name=member.name, data=member.data, data_type=member.member_type
-                    )
-                    package_descs.update({member.name: desc_data})
+                    package_descs.update({member.name: await PackageDesc.from_stream(data=member.data)})
                 case RepoDbMemberTypeEnum.FILES:
-                    files_data: Files = await file_data_to_model(  # type: ignore[assignment]
-                        name=member.name, data=member.data, data_type=member.member_type
-                    )
-                    package_files.update({member.name: files_data})
+                    package_files.update({member.name: await Files.from_stream(data=member.data)})
                 case _:  # pragma: no cover
                     # NOTE: this case can never be reached, but we add it to make tests happy
                     raise RuntimeError(

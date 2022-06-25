@@ -2,6 +2,7 @@ from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from logging import DEBUG
 from pathlib import Path
+from textwrap import dedent
 from typing import Any, ContextManager, Dict, List, Optional, Set, Union
 from unittest.mock import patch
 
@@ -111,6 +112,55 @@ def test_files_get_schema_version() -> None:
 def test_files_from_dict(data: Dict[str, Any], expectation: ContextManager[str]) -> None:
     with expectation:
         syncdb.Files.from_dict(data=data)
+
+
+@mark.parametrize(
+    "data, expectation",
+    [
+        (
+            """%FILES%
+            foo
+
+            """,
+            does_not_raise(),
+        ),
+        (
+            """%FILES%
+            home/foo/bar
+
+            """,
+            raises(RepoManagementValidationError),
+        ),
+        (
+            """%FILES%
+            foo
+
+            %FOO%
+            bar
+
+            """,
+            does_not_raise(),
+        ),
+        (
+            """foo
+            bar""",
+            raises(RepoManagementValidationError),
+        ),
+        ("", raises(RepoManagementValidationError)),
+    ],
+    ids=[
+        "files_v1",
+        "files_v1, files in /home",
+        "files_v1, unknown keyword",
+        "only values",
+        "empty",
+    ],
+)
+@mark.asyncio
+async def test_files_from_stream(data: str, expectation: ContextManager[str], caplog: LogCaptureFixture) -> None:
+    caplog.set_level(DEBUG)
+    with expectation:
+        assert await syncdb.Files.from_stream(data=StringIO("\n".join([m.strip() for m in dedent(data).split("\n")])))
 
 
 @mark.parametrize(
@@ -315,6 +365,491 @@ def test_package_desc_from_dict_derive_file_version(
                     syncdb.PackageDesc.from_dict(data=input_dict)
                     if emit_warning:
                         logging_warning_mock.assert_called_once()
+
+
+@mark.parametrize(
+    "data, expectation",
+    [
+        (
+            f"""%ARCH%
+            any
+
+            %BACKUP%
+            foo
+            bar
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+            foo
+            bar
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+            foo
+            bar
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+            foo
+            bar
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+            foo
+            bar
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+            foo
+            bar
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+            foo
+            bar
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+            foo
+            bar
+
+            %REPLACES%
+            foo
+            bar
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            does_not_raise(),
+        ),
+        (
+            f"""%ARCH%
+            any
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CSIZE%
+            23
+
+            %DESC%
+            foo
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            does_not_raise(),
+        ),
+        (
+            f"""%ARCH%
+            any
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CSIZE%
+            23
+
+            %DESC%
+            foo
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            does_not_raise(),
+        ),
+        (
+            f"""
+
+
+            %ARCH%
+            any
+
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            does_not_raise(),
+        ),
+        (
+            f"""
+
+            %ARCH%
+            any
+
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            X-X-X
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            foo
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            raises(RepoManagementValidationError),
+        ),
+        (
+            f"""
+            %ARCH%
+            any
+
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            foo
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            raises(RepoManagementValidationError),
+        ),
+        (
+            """
+            %FOO%
+            bar
+            """,
+            raises(RepoManagementValidationError),
+        ),
+        (
+            f"""
+            %BACKUP%
+
+            %BASE%
+            foo
+
+            %BUILDDATE%
+            42
+
+            %CONFLICTS%
+
+            %CSIZE%
+            23
+
+            %DEPENDS%
+
+            %DESC%
+            foo
+
+            %CHECKDEPENDS%
+
+            %FILENAME%
+            {create_default_filename()}
+
+            %GROUPS%
+
+            %ISIZE%
+            42
+
+            %LICENSE%
+            foo
+            bar
+
+            %MAKEDEPENDS%
+
+            %MD5SUM%
+            {create_md5sum()}
+
+            %NAME%
+            foo
+
+            %OPTDEPENDS%
+
+            %PACKAGER%
+            {create_default_packager()}
+
+            %PGPSIG%
+            {create_base64_pgpsig()}
+
+            %PROVIDES%
+
+            %REPLACES%
+
+            %SHA256SUM%
+            {create_sha256sum()}
+
+            %URL%
+            {create_url()}
+
+            %VERSION%
+            1:1.0.0-1
+            """,
+            raises(RepoManagementValidationError),
+        ),
+        ("", raises(RepoManagementValidationError)),
+    ],
+    ids=[
+        "desc_v1, all fields populated",
+        "desc_v1, minimum fields populated",
+        "desc_v1, minimum fields populated, no pgpsig",
+        "desc_v1, minimum fields populated, leading newline",
+        "desc_v1, minimum fields populated, invalid name",
+        "desc_v1, minimum fields populated, invalid csize",
+        "desc_v1, single invalid field",
+        "desc_v1, minimum fields populated, missing %ARCH% field",
+        "empty",
+    ],
+)
+@mark.asyncio
+async def test_packagedesc_from_stream(data: str, expectation: ContextManager[str], caplog: LogCaptureFixture) -> None:
+    caplog.set_level(DEBUG)
+    with expectation:
+        assert await syncdb.PackageDesc.from_stream(
+            data=StringIO("\n".join([m.strip() for m in dedent(data).split("\n")]))
+        )
 
 
 @mark.parametrize(
