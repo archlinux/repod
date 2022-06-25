@@ -49,14 +49,6 @@ async def test__json_files_in_directory(
 
 
 @mark.asyncio
-async def test__read_pkgbase_json_file(broken_json_file: Path, invalid_json_file: Path) -> None:
-    with raises(errors.RepoManagementFileError):
-        await files._read_pkgbase_json_file(path=broken_json_file)
-    with raises(errors.RepoManagementValidationError):
-        await files._read_pkgbase_json_file(path=invalid_json_file)
-
-
-@mark.asyncio
 async def test__write_db_file(empty_dir: Path) -> None:
     with files._write_db_file(empty_dir / "foo.db") as database:
         assert isinstance(database, tarfile.TarFile)

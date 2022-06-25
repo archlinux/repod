@@ -5,7 +5,7 @@ from typing import Any, ContextManager, Dict, List, Union
 
 from pytest import mark, raises
 
-from repod.errors import RepoManagementValidationError
+from repod.errors import RepoManagementFileError, RepoManagementValidationError
 from repod.files.package import Package
 from repod.repo.management import outputpackage
 from repod.repo.package import syncdb
@@ -168,6 +168,14 @@ async def test_output_package_base_v1_get_packages_as_models(
 def test_outputpackagebase_from_dict(data: Dict[str, Union[Any, List[Any]]], expectation: ContextManager[str]) -> None:
     with expectation:
         assert isinstance(outputpackage.OutputPackageBase.from_dict(data=data), outputpackage.OutputPackageBase)
+
+
+@mark.asyncio
+async def test_outputpackagebase_from_file(broken_json_file: Path, invalid_json_file: Path) -> None:
+    with raises(RepoManagementFileError):
+        await outputpackage.OutputPackageBase.from_file(path=broken_json_file)
+    with raises(RepoManagementValidationError):
+        await outputpackage.OutputPackageBase.from_file(path=invalid_json_file)
 
 
 def test_outputpackagebase_from_package() -> None:

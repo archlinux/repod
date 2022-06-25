@@ -9,7 +9,6 @@ from repod.common.enums import CompressionTypeEnum
 from repod.files import (
     _db_file_member_as_model,
     _json_files_in_directory,
-    _read_pkgbase_json_file,
     _stream_package_base_to_db,
     _write_db_file,
     open_tarfile,
@@ -112,7 +111,7 @@ async def create_db_from_json_files(
 
     with _write_db_file(path=output_path) as database:
         async for path in _json_files_in_directory(path=input_path):
-            model = await _read_pkgbase_json_file(path)
+            model = await OutputPackageBase.from_file(path=path)
             await _stream_package_base_to_db(
                 db=database,
                 model=model,

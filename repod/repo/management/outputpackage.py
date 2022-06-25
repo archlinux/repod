@@ -4,6 +4,8 @@ from logging import debug
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
+from aiofiles import open as async_open
+from orjson import JSONDecodeError, loads
 from pydantic import BaseModel, ValidationError
 
 from repod import errors
@@ -359,6 +361,32 @@ class OutputPackageBase(BaseModel):
                     f"The unsupported schema version ({used_schema_version}) has been encountered, when "
                     f"attempting to read data:\n{data}"
                 )
+
+    @classmethod
+    async def from_file(cls, path: Path) -> OutputPackageBase:
+        """Initialize an OutputPackageBase from a JSON file
+
+        Parameters
+        ----------
+        path: Path
+            A Path to to a JSON file
+
+        Raises
+        ------
+        RepoManagementFileError
+            If the JSON file can not be decoded
+
+        Returns
+        -------
+        OutputPackageBase
+            An instance of OutputPackageBase based on path
+        """
+
+        async with async_open(path, "r") as input_file:
+            try:
+                return OutputPackageBase.from_dict(data=loads(await input_file.read()))
+            except JSONDecodeError as e:
+                raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
 
     @classmethod
     def from_package(cls, packages: List[package.Package]) -> OutputPackageBase:

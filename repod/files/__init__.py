@@ -8,9 +8,6 @@ import time
 from pathlib import Path
 from typing import AsyncIterator, Iterator
 
-import aiofiles
-import orjson
-
 from repod import errors
 from repod.config.defaults import DB_DIR_MODE, DB_FILE_MODE, DB_GROUP, DB_USER
 from repod.files.common import extract_file_from_tarfile, open_tarfile  # noqa: F401
@@ -98,35 +95,6 @@ async def _json_files_in_directory(path: Path) -> AsyncIterator[Path]:
 
     for json_file in file_list:
         yield json_file
-
-
-async def _read_pkgbase_json_file(path: Path) -> management.OutputPackageBase:
-    """Read a JSON file that represents a pkgbase and return it as OutputPackageBase
-
-    Parameters
-    ----------
-    path: Path
-        A Path to to a JSON file
-
-    Raises
-    ------
-    errors.RepoManagementFileError
-        If the JSON file can not be decoded
-    errors.RepoManagementValidationError
-        If the JSON file can not be validated using OutputPackageBase
-
-    Returns
-    -------
-    OutputPackageBase
-        A pydantic model representing a pkgbase
-    """
-
-    async with aiofiles.open(path, "r") as input_file:
-        try:
-            model = management.OutputPackageBase.from_dict(data=orjson.loads(await input_file.read()))
-            return model
-        except orjson.JSONDecodeError as e:
-            raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
 
 
 @contextlib.contextmanager
