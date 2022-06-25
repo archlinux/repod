@@ -5,6 +5,7 @@ from repod.repo.package.syncdb import (  # noqa: F401
     RepoDbMemberType,
     RepoDbMemberTypeEnum,
     RepoDbTypeEnum,
+    SyncDatabase,
     get_desc_json_field_type,
     get_desc_json_keys,
     get_desc_json_name,

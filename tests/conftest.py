@@ -18,7 +18,7 @@ from pytest import fixture
 
 from repod.common.defaults import ARCHITECTURES
 from repod.common.enums import CompressionTypeEnum, PkgTypeEnum
-from repod.files import _stream_package_base_to_db, open_tarfile
+from repod.files import open_tarfile
 from repod.files.buildinfo import BuildInfo, BuildInfoV1, BuildInfoV2
 from repod.files.common import ZstdTarFile
 from repod.files.mtree import MTree, MTreeEntryV1
@@ -27,7 +27,7 @@ from repod.files.pkginfo import PkgInfo, PkgInfoV1, PkgInfoV2
 from repod.repo.management import OutputPackageBase
 from repod.repo.management.outputpackage import OutputPackageBaseV1, OutputPackageV1
 from repod.repo.package import Files, PackageDesc, RepoDbTypeEnum
-from repod.repo.package.syncdb import FilesV1, PackageDescV1
+from repod.repo.package.syncdb import FilesV1, PackageDescV1, SyncDatabase
 
 
 class SchemaVersion9999(BaseModel):
@@ -1248,6 +1248,7 @@ async def default_sync_db_file(
     outputpackagebasev1: OutputPackageBaseV1,
     request: Any,
     sha256sum: str,
+    tmp_path: Path,
 ) -> AsyncGenerator[Tuple[Path, Path], None]:
     compression = request.param
     suffix = ""
@@ -1264,21 +1265,19 @@ async def default_sync_db_file(
     tar_db_name = Path(f"test.db.tar{suffix}")
     symlink_db_name = Path("test.db")
 
-    with TemporaryDirectory() as temp_dir:
-        sync_db_tarfile = Path(temp_dir) / f"test.tar{compression}"
-        temp_path = Path(temp_dir)
-        sync_db_tarfile = temp_path / tar_db_name
-        sync_db_symlink = temp_path / symlink_db_name
-        with open_tarfile(path=sync_db_tarfile, compression=compression, mode="x") as db_tarfile:
-            await _stream_package_base_to_db(
-                db=db_tarfile,
-                model=outputpackagebasev1,
-                db_type=RepoDbTypeEnum.DEFAULT,
-            )
+    sync_db_tarfile = tmp_path / f"test.tar{compression}"
+    sync_db_tarfile = tmp_path / tar_db_name
+    sync_db_symlink = tmp_path / symlink_db_name
+    sync_db = SyncDatabase(
+        database=sync_db_tarfile,
+        database_type=RepoDbTypeEnum.DEFAULT,
+        compression_type=compression,
+    )
+    await sync_db.add(model=outputpackagebasev1)
 
-        chdir(temp_path)
-        symlink_db_name.symlink_to(sync_db_tarfile.name)
-        yield (sync_db_tarfile, sync_db_symlink)
+    chdir(tmp_path)
+    symlink_db_name.symlink_to(sync_db_tarfile.name)
+    yield (sync_db_tarfile, sync_db_symlink)
 
 
 @pytest_asyncio.fixture(
@@ -1321,12 +1320,12 @@ async def files_sync_db_file(
         temp_path = Path(temp_dir)
         sync_db_tarfile = temp_path / tar_db_name
         sync_db_symlink = temp_path / symlink_db_name
-        with open_tarfile(path=sync_db_tarfile, compression=compression, mode="x") as db_tarfile:
-            await _stream_package_base_to_db(
-                db=db_tarfile,
-                model=outputpackagebasev1,
-                db_type=RepoDbTypeEnum.FILES,
-            )
+        sync_db = SyncDatabase(
+            database=sync_db_tarfile,
+            database_type=RepoDbTypeEnum.FILES,
+            compression_type=compression,
+        )
+        await sync_db.add(model=outputpackagebasev1)
 
         chdir(temp_path)
         symlink_db_name.symlink_to(sync_db_tarfile.name)

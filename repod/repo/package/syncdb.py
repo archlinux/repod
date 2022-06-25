@@ -4,12 +4,14 @@ import io
 from enum import IntEnum
 from logging import debug, warning
 from pathlib import Path
+from tarfile import DIRTYPE, TarFile, TarInfo
+from time import time
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from pydantic import BaseModel, ValidationError
 
-from repod.common.enums import FieldTypeEnum
+from repod.common.enums import CompressionTypeEnum, FieldTypeEnum
 from repod.common.models import (
     Arch,
     Backup,
@@ -43,8 +45,13 @@ from repod.errors import (
     RepoManagementFileNotFoundError,
     RepoManagementValidationError,
 )
+from repod.files.common import open_tarfile
 from repod.repo.management import outputpackage
 
+DB_USER = "root"
+DB_GROUP = "root"
+DB_FILE_MODE = "0644"
+DB_DIR_MODE = "0755"
 DESC_JSON: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "%BASE%": ("base", FieldTypeEnum.STRING),
     "%VERSION%": ("version", FieldTypeEnum.STRING),
@@ -305,6 +312,124 @@ def get_files_json_field_type(key: str) -> FieldTypeEnum:
         return FILES_JSON[key][1]
     except KeyError:
         raise RepoManagementFileError(f"The key {key} is not a known 'files' file identifier.")
+
+
+class SyncDatabase(BaseModel):
+    """A model describing a repository sync database
+
+    Attributes
+    ----------
+    database: Path
+        The path to the database that the instance manages
+    database_type: RepoDbTypeEnum
+        The type of database that the instance manages
+    compression_type: CompressionTypeEnum
+        The compression type which is used for  the database
+    """
+
+    database: Path
+    database_type: RepoDbTypeEnum
+    compression_type: Optional[CompressionTypeEnum]
+
+    @classmethod
+    async def outputpackagebase_to_tarfile(
+        cls,
+        tarfile: TarFile,
+        database_type: RepoDbTypeEnum,
+        model: outputpackage.OutputPackageBase,
+    ) -> None:
+        """Stream descriptor files derived from an OutputPackageBase to a TarFile
+
+        Allows streaming to a default repository database or a files database
+
+        Parameters
+        ----------
+        tarfile: TarFile
+            A TarFile to stream data to
+        db_type: RepoDbTypeEnum
+            The type of database to stream to
+        model: OutputPackageBase
+            The OutputPackageBase instance to derive descriptor files from
+        """
+
+        for (desc_model, files_model) in await model.get_packages_as_models():
+            dirname = f"{desc_model.get_name()}-{model.get_version()}"
+            directory = TarInfo(dirname)
+            directory.type = DIRTYPE
+            directory.mtime = int(time())
+            directory.uname = DB_USER
+            directory.gname = DB_GROUP
+            directory.mode = int(DB_DIR_MODE, base=8)
+            tarfile.addfile(directory)
+
+            desc_content = io.StringIO()
+            await desc_model.render(output=desc_content)
+            desc_file = TarInfo(f"{dirname}/desc")
+            desc_file.size = len(desc_content.getvalue().encode())
+            desc_file.mtime = int(time())
+            desc_file.uname = DB_USER
+            desc_file.gname = DB_GROUP
+            desc_file.mode = int(DB_FILE_MODE, base=8)
+            tarfile.addfile(desc_file, io.BytesIO(desc_content.getvalue().encode()))
+
+            if database_type == RepoDbTypeEnum.FILES:
+                files_content = io.StringIO()
+                await files_model.render(output=files_content)
+                files_file = TarInfo(f"{dirname}/files")
+                files_file.size = len(files_content.getvalue().encode())
+                files_file.mtime = int(time())
+                files_file.uname = DB_USER
+                files_file.gname = DB_GROUP
+                files_file.mode = int(DB_FILE_MODE, base=8)
+                tarfile.addfile(files_file, io.BytesIO(files_content.getvalue().encode()))
+
+    async def add(self, model: outputpackage.OutputPackageBase) -> None:
+        """Write descriptor files for packages of a single pkgbase to the repository sync database
+
+        Parameters
+        ----------
+        model: OutputPackageBase
+            The model to use for streaming descriptor files to the repository database
+        """
+
+        debug(f"Opening file {self.database} for writing...")
+
+        with open_tarfile(
+            path=self.database,
+            compression=self.compression_type,
+            mode="w",
+        ) as database_file:
+            await SyncDatabase.outputpackagebase_to_tarfile(
+                tarfile=database_file,
+                database_type=self.database_type,
+                model=model,
+            )
+
+    async def stream_management_repo(self, path: Path) -> None:
+        """Stream descriptor files read from the JSON files of a management repository to the repository sync database
+
+        Parameters
+        ----------
+        path: Path
+            The directory containing the files of the management repository
+
+        Raises
+        ------
+        RepoManagementFileNotFoundError
+            If no JSON files are found in path
+        """
+
+        file_list = sorted(path.glob("*.json"))
+        if not file_list:
+            raise RepoManagementFileNotFoundError(f"There are no JSON files in {path}!")
+
+        with open_tarfile(self.database, compression=self.compression_type, mode="w") as database_file:
+            for json_file in file_list:
+                await SyncDatabase.outputpackagebase_to_tarfile(
+                    tarfile=database_file,
+                    database_type=self.database_type,
+                    model=await outputpackage.OutputPackageBase.from_file(path=json_file),
+                )
 
 
 class PackageDesc(BaseModel):

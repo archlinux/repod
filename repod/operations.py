@@ -6,15 +6,15 @@ import aiofiles
 import orjson
 
 from repod.common.enums import CompressionTypeEnum
-from repod.files import (
-    _db_file_member_as_model,
-    _json_files_in_directory,
-    _stream_package_base_to_db,
-    _write_db_file,
-    open_tarfile,
-)
+from repod.files import _db_file_member_as_model, open_tarfile
 from repod.repo.management import OutputPackageBase
-from repod.repo.package import Files, PackageDesc, RepoDbMemberTypeEnum, RepoDbTypeEnum
+from repod.repo.package import (
+    Files,
+    PackageDesc,
+    RepoDbMemberTypeEnum,
+    RepoDbTypeEnum,
+    SyncDatabase,
+)
 
 
 async def db_file_as_models(
@@ -109,11 +109,5 @@ async def create_db_from_json_files(
         database (defaults to RepoDbTypeEnum.DEFAULT)
     """
 
-    with _write_db_file(path=output_path) as database:
-        async for path in _json_files_in_directory(path=input_path):
-            model = await OutputPackageBase.from_file(path=path)
-            await _stream_package_base_to_db(
-                db=database,
-                model=model,
-                db_type=db_type,
-            )
+    sync_db = SyncDatabase(database=output_path, database_type=db_type, compression_type=CompressionTypeEnum.GZIP)
+    await sync_db.stream_management_repo(path=input_path)

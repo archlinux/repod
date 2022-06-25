@@ -3,16 +3,18 @@ from io import StringIO
 from logging import DEBUG
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, ContextManager, Dict, List, Optional, Set, Union
+from typing import Any, ContextManager, Dict, List, Optional, Set, Tuple, Union
 from unittest.mock import patch
 
 from pytest import LogCaptureFixture, mark, raises
 
+from repod.common.enums import CompressionTypeEnum
 from repod.errors import (
     RepoManagementFileError,
     RepoManagementFileNotFoundError,
     RepoManagementValidationError,
 )
+from repod.files.common import compression_type_of_tarfile, open_tarfile
 from repod.repo.management import OutputPackage, OutputPackageBase
 from repod.repo.package import syncdb
 from tests.conftest import (
@@ -1058,3 +1060,70 @@ def test_export_schemas(tmp_path: Path) -> None:
 
     with raises(RuntimeError):
         syncdb.export_schemas(output=Path("/foobar"))
+
+
+@mark.parametrize("database_type", [(syncdb.RepoDbTypeEnum.DEFAULT), (syncdb.RepoDbTypeEnum.FILES)])
+@mark.asyncio
+async def test_syncdatabase_outputpackagebase_to_tarfile(
+    caplog: LogCaptureFixture,
+    database_type: syncdb.RepoDbTypeEnum,
+    tmp_path: Path,
+    outputpackagebasev1: OutputPackageBase,
+) -> None:
+    caplog.set_level(DEBUG)
+    database = tmp_path / "tarfile"
+    with open_tarfile(path=database, mode="w", compression=CompressionTypeEnum.GZIP) as tar_file:
+        await syncdb.SyncDatabase.outputpackagebase_to_tarfile(
+            tarfile=tar_file,
+            database_type=syncdb.RepoDbTypeEnum.DEFAULT,
+            model=outputpackagebasev1,
+        )
+
+
+@mark.parametrize("database_type", [(syncdb.RepoDbTypeEnum.DEFAULT), (syncdb.RepoDbTypeEnum.FILES)])
+@mark.asyncio
+async def test_syncdatabase_add(
+    caplog: LogCaptureFixture,
+    database_type: syncdb.RepoDbTypeEnum,
+    default_sync_db_file: Tuple[Path, Path],
+    outputpackagebasev1: OutputPackageBase,
+) -> None:
+    caplog.set_level(DEBUG)
+    await syncdb.SyncDatabase(
+        database=default_sync_db_file[0],
+        database_type=database_type,
+        compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
+    ).add(model=outputpackagebasev1)
+
+
+@mark.parametrize("database_type", [(syncdb.RepoDbTypeEnum.DEFAULT), (syncdb.RepoDbTypeEnum.FILES)])
+@mark.asyncio
+async def test_syncdatabase_stream_management_repo(
+    caplog: LogCaptureFixture,
+    database_type: syncdb.RepoDbTypeEnum,
+    default_sync_db_file: Tuple[Path, Path],
+    outputpackagebasev1_json_files_in_dir: Path,
+) -> None:
+    caplog.set_level(DEBUG)
+    await syncdb.SyncDatabase(
+        database=default_sync_db_file[0],
+        database_type=database_type,
+        compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
+    ).stream_management_repo(path=outputpackagebasev1_json_files_in_dir)
+
+
+@mark.parametrize("database_type", [(syncdb.RepoDbTypeEnum.DEFAULT), (syncdb.RepoDbTypeEnum.FILES)])
+@mark.asyncio
+async def test_syncdatabase_stream_management_repo_raises_on_empty_dir(
+    caplog: LogCaptureFixture,
+    database_type: syncdb.RepoDbTypeEnum,
+    default_sync_db_file: Tuple[Path, Path],
+    tmp_path: Path,
+) -> None:
+    caplog.set_level(DEBUG)
+    with raises(RepoManagementFileNotFoundError):
+        await syncdb.SyncDatabase(
+            database=default_sync_db_file[0],
+            database_type=database_type,
+            compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
+        ).stream_management_repo(path=tmp_path)

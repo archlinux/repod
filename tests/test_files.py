@@ -1,12 +1,10 @@
-import tarfile
 from pathlib import Path
 from typing import Tuple
 
-from pytest import mark, raises
+from pytest import mark
 
-from repod import errors, files
-from repod.repo.management.outputpackage import OutputPackageBaseV1
-from repod.repo.package import RepoDbMemberData, RepoDbTypeEnum
+from repod import files
+from repod.repo.package import RepoDbMemberData
 
 
 @mark.asyncio
@@ -32,37 +30,3 @@ async def test__extract_db_member_package_name(
     result: str,
 ) -> None:
     assert await files._extract_db_member_package_name(name=member_name) == result
-
-
-@mark.asyncio
-async def test__json_files_in_directory(
-    outputpackagebasev1_json_files_in_dir: Path,
-    empty_dir: Path,
-) -> None:
-    async for json_file in files._json_files_in_directory(path=outputpackagebasev1_json_files_in_dir):
-        assert isinstance(json_file, Path)
-
-    with raises(errors.RepoManagementFileNotFoundError):
-        async for json_file in files._json_files_in_directory(path=empty_dir):
-            print(json_file)
-            assert isinstance(json_file, Path)
-
-
-@mark.asyncio
-async def test__write_db_file(empty_dir: Path) -> None:
-    with files._write_db_file(empty_dir / "foo.db") as database:
-        assert isinstance(database, tarfile.TarFile)
-
-
-@mark.asyncio
-async def test__stream_package_base_to_db(
-    outputpackagebasev1: OutputPackageBaseV1,
-    empty_file: Path,
-) -> None:
-    for db_type in [RepoDbTypeEnum.DEFAULT, RepoDbTypeEnum.FILES]:
-        with files._write_db_file(path=empty_file) as database:
-            await files._stream_package_base_to_db(
-                db=database,
-                model=outputpackagebasev1,
-                db_type=db_type,
-            )
