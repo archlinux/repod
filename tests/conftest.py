@@ -18,7 +18,6 @@ from pytest import fixture
 
 from repod.common.defaults import ARCHITECTURES
 from repod.common.enums import CompressionTypeEnum, PkgTypeEnum
-from repod.convert import RepoDbFile
 from repod.files import _stream_package_base_to_db, open_tarfile
 from repod.files.buildinfo import BuildInfo, BuildInfoV1, BuildInfoV2
 from repod.files.common import ZstdTarFile
@@ -1274,7 +1273,6 @@ async def default_sync_db_file(
             await _stream_package_base_to_db(
                 db=db_tarfile,
                 model=outputpackagebasev1,
-                repodbfile=RepoDbFile(),
                 db_type=RepoDbTypeEnum.DEFAULT,
             )
 
@@ -1327,7 +1325,6 @@ async def files_sync_db_file(
             await _stream_package_base_to_db(
                 db=db_tarfile,
                 model=outputpackagebasev1,
-                repodbfile=RepoDbFile(),
                 db_type=RepoDbTypeEnum.FILES,
             )
 

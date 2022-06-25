@@ -11,7 +11,7 @@ from typing import AsyncIterator, Iterator
 import aiofiles
 import orjson
 
-from repod import convert, errors
+from repod import errors
 from repod.config.defaults import DB_DIR_MODE, DB_FILE_MODE, DB_GROUP, DB_USER
 from repod.files.common import extract_file_from_tarfile, open_tarfile  # noqa: F401
 from repod.files.package import Package  # noqa: F401
@@ -162,7 +162,6 @@ def _write_db_file(path: Path, compression: str = "gz") -> Iterator[tarfile.TarF
 async def _stream_package_base_to_db(
     db: tarfile.TarFile,
     model: management.OutputPackageBase,
-    repodbfile: convert.RepoDbFile,
     db_type: RepoDbTypeEnum,
 ) -> None:
     """Stream descriptor files for packages of a pkgbase to a repository database
@@ -175,8 +174,6 @@ async def _stream_package_base_to_db(
         The repository database to stream to
     model: OutputPackageBase
         The model to use for streaming descriptor files to the repository database
-    repodbfile: RepoDbFile
-        An instance of RepoDbFile used for output rendering
     db_type: RepoDbTypeEnum
         The type of database to stream to
     """
@@ -192,7 +189,7 @@ async def _stream_package_base_to_db(
         db.addfile(directory)
 
         desc_content = io.StringIO()
-        await repodbfile.render_desc_template(model=desc_model, output=desc_content)
+        await desc_model.render(output=desc_content)
         desc_file = tarfile.TarInfo(f"{dirname}/desc")
         desc_file.size = len(desc_content.getvalue().encode())
         desc_file.mtime = int(time.time())
@@ -202,7 +199,7 @@ async def _stream_package_base_to_db(
         db.addfile(desc_file, io.BytesIO(desc_content.getvalue().encode()))
         if db_type == RepoDbTypeEnum.FILES:
             files_content = io.StringIO()
-            await repodbfile.render_files_template(model=files_model, output=files_content)
+            await files_model.render(output=files_content)
             files_file = tarfile.TarInfo(f"{dirname}/files")
             files_file.size = len(files_content.getvalue().encode())
             files_file.mtime = int(time.time())

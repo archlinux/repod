@@ -4,7 +4,7 @@ from typing import Tuple
 
 from pytest import mark, raises
 
-from repod import convert, errors, files
+from repod import errors, files
 from repod.repo.management.outputpackage import OutputPackageBaseV1
 from repod.repo.package import RepoDbMemberData, RepoDbTypeEnum
 
@@ -72,6 +72,5 @@ async def test__stream_package_base_to_db(
             await files._stream_package_base_to_db(
                 db=database,
                 model=outputpackagebasev1,
-                repodbfile=convert.RepoDbFile(),
                 db_type=db_type,
             )

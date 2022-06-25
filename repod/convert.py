@@ -1,8 +1,6 @@
 import io
 from typing import Dict, List, Set, Union
 
-from jinja2 import Environment, PackageLoader, TemplateNotFound
-
 from repod import errors
 from repod.common.enums import FieldTypeEnum
 from repod.repo.package import (
@@ -127,76 +125,3 @@ async def file_data_to_model(
             pass
 
     return model
-
-
-class RepoDbFile:
-    """A class for handling templates for files used in repository database files (such as 'desc' or 'files')
-
-    Attributes
-    ----------
-    env: jinja2.Environment
-        A jinja2 Environment, that makes the templates available
-
-    """
-
-    def __init__(self, enable_async: bool = True) -> None:
-        """Initialize an instance of RepDbFile
-
-        Parameters
-        ----------
-        enable_async: bool
-            A bool indicating whether the jinja2.Environment is instantiated with enable_async (defaults to False)
-        """
-
-        self.env = Environment(
-            loader=PackageLoader("repod", "templates"),
-            trim_blocks=True,
-            lstrip_blocks=True,
-            enable_async=enable_async,
-        )
-
-    async def render_desc_template(self, model: PackageDesc, output: io.StringIO) -> None:
-        """Use the 'desc_v*' template to write a string to an output stream based on a model
-
-        The specific desc template is chosen based upon the model's schema_version attribute.
-
-        Parameters
-        ----------
-        model: PackageDesc
-            A pydantic model with the required attributes to properly render a template for a 'desc' file
-        output: io.StringIO
-            An output stream to write to
-
-        Raises
-        ------
-
-        """
-
-        template_file = f"desc_v{model.get_schema_version()}.j2"
-        try:
-            template = self.env.get_template(template_file)
-        except TemplateNotFound:
-            raise errors.RepoManagementFileNotFoundError(
-                f"The 'desc' template file {template_file} could not be found!"
-            )
-        output.write(await template.render_async(model.dict()))
-
-    async def render_files_template(self, model: Files, output: io.StringIO) -> None:
-        """Use the 'files' template to write a string to an output stream based on a model
-
-        Parameters
-        ----------
-        model: Files
-            A pydantic model with the required attributes to properly render a template for a 'files' file
-        output: io.StringIO
-            An output stream to write to
-        """
-
-        template_file = f"files_v{model.get_schema_version()}.j2"
-        try:
-            template = self.env.get_template(template_file)
-        except TemplateNotFound:
-            raise errors.RepoManagementFileNotFoundError(
-                f"The 'desc' template file {template_file} could not be found!"
-            )
-        output.write(await template.render_async(model.dict()))

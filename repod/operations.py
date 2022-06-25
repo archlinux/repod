@@ -6,7 +6,7 @@ import aiofiles
 import orjson
 
 from repod.common.enums import CompressionTypeEnum
-from repod.convert import RepoDbFile, file_data_to_model
+from repod.convert import file_data_to_model
 from repod.files import (
     _db_file_member_as_model,
     _json_files_in_directory,
@@ -117,13 +117,11 @@ async def create_db_from_json_files(
         database (defaults to RepoDbTypeEnum.DEFAULT)
     """
 
-    repodbfile = RepoDbFile()
     with _write_db_file(path=output_path) as database:
         async for path in _json_files_in_directory(path=input_path):
             model = await _read_pkgbase_json_file(path)
             await _stream_package_base_to_db(
                 db=database,
                 model=model,
-                repodbfile=repodbfile,
                 db_type=db_type,
             )

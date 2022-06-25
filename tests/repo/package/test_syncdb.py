@@ -1,14 +1,21 @@
 from contextlib import nullcontext as does_not_raise
+from io import StringIO
+from logging import DEBUG
 from pathlib import Path
 from typing import Any, ContextManager, Dict, List, Optional, Set, Union
 from unittest.mock import patch
 
-from pytest import mark, raises
+from pytest import LogCaptureFixture, mark, raises
 
-from repod.errors import RepoManagementFileError, RepoManagementValidationError
+from repod.errors import (
+    RepoManagementFileError,
+    RepoManagementFileNotFoundError,
+    RepoManagementValidationError,
+)
 from repod.repo.management import OutputPackage, OutputPackageBase
 from repod.repo.package import syncdb
 from tests.conftest import (
+    FilesV9999,
     PackageDescV9999,
     create_base64_pgpsig,
     create_default_filename,
@@ -58,6 +65,20 @@ def test_get_files_json_field_type() -> None:
 
     with raises(RepoManagementFileError):
         syncdb.get_files_json_field_type(key="%FOO%")
+
+
+@mark.asyncio
+async def test_files_render(filesv1: syncdb.Files) -> None:
+    output = StringIO()
+    await filesv1.render(output=output)
+    assert output.getvalue()
+
+
+@mark.asyncio
+async def test_files_render_raise_on_missing_template() -> None:
+    output = StringIO()
+    with raises(RepoManagementFileNotFoundError):
+        await FilesV9999().render(output=output)
 
 
 def test_files_get_schema_version() -> None:
@@ -124,9 +145,11 @@ def test_files_from_dict_derive_file_version(
     files_dict: Dict[str, List[str]],
     emit_warning: bool,
     expectation: ContextManager[str],
+    caplog: LogCaptureFixture,
 ) -> None:
+    caplog.set_level(DEBUG)
     with expectation:
-        with patch("logging.warning") as logging_warning_mock:
+        with patch("repod.repo.package.syncdb.warning") as logging_warning_mock:
             with patch("repod.repo.package.syncdb.FILES_VERSIONS", files_versions):
                 with patch("repod.repo.package.syncdb.DEFAULT_FILES_VERSION", default_files_version):
                     syncdb.Files.from_dict(data=files_dict)
@@ -282,9 +305,11 @@ def test_package_desc_from_dict_derive_file_version(
     input_dict: Dict[str, Union[int, str, List[str]]],
     emit_warning: bool,
     expectation: ContextManager[str],
+    caplog: LogCaptureFixture,
 ) -> None:
+    caplog.set_level(DEBUG)
     with expectation:
-        with patch("logging.warning") as logging_warning_mock:
+        with patch("repod.repo.package.syncdb.warning") as logging_warning_mock:
             with patch("repod.repo.package.syncdb.PACKAGE_DESC_VERSIONS", files_versions):
                 with patch("repod.repo.package.syncdb.DEFAULT_PACKAGE_DESC_VERSION", default_version):
                     syncdb.PackageDesc.from_dict(data=input_dict)
@@ -366,6 +391,20 @@ def test_package_desc_get_output_package_base_inconsistent_schema_config(
     with patch("repod.repo.package.syncdb.PACKAGE_DESC_VERSIONS", {1: {"output_package_base_version": 9999}}):
         with raises(RuntimeError):
             packagedescv1.get_output_package_base(files=None)
+
+
+@mark.asyncio
+async def test_packagedesc_render(packagedescv1: syncdb.PackageDesc) -> None:
+    output = StringIO()
+    await packagedescv1.render(output=output)
+    assert output.getvalue()
+
+
+@mark.asyncio
+async def test_packagedesc_render_raise_on_missing_template() -> None:
+    output = StringIO()
+    with raises(RepoManagementFileNotFoundError):
+        await PackageDescV9999().render(output=output)
 
 
 def test_packagedesc_get_base() -> None:

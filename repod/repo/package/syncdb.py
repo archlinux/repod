@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import io
-import logging
 from enum import IntEnum
+from logging import debug, warning
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
 
+from jinja2 import Environment, PackageLoader, TemplateNotFound
 from pydantic import BaseModel, ValidationError
 
 from repod.common.enums import FieldTypeEnum
@@ -37,7 +38,11 @@ from repod.common.models import (
     Url,
     Version,
 )
-from repod.errors import RepoManagementFileError, RepoManagementValidationError
+from repod.errors import (
+    RepoManagementFileError,
+    RepoManagementFileNotFoundError,
+    RepoManagementValidationError,
+)
 from repod.repo.management import outputpackage
 
 DESC_JSON: Dict[str, Tuple[str, FieldTypeEnum]] = {
@@ -349,7 +354,7 @@ class PackageDesc(BaseModel):
 
             for version, config in sorted(PACKAGE_DESC_VERSIONS.items(), reverse=True):
 
-                logging.debug(f"Comparing 'desc' data to schema version {version}")
+                debug(f"Comparing 'desc' data to schema version {version}")
                 config_required: Set[str] = config["required"]  # type: ignore[assignment]
                 config_optional: Set[str] = config["optional"]  # type: ignore[assignment]
                 if config_required.issubset(data):
@@ -373,12 +378,10 @@ class PackageDesc(BaseModel):
             return None
 
         detected_version = derive_package_desc_version(data=set(data.keys()))
-        logging.debug(f"Detected schema version of 'desc' file: {detected_version}")
+        debug(f"Detected schema version of 'desc' file: {detected_version}")
 
         if detected_version is not None and (detected_version < DEFAULT_PACKAGE_DESC_VERSION):
-            logging.warning(
-                f"Detected 'desc' version {detected_version}, but {DEFAULT_PACKAGE_DESC_VERSION} is the default!"
-            )
+            warning(f"Detected 'desc' version {detected_version}, but {DEFAULT_PACKAGE_DESC_VERSION} is the default!")
 
         match detected_version:
             case 1:
@@ -391,6 +394,36 @@ class PackageDesc(BaseModel):
                     )
             case _:
                 raise RepoManagementValidationError(f"The data format of the 'desc' file is unknown:\n{data}")
+
+    async def render(self, output: io.StringIO) -> None:
+        """Use a 'desc' jinja template to write the PackageDesc contents to an output stream
+
+        Parameters
+        ----------
+        output: io.StringIO
+            An output stream to write to
+
+        Raises
+        ------
+        RepoManagementFileNotFoundError
+            If no matching template can be found
+        """
+
+        env = Environment(
+            loader=PackageLoader("repod", "templates"),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            enable_async=True,
+        )
+        template_file = f"desc_v{self.get_schema_version()}.j2"
+
+        debug(f"Rendering PackageDesc data using template file {template_file}...")
+
+        try:
+            template = env.get_template(template_file)
+        except TemplateNotFound:
+            raise RepoManagementFileNotFoundError(f"The 'desc' template file {template_file} could not be found!")
+        output.write(await template.render_async(self.dict()))
 
     def get_output_package(self, files: Optional[Files]) -> outputpackage.OutputPackage:
         """Transform the PackageDesc model and an optional Files model into an OutputPackage model
@@ -604,7 +637,7 @@ class Files(BaseModel):
 
             for version, config in sorted(FILES_VERSIONS.items(), reverse=True):
 
-                logging.debug(f"Comparing 'files' data to schema version {version}")
+                debug(f"Comparing 'files' data to schema version {version}")
                 config_required = config["required"]
                 config_optional = config["optional"]
                 if config_required.issubset(data):
@@ -628,10 +661,10 @@ class Files(BaseModel):
             return None
 
         detected_version = derive_files_version(data=set(data.keys()))
-        logging.debug(f"Detected schema version of 'files' file: {detected_version}")
+        debug(f"Detected schema version of 'files' file: {detected_version}")
 
         if detected_version is not None and (detected_version < DEFAULT_FILES_VERSION):
-            logging.warning(f"Detected 'files' version {detected_version}, but {DEFAULT_FILES_VERSION} is the default!")
+            warning(f"Detected 'files' version {detected_version}, but {DEFAULT_FILES_VERSION} is the default!")
 
         match detected_version:
             case 1:
@@ -646,6 +679,36 @@ class Files(BaseModel):
                 raise RepoManagementValidationError(
                     f"The data format '{detected_version}' of the 'files' file is unknown:\n{data}"
                 )
+
+    async def render(self, output: io.StringIO) -> None:
+        """Use a 'files' jinja template to write the Files contents to an output stream
+
+        Parameters
+        ----------
+        output: io.StringIO
+            An output stream to write to
+
+        Raises
+        ------
+        RepoManagementFileNotFoundError
+            If no matching template can be found
+        """
+
+        env = Environment(
+            loader=PackageLoader("repod", "templates"),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            enable_async=True,
+        )
+        template_file = f"files_v{self.get_schema_version()}.j2"
+
+        debug(f"Rendering Files data using template file {template_file}...")
+
+        try:
+            template = env.get_template(template_file)
+        except TemplateNotFound:
+            raise RepoManagementFileNotFoundError(f"The 'files' template file {template_file} could not be found!")
+        output.write(await template.render_async(self.dict()))
 
     def get_schema_version(self) -> int:
         """Get the schema_version of the Files instance
