@@ -31,6 +31,8 @@ built using
 tox -e docs
 ```
 
+The documentation is published at [repod.archlinux.page][https://repod.archlinux.page].
+
 ## Contributing
 
 Read our [contributing guide](CONTRIBUTING.md) to learn more about how to

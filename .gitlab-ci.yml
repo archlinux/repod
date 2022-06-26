@@ -10,7 +10,7 @@ stages:
   - test
   - build
   - publish
-  - webhook
+  - pages
 
 variables:
   BUILD_PUBLISH_PACKAGES: python-poetry python-tox
@@ -112,14 +112,17 @@ docs:
   script:
     - tox -e docs
 
-readthedocs:
-  stage: webhook
-  before_script:
-    - pacman --noconfirm -Syu --needed curl
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_PATH == "archlinux/repod"'
+pages:
+  extends: docs
+  stage: pages
   script:
-    - curl -X POST -d "token=${READTHEDOCS_TOKEN}" https://readthedocs.org/api/v2/webhook/repod/${READTHEDOCS_PROJECT_ID}/
+    - !reference [docs, script]
+    - mv docs/_build/html public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 regex:
   extends: .test
