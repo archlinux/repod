@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import io
+import re
 from enum import IntEnum
 from logging import debug, warning
 from pathlib import Path
 from tarfile import DIRTYPE, TarFile, TarInfo
 from time import time
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import AsyncIterator, Dict, List, Optional, Set, Tuple, Union
 
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from pydantic import BaseModel, ValidationError
@@ -158,38 +159,6 @@ class RepoDbTypeEnum(IntEnum):
     FILES = 2
 
 
-class RepoDbMemberType(BaseModel):
-    """A model describing a single 'member_type' attribute, which is used to identify/ distinguish different types of
-    repository database file types (e.g. 'desc' and 'files' files, which are contained in a repository database file).
-
-    Attributes
-    ----------
-    member_type: RepoDbMemberTypeEnum
-        A member of RepoDbMemberTypeEnum
-    """
-
-    member_type: RepoDbMemberTypeEnum
-
-
-class RepoDbMemberData(Name, RepoDbMemberType):
-    """A model describing a set of attributes to provide the data of a 'desc' or 'files' file
-
-    Attributes
-    ----------
-    name: str
-        A package name
-    member_type: RepoDbMemberTypeEnum
-        A member of RepoDbMemberTypeEnum
-    data: io.StringIO
-        The contents of a 'desc' or 'files' file provided as a StringIO instance
-    """
-
-    data: io.StringIO
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
 def get_desc_json_keys() -> Set[str]:
     """Get the keys of repod.models.repo.DESC_JSON
 
@@ -328,14 +297,14 @@ class SyncDatabase(BaseModel):
     """
 
     database: Path
-    database_type: RepoDbTypeEnum
+    database_type: Optional[RepoDbTypeEnum]
     compression_type: Optional[CompressionTypeEnum]
 
     @classmethod
     async def outputpackagebase_to_tarfile(
         cls,
         tarfile: TarFile,
-        database_type: RepoDbTypeEnum,
+        database_type: Optional[RepoDbTypeEnum],
         model: outputpackage.OutputPackageBase,
     ) -> None:
         """Stream descriptor files derived from an OutputPackageBase to a TarFile
@@ -404,6 +373,75 @@ class SyncDatabase(BaseModel):
                 database_type=self.database_type,
                 model=model,
             )
+
+    async def outputpackagebases(self) -> AsyncIterator[Tuple[str, outputpackage.OutputPackageBase]]:
+        """Read a repository database and yield the name of each pkgbase and the respective data (represented as an
+        instance of OutputPackageBase) in a Tuple.
+
+        Returns
+        -------
+        Iterator[Tuple[str, OutputPackageBase]]:
+            A Tuple holding the name of a pkgbase and its accompanying data in an instance of OutputPackageBase
+        """
+
+        packages: Dict[str, outputpackage.OutputPackageBase] = {}
+        package_descs: Dict[str, PackageDesc] = {}
+        package_files: Dict[str, Files] = {}
+
+        with open_tarfile(path=self.database, compression=self.compression_type) as db_file:
+            for file_name in [
+                file_name for file_name in db_file.getnames() if re.search(r"(/desc|/files)$", file_name)
+            ]:
+                pkgname = "".join(re.split("(-)", re.sub(r"(/desc|/files)$", "", file_name))[:-4])
+
+                if re.search("(/desc)$", file_name):
+                    package_descs.update(
+                        {
+                            pkgname: await PackageDesc.from_stream(
+                                data=io.StringIO(
+                                    io.BytesIO(
+                                        db_file.extractfile(file_name).read(),  # type: ignore[union-attr]
+                                    )
+                                    .read()
+                                    .decode("utf-8"),
+                                )
+                            ),
+                        },
+                    )
+                elif re.search("(/files)$", file_name):
+                    package_files.update(
+                        {
+                            pkgname: await Files.from_stream(
+                                data=io.StringIO(
+                                    io.BytesIO(
+                                        db_file.extractfile(file_name).read(),  # type: ignore[union-attr]
+                                    )
+                                    .read()
+                                    .decode("utf-8"),
+                                )
+                            )
+                        },
+                    )
+                else:  # pragma: no cover
+                    # NOTE: this branch can never be reached, but we add it to make tests happy
+                    raise RuntimeError(
+                        f"The database file {self.database} contains the member {file_name} of an unsupported type!"
+                    )
+
+        for (name, package_desc) in package_descs.items():
+            if packages.get(package_desc.get_base()):
+                packages[package_desc.get_base()].add_packages(
+                    [package_desc.get_output_package(files=package_files.get(name))]
+                )
+            else:
+                packages.update(
+                    {
+                        package_desc.get_base(): package_desc.get_output_package_base(files=package_files.get(name)),
+                    }
+                )
+
+        for (name, package) in packages.items():
+            yield (name, package)
 
     async def stream_management_repo(self, path: Path) -> None:
         """Stream descriptor files read from the JSON files of a management repository to the repository sync database

@@ -1,8 +1,6 @@
 from repod.repo.package.syncdb import (  # noqa: F401
     Files,
     PackageDesc,
-    RepoDbMemberData,
-    RepoDbMemberType,
     RepoDbMemberTypeEnum,
     RepoDbTypeEnum,
     SyncDatabase,

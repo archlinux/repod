@@ -1127,3 +1127,10 @@ async def test_syncdatabase_stream_management_repo_raises_on_empty_dir(
             database_type=database_type,
             compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
         ).stream_management_repo(path=tmp_path)
+
+
+@mark.asyncio
+async def test_syncdatabase_outputpackagebases(files_sync_db_file: Tuple[Path, Path]) -> None:
+    async for (name, model) in syncdb.SyncDatabase(database=files_sync_db_file[0]).outputpackagebases():
+        assert isinstance(name, str)
+        assert isinstance(model, OutputPackageBase)

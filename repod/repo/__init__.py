@@ -5,8 +5,6 @@ from repod.repo.management import (  # noqa: F401
     PackageDesc,
 )
 from repod.repo.package import (  # noqa: F401
-    RepoDbMemberData,
-    RepoDbMemberType,
     RepoDbMemberTypeEnum,
     RepoDbTypeEnum,
     get_desc_json_field_type,

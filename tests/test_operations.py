@@ -4,14 +4,6 @@ from typing import Tuple
 from pytest import mark
 
 from repod import operations
-from repod.repo.management.outputpackage import OutputPackageBaseV1
-
-
-@mark.asyncio
-async def test_db_file_as_models(files_sync_db_file: Tuple[Path, Path]) -> None:
-    async for (name, model) in operations.db_file_as_models(db_path=files_sync_db_file[0]):
-        assert isinstance(name, str)
-        assert isinstance(model, OutputPackageBaseV1)
 
 
 @mark.asyncio
