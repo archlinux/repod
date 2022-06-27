@@ -1,20 +1,20 @@
-import argparse
 import os
+from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 
 
 class ArgParseFactory:
-    """A factory class to create different types of argparse.ArgumentParser instances
+    """A factory class to create different types of ArgumentParser instances
 
     Attributes
     ----------
-    parser: argparse.ArgumentParser
+    parser: ArgumentParser
         The instance's ArgumentParser instance, which is created with a default verbose argument
 
     """
 
     def __init__(self, description: str = "default") -> None:
-        self.parser = argparse.ArgumentParser(description=description)
+        self.parser = ArgumentParser(description=description)
         self.parser.add_argument(
             "-v",
             "--verbose",
@@ -23,12 +23,12 @@ class ArgParseFactory:
         )
 
     @classmethod
-    def db2json(cls) -> argparse.ArgumentParser:
+    def db2json(cls) -> ArgumentParser:
         """A class method to create an ArgumentParser for the db2json script
 
         Returns
         -------
-        argparse.ArgumentParser
+        ArgumentParser
             An ArgumentParser instance specific for the db2json script
         """
 
@@ -46,12 +46,12 @@ class ArgParseFactory:
         return instance.parser
 
     @classmethod
-    def json2db(cls) -> argparse.ArgumentParser:
+    def json2db(cls) -> ArgumentParser:
         """A class method to create an ArgumentParser for the json2db script
 
         Returns
         -------
-        argparse.ArgumentParser
+        ArgumentParser
             An ArgumentParser instance specific for the json2db script
         """
 
@@ -93,7 +93,7 @@ class ArgParseFactory:
 
         Raises
         ------
-        argparse.ArgumentTypeError:
+        ArgumentTypeError:
             If a Path created from input_ does not exist or is not a file
 
         Returns
@@ -105,16 +105,16 @@ class ArgParseFactory:
         path = Path(input_)
         if path.exists():
             if not path.is_file():
-                raise argparse.ArgumentTypeError(f"not a file: '{input_}'")
+                raise ArgumentTypeError(f"not a file: '{input_}'")
             if not os.access(path, os.W_OK):
-                raise argparse.ArgumentTypeError(f"the file '{input_}' is not writable")
+                raise ArgumentTypeError(f"the file '{input_}' is not writable")
         else:
             if not path.parent.exists():
-                raise argparse.ArgumentTypeError(f"the parent directory of '{input_}' does not exist")
+                raise ArgumentTypeError(f"the parent directory of '{input_}' does not exist")
             if not path.parent.is_dir():
-                raise argparse.ArgumentTypeError(f"parent is not a directory: '{input_}'")
+                raise ArgumentTypeError(f"parent is not a directory: '{input_}'")
             if not os.access(path.parent, os.W_OK):
-                raise argparse.ArgumentTypeError(f"the parent directory of '{input_}' is not writable")
+                raise ArgumentTypeError(f"the parent directory of '{input_}' is not writable")
         return path
 
     @classmethod
@@ -128,7 +128,7 @@ class ArgParseFactory:
 
         Raises
         ------
-        argparse.ArgumentTypeError:
+        ArgumentTypeError:
             If a Path created from input_ does not exist or is not a file
 
         Returns
@@ -139,9 +139,9 @@ class ArgParseFactory:
 
         path = Path(input_)
         if not path.exists():
-            raise argparse.ArgumentTypeError(f"the file '{input_}' does not exist")
+            raise ArgumentTypeError(f"the file '{input_}' does not exist")
         if not path.is_file():
-            raise argparse.ArgumentTypeError(f"not a file: {input_}")
+            raise ArgumentTypeError(f"not a file: {input_}")
         return path
 
     @classmethod
@@ -155,7 +155,7 @@ class ArgParseFactory:
 
         Raises
         ------
-        argparse.ArgumentTypeError:
+        ArgumentTypeError:
             If a Path created from input_ does not exist or is not a directory
 
         Returns
@@ -166,7 +166,7 @@ class ArgParseFactory:
 
         path = Path(input_)
         if not path.exists():
-            raise argparse.ArgumentTypeError(f"the directory '{input_}' does not exist")
+            raise ArgumentTypeError(f"the directory '{input_}' does not exist")
         if not path.is_dir():
-            raise argparse.ArgumentTypeError(f"not a directory: {input_}")
+            raise ArgumentTypeError(f"not a directory: {input_}")
         return path

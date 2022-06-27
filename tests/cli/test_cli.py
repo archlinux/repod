@@ -5,7 +5,8 @@ from unittest.mock import Mock, patch
 
 from pytest import mark
 
-from repod import cli, commands, errors
+from repod import commands, errors
+from repod.cli import cli
 from repod.repo.package import RepoDbTypeEnum
 
 
@@ -18,8 +19,8 @@ from repod.repo.package import RepoDbTypeEnum
     ],
 )
 @patch("repod.operations.dump_db_to_json_files")
-@patch("repod.argparse.ArgParseFactory")
-@patch("repod.cli.exit")
+@patch("repod.cli.argparse.ArgParseFactory")
+@patch("repod.cli.cli.exit")
 def test_db2json(
     exit_mock: Mock,
     argparsefactory_mock: Mock,
@@ -57,8 +58,8 @@ def test_db2json(
     ],
 )
 @patch("repod.operations.create_db_from_json_files")
-@patch("repod.argparse.ArgParseFactory")
-@patch("repod.cli.exit")
+@patch("repod.cli.argparse.ArgParseFactory")
+@patch("repod.cli.cli.exit")
 def test_json2db(
     exit_mock: Mock,
     argparsefactory_mock: Mock,
