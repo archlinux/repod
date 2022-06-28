@@ -1131,6 +1131,6 @@ async def test_syncdatabase_stream_management_repo_raises_on_empty_dir(
 
 @mark.asyncio
 async def test_syncdatabase_outputpackagebases(files_sync_db_file: Tuple[Path, Path]) -> None:
-    async for (name, model) in syncdb.SyncDatabase(database=files_sync_db_file[0]).outputpackagebases():
+    for (name, model) in await syncdb.SyncDatabase(database=files_sync_db_file[0]).outputpackagebases():
         assert isinstance(name, str)
         assert isinstance(model, OutputPackageBase)

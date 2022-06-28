@@ -7,7 +7,7 @@ from logging import debug, warning
 from pathlib import Path
 from tarfile import DIRTYPE, TarFile, TarInfo
 from time import time
-from typing import AsyncIterator, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from pydantic import BaseModel, ValidationError
@@ -374,7 +374,7 @@ class SyncDatabase(BaseModel):
                 model=model,
             )
 
-    async def outputpackagebases(self) -> AsyncIterator[Tuple[str, outputpackage.OutputPackageBase]]:
+    async def outputpackagebases(self) -> List[Tuple[str, outputpackage.OutputPackageBase]]:
         """Read a repository database and yield the name of each pkgbase and the respective data (represented as an
         instance of OutputPackageBase) in a Tuple.
 
@@ -440,8 +440,7 @@ class SyncDatabase(BaseModel):
                     }
                 )
 
-        for (name, package) in packages.items():
-            yield (name, package)
+        return list(packages.items())
 
     async def stream_management_repo(self, path: Path) -> None:
         """Stream descriptor files read from the JSON files of a management repository to the repository sync database

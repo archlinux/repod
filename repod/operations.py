@@ -20,7 +20,7 @@ async def dump_db_to_json_files(input_path: Path, output_path: Path) -> None:
         A directory in which to
     """
 
-    async for name, model in SyncDatabase(database=input_path).outputpackagebases():
+    for name, model in await SyncDatabase(database=input_path).outputpackagebases():
         async with aiofiles.open(join(output_path, f"{name}.json"), "wb") as output_file:
             await output_file.write(
                 orjson.dumps(
