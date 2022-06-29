@@ -19,8 +19,7 @@ The repod project can be used from a git clone of the project, with the help of
   poetry install
 
 Afterwards it is possible to make use of existing :ref:`tooling` with the help
-of ``poetry run`` (e.g. ``poetry run db2json --help`` or ``poetry run json2db
---help``).
+of ``poetry run`` (e.g. ``poetry run repod-file --help``).
 
 .. |poetry| raw:: html
 
