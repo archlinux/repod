@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum, IntEnum
+from typing import List
 
 
 class FieldTypeEnum(IntEnum):
@@ -43,6 +46,69 @@ class CompressionTypeEnum(Enum):
     GZIP = "gz"
     LZMA = "xz"
     ZSTANDARD = "zst"
+
+    @classmethod
+    def from_string(cls, input_: str) -> CompressionTypeEnum:
+        """Return a CompressionTypeEnum member based on an input string
+
+        Parameters
+        ----------
+        input_: str
+            A string representing one of the CompressionTypeEnum members. Valid options are "none", "bzip2", "bz2",
+            "gzip", "gz", "lzma", "xz", "zstandard" and "zst"
+
+        Raises
+        ------
+        RuntimeError
+            If an invalid input is provided
+
+        Returns
+        -------
+        CompressionTypeEnum
+            A CompressionTypeEnum member that matches input_
+        """
+
+        match input_:
+            case "none":
+                return CompressionTypeEnum.NONE
+            case "bzip2" | "bz2":
+                return CompressionTypeEnum.BZIP2
+            case "gzip" | "gz":
+                return CompressionTypeEnum.GZIP
+            case "lzma" | "xz":
+                return CompressionTypeEnum.LZMA
+            case "zstandard" | "zst":
+                return CompressionTypeEnum.ZSTANDARD
+            case _:
+                raise RuntimeError(f"The provided compression type {input_} is not valid!")
+
+    @classmethod
+    def as_db_file_suffixes(cls) -> List[str]:
+        """Return the members of CompressTypeEnum formated in a list of strings reprenting all possible suffix
+        permutations for a default repository sync database
+
+        Returns
+        -------
+        List[str]
+            A list of strings representing all possible permutations of file suffixes for a default repository sync
+            database
+        """
+
+        return [".db", ".db.tar"] + [".db.tar." + name.value for name in cls if len(name.value) > 0]
+
+    @classmethod
+    def as_files_file_suffixes(cls) -> List[str]:
+        """Return the members of CompressTypeEnum formated in a list of strings reprenting all possible suffix
+        permutations for a files repository sync database
+
+        Returns
+        -------
+        List[str]
+            A list of strings representing all possible permutations of file suffixes for a files repository sync
+            database
+        """
+
+        return [".files", ".files.tar"] + [".files.tar." + name.value for name in cls if len(name.value) > 0]
 
 
 class PkgTypeEnum(Enum):
