@@ -63,7 +63,7 @@ class Package(BaseModel):
         else:
             info(f"No signature file for package {package} provided, commencing without...")
 
-        info(f"Creating checksums for package {package}...")
+        debug(f"Creating checksums for package {package}...")
         with open(package, "rb") as package_file:
             package_md5sum = md5(package_file.read()).hexdigest()
             package_sha256sum = sha256(package_file.read()).hexdigest()
