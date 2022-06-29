@@ -13,14 +13,6 @@ def test_argparsefactory_repod_file() -> None:
     assert isinstance(argparse.ArgParseFactory().repod_file(), argparse.ArgumentParser)
 
 
-def test_argparsefactory__db2json() -> None:
-    assert isinstance(argparse.ArgParseFactory.db2json(), argparse.ArgumentParser)
-
-
-def test_argparsefactory__json2db() -> None:
-    assert isinstance(argparse.ArgParseFactory.json2db(), argparse.ArgumentParser)
-
-
 @patch(
     "repod.cli.argparse.Path",
     Mock(return_value=Mock(exists=Mock(side_effect=[False, True, True]), is_file=Mock(side_effect=[False, True]))),

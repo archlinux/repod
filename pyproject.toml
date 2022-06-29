@@ -71,8 +71,6 @@ Sphinx = "^5.0.0"
 sphinx-rtd-theme = "^1.0.0"
 
 [tool.poetry.scripts]
-db2json = "repod.cli:db2json"
-json2db = "repod.cli:json2db"
 repod-file = "repod.cli:repod_file"
 
 [tool.pytest.ini_options]

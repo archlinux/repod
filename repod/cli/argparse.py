@@ -184,63 +184,6 @@ class ArgParseFactory:
         return instance.parser
 
     @classmethod
-    def db2json(cls) -> ArgumentParser:
-        """A class method to create an ArgumentParser for the db2json script
-
-        Returns
-        -------
-        ArgumentParser
-            An ArgumentParser instance specific for the db2json script
-        """
-
-        instance = cls(description="Read a repository database and write all contained pkgbases to one JSON file each.")
-        instance.parser.add_argument(
-            "db_file", type=cls.string_to_file_path, default=None, help="the repository database to read"
-        )
-        instance.parser.add_argument(
-            "output_dir",
-            type=cls.string_to_dir_path,
-            default=".",
-            help="the directory into which to write the JSON output files (defaults to current directory)",
-        )
-
-        return instance.parser
-
-    @classmethod
-    def json2db(cls) -> ArgumentParser:
-        """A class method to create an ArgumentParser for the json2db script
-
-        Returns
-        -------
-        ArgumentParser
-            An ArgumentParser instance specific for the json2db script
-        """
-
-        instance = cls(
-            description="Read a set of JSON files from a directory and create a repository database from them."
-        )
-        instance.parser.add_argument(
-            "-f",
-            "--files",
-            action="store_true",
-            help="create a .files database instead of a .db database",
-        )
-        instance.parser.add_argument(
-            "input_dir",
-            type=cls.string_to_dir_path,
-            default=".",
-            help="the directory from which to read the JSON files (defaults to current directory)",
-        )
-        instance.parser.add_argument(
-            "db_file",
-            type=cls.string_to_writable_file_path,
-            default=None,
-            help="the repository database to write to (the parent directory needs to exist)",
-        )
-
-        return instance.parser
-
-    @classmethod
     def string_to_writable_file_path(cls, input_: str) -> Path:
         """Convert an input string into a Path to a file
 

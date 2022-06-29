@@ -7,9 +7,8 @@ from unittest.mock import Mock, patch
 
 from pytest import LogCaptureFixture, mark, raises
 
-from repod import commands, errors
+from repod import commands
 from repod.cli import cli
-from repod.repo.package import RepoDbTypeEnum
 
 
 @mark.parametrize(
@@ -190,91 +189,6 @@ def test_repod_file_raise_on_argumenterror(parse_args_mock: Mock) -> None:
     parse_args_mock.side_effect = ArgumentTypeError
     with raises(RuntimeError):
         cli.repod_file()
-
-
-@mark.parametrize(
-    "fail_argparse, fail_dump",
-    [
-        (False, False),
-        (True, False),
-        (False, True),
-    ],
-)
-@patch("repod.operations.dump_db_to_json_files")
-@patch("repod.cli.argparse.ArgParseFactory")
-@patch("repod.cli.cli.exit")
-def test_db2json(
-    exit_mock: Mock,
-    argparsefactory_mock: Mock,
-    dump_db_to_json_files_mock: Mock,
-    fail_argparse: bool,
-    fail_dump: bool,
-) -> None:
-    namespace = Namespace(db_file="db_file", output_dir="output_dir")
-    if fail_argparse:
-        argparsefactory_mock.db2json.side_effect = ArgumentTypeError
-    else:
-        argparsefactory_mock.db2json.return_value = Mock(parse_args=Mock(return_value=namespace))
-    if fail_dump:
-        dump_db_to_json_files_mock.side_effect = errors.RepoManagementError
-
-    cli.db2json()
-    if fail_argparse or fail_dump:
-        exit_mock.assert_called_once_with(1)
-    else:
-        dump_db_to_json_files_mock.assert_called_once_with(
-            input_path=namespace.db_file,
-            output_path=namespace.output_dir,
-        )
-
-
-@mark.parametrize(
-    "files, db_type, fail_argparse, fail_create",
-    [
-        (True, RepoDbTypeEnum.FILES, False, False),
-        (False, RepoDbTypeEnum.DEFAULT, False, False),
-        (True, RepoDbTypeEnum.FILES, True, False),
-        (False, RepoDbTypeEnum.DEFAULT, True, False),
-        (True, RepoDbTypeEnum.FILES, False, True),
-        (False, RepoDbTypeEnum.DEFAULT, False, True),
-    ],
-)
-@patch("repod.operations.create_db_from_json_files")
-@patch("repod.cli.argparse.ArgParseFactory")
-@patch("repod.cli.cli.exit")
-def test_json2db(
-    exit_mock: Mock,
-    argparsefactory_mock: Mock,
-    create_db_from_json_files_mock: Mock,
-    files: bool,
-    db_type: RepoDbTypeEnum,
-    fail_argparse: bool,
-    fail_create: bool,
-) -> None:
-    namespace = Namespace(db_file="db_file", input_dir="input_dir", files=files)
-    if fail_argparse:
-        argparsefactory_mock.json2db.side_effect = ArgumentTypeError
-    else:
-        argparsefactory_mock.json2db.return_value = Mock(parse_args=Mock(return_value=namespace))
-    if fail_create:
-        create_db_from_json_files_mock.side_effect = errors.RepoManagementError
-
-    cli.json2db()
-    if fail_argparse:
-        exit_mock.assert_called_once_with(1)
-    if fail_create:
-        create_db_from_json_files_mock.assert_called_once_with(
-            input_path=namespace.input_dir,
-            output_path=namespace.db_file,
-            db_type=db_type,
-        )
-        exit_mock.assert_called_once_with(1)
-    if not fail_argparse and not fail_create:
-        create_db_from_json_files_mock.assert_called_once_with(
-            input_path=namespace.input_dir,
-            output_path=namespace.db_file,
-            db_type=db_type,
-        )
 
 
 def transform_databases(db: str, json_dir: Path, default_syncdb: Path) -> None:
