@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from repod.common.enums import CompressionTypeEnum
+
+DEFAULT_DATABASE_COMPRESSION = CompressionTypeEnum.GZIP
 SETTINGS_LOCATION = Path("/etc/repod.conf")
 SETTINGS_OVERRIDE_LOCATION = Path("/etc/repod.conf.d/")
 PACKAGE_REPO_BASE = Path("/var/lib/repod/repo")
