@@ -277,19 +277,14 @@ def test_json2db(
         )
 
 
-def transform_databases(db: str, json_dir: Path, default_syncdb: Path, files_syncdb: Path) -> None:
+def transform_databases(db: str, json_dir: Path, default_syncdb: Path) -> None:
     commands.run_command(
-        cmd=["db2json", f"/var/lib/pacman/sync/{db}.files", str(json_dir)],
+        cmd=["repod-file", "management", "import", f"/var/lib/pacman/sync/{db}.files", str(json_dir)],
         debug=True,
         check=True,
     )
     commands.run_command(
-        cmd=["json2db", "-f", str(json_dir), str(files_syncdb)],
-        debug=True,
-        check=True,
-    )
-    commands.run_command(
-        cmd=["json2db", str(json_dir), str(default_syncdb)],
+        cmd=["repod-file", "management", "export", str(json_dir), str(default_syncdb)],
         debug=True,
         check=True,
     )
@@ -356,7 +351,6 @@ def test_transform_core_databases(empty_dir: Path, empty_syncdbs: List[Path]) ->
         db="core",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
-        files_syncdb=empty_syncdbs[1],
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))
 
@@ -371,7 +365,6 @@ def test_transform_extra_databases(empty_dir: Path, empty_syncdbs: List[Path]) -
         db="extra",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
-        files_syncdb=empty_syncdbs[1],
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))
 
@@ -386,7 +379,6 @@ def test_transform_community_databases(empty_dir: Path, empty_syncdbs: List[Path
         db="community",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
-        files_syncdb=empty_syncdbs[1],
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))
 
@@ -401,6 +393,5 @@ def test_transform_multilib_databases(empty_dir: Path, empty_syncdbs: List[Path]
         db="multilib",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
-        files_syncdb=empty_syncdbs[1],
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))
