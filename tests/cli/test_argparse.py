@@ -9,6 +9,10 @@ def test_argparsefactory__init__() -> None:
     assert isinstance(argparse.ArgParseFactory().parser, argparse.ArgumentParser)
 
 
+def test_argparsefactory_repod_file() -> None:
+    assert isinstance(argparse.ArgParseFactory().repod_file(), argparse.ArgumentParser)
+
+
 def test_argparsefactory__db2json() -> None:
     assert isinstance(argparse.ArgParseFactory.db2json(), argparse.ArgumentParser)
 
