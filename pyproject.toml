@@ -14,7 +14,7 @@ include = [
 readme = "README.md"
 homepage = "https://gitlab.archlinux.org/archlinux/repod"
 repository = "https://gitlab.archlinux.org/archlinux/repod"
-documentation = "https://repod.readthedocs.io"
+documentation = "https://repod.archlinux.page"
 keywords = ["arch linux", "repository", "pacman", "packages"]
 classifiers = [
   "Development Status :: 3 - Alpha",
