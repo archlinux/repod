@@ -32,11 +32,23 @@ The project is written in typed Python. Please refer to [issue
 tracker](https://gitlab.archlinux.org/archlinux/repod/-/issues) for open
 tickets and ongoing development.
 
-[Tox](https://tox.readthedocs.io) needs to be installed to be able to test the
-project's code and to generate its user facing documentation.
+[Tox](https://tox.readthedocs.io) and [poetry](https://python-poetry.org/) need
+to be installed to be able to test the project's code and to generate its user
+facing documentation.
 
 The code base is type checked, linted and formatted using standardized tooling.
 Please make sure to run ``tox`` before providing a merge request.
+
+For all notable changes to the code base make sure to add a
+[changelog](CHANGELOG.rst) entry in the `[Unreleased]` section. The changelog
+style follows the ["keep a changelog"](https://keepachangelog.com/en/1.0.0/)
+methodology. Valid subsection topics are:
+* **Added** for new features.
+* **Changed** for changes in existing functionality.
+* **Deprecated** for soon-to-be removed features.
+* **Removed** for now removed features.
+* **Fixed** for any bug fixes.
+* **Security** in case of vulnerabilities.
 
 ### Integration for text editors
 
