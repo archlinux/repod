@@ -2,8 +2,12 @@
 This project contains tooling to maintain binary package repositories for Linux
 distributions using the [pacman](https://archlinux.org/pacman/) package manager.
 
-**NOTE**: Repod is still in pre-release state and as such has not yet reached
-its minimum feature set. It should not be used in a production environment!
+The latest documentation can be found at
+[repod.archlinux.page](https://repod.archlinux.page).
+
+**NOTE**: *Repod is still alpha grade software and as such has not yet reached
+its targetted feature set and has not been thoroughly tested in the field. It
+should not be used in a production environment!*
 
 ## Installation
 
@@ -30,8 +34,6 @@ built using
 ```
 tox -e docs
 ```
-
-The documentation is published at [repod.archlinux.page][https://repod.archlinux.page].
 
 ## Contributing
 
