@@ -545,6 +545,20 @@ lint = ["flake8 (>=3.5.0)", "isort", "mypy (>=0.950)", "docutils-stubs", "types-
 test = ["pytest (>=4.6)", "html5lib", "cython", "typed-ast"]
 
 [[package]]
+name = "sphinx-argparse"
+version = "0.3.1"
+description = "A sphinx extension that automatically documents argparse commands and options"
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[package.dependencies]
+sphinx = ">=1.2.0"
+
+[package.extras]
+markdown = ["CommonMark (>=0.5.6)"]
+
+[[package]]
 name = "sphinx-rtd-theme"
 version = "1.0.0"
 description = "Read the Docs theme for Sphinx"
@@ -724,7 +738,7 @@ vercmp = ["pyalpm"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "70ad94502da7e3d9fea88c92bd03aed3b12e279dc1afbf62fc6c4a978d9e41c6"
+content-hash = "50c9b0ca38a5ad64032abfcd8944ce4d0155ac09402afe6492b02b3c5bac3ac2"
 
 [metadata.files]
 aiofiles = [
@@ -1189,6 +1203,10 @@ snowballstemmer = [
 sphinx = [
     {file = "Sphinx-5.0.2-py3-none-any.whl", hash = "sha256:d3e57663eed1d7c5c50895d191fdeda0b54ded6f44d5621b50709466c338d1e8"},
     {file = "Sphinx-5.0.2.tar.gz", hash = "sha256:b18e978ea7565720f26019c702cd85c84376e948370f1cd43d60265010e1c7b0"},
+]
+sphinx-argparse = [
+    {file = "sphinx-argparse-0.3.1.tar.gz", hash = "sha256:82151cbd43ccec94a1530155f4ad34f251aaca6a0ffd5516d7fadf952d32dc1e"},
+    {file = "sphinx_argparse-0.3.1-py2.py3-none-any.whl", hash = "sha256:295ccae425874630b6a3b47254854027345d786bab2c3ffd5e9a0407bc6856b2"},
 ]
 sphinx-rtd-theme = [
     {file = "sphinx_rtd_theme-1.0.0-py2.py3-none-any.whl", hash = "sha256:4d35a56f4508cfee4c4fb604373ede6feae2a306731d533f409ef5c3496fdbd8"},
