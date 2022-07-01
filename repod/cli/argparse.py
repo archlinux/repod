@@ -280,3 +280,8 @@ class ArgParseFactory:
         if not path.is_dir():
             raise ArgumentTypeError(f"not a directory: {input_}")
         return path
+
+
+def sphinx_repod_file() -> ArgumentParser:
+    """Return ArgParseFactory.repod_file() for sphinx."""
+    return ArgParseFactory.repod_file()

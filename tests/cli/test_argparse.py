@@ -13,6 +13,10 @@ def test_argparsefactory_repod_file() -> None:
     assert isinstance(argparse.ArgParseFactory().repod_file(), argparse.ArgumentParser)
 
 
+def test_sphinx_repod_file() -> None:
+    assert isinstance(argparse.sphinx_repod_file(), argparse.ArgumentParser)
+
+
 @patch(
     "repod.cli.argparse.Path",
     Mock(return_value=Mock(exists=Mock(side_effect=[False, True, True]), is_file=Mock(side_effect=[False, True]))),
