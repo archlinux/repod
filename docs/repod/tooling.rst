@@ -17,8 +17,8 @@ The ``repod-file`` script can be used to inspect and transform data related to
 
 .. note::
 
-   Refer to ``repod-file --help`` for further information on subcommands,
-   options and parameters.
+   Refer to ``repod-file --help`` or to the :ref:`manuals` for further
+   information on subcommands, options and parameters.
 
 .. _inspect_package_files:
 
