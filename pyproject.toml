@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "repod"
-version = "0.1.0-alpha1"
+version = "0.1.0"
 description = "Tooling to maintain binary package repositories for Linux distributions using the pacman package manager"
 authors = ["Arch Linux <arch-projects@lists.archlinux.org>"]
 license = "GPL-3.0-or-later"
