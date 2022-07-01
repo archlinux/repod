@@ -44,6 +44,12 @@ class Package(BaseModel):
         signature: Optional[Path]
             The optional path to a signature file for package
 
+        Raises
+        ------
+        RepoManagementFileError
+            If the signature file does not match the package file.
+            If the signature file does not exist.
+
         Returns
         -------
         Package
@@ -57,6 +63,13 @@ class Package(BaseModel):
 
         if signature:
             debug(f"Opening signature file {signature} for reading...")
+            if not Path(str(package) + ".sig") == signature:
+                raise RepoManagementFileError(
+                    f"The signature file for {package} should be {str(package) + '.sig'}, but {signature} is provided!"
+                )
+            if not signature.exists():
+                raise RepoManagementFileError(f"The signature file {signature} does not exist!")
+
             with open(signature, "rb") as signature_file:
                 pgpsig = b64encode(signature_file.read()).decode("utf-8")
                 debug(f"Created pgpsig: {pgpsig}")

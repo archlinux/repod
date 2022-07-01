@@ -1,6 +1,5 @@
 import asyncio
 from argparse import Namespace
-from itertools import pairwise
 from logging import DEBUG, INFO, WARNING, StreamHandler, debug, getLogger
 from pathlib import Path
 from sys import stdout
@@ -30,30 +29,34 @@ def repod_file_package(args: Namespace) -> None:
     pretty = ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0
     match args.package:
         case "inspect":
-            model = asyncio.run(
-                Package.from_file(package=args.file[0], signature=args.file[1] if len(args.file) == 2 else None)
-            )
+            for package_path in args.file:
+                model = asyncio.run(
+                    Package.from_file(
+                        package=package_path,
+                        signature=Path(str(package_path) + ".sig") if args.with_signature else None,
+                    )
+                )
 
-            if args.buildinfo:
-                print(dumps(model.buildinfo.dict(), option=pretty).decode("utf-8"))  # type: ignore[attr-defined]
-            elif args.mtree:
-                print(dumps(model.mtree.dict(), option=pretty).decode("utf-8"))  # type: ignore[attr-defined]
-            elif args.pkginfo:
-                print(dumps(model.pkginfo.dict(), option=pretty).decode("utf-8"))  # type: ignore[attr-defined]
-            else:
-                print(dumps(model.dict(), option=pretty).decode("utf-8"))
+                if args.buildinfo:
+                    print(dumps(model.buildinfo.dict(), option=pretty).decode("utf-8"))  # type: ignore[attr-defined]
+                elif args.mtree:
+                    print(dumps(model.mtree.dict(), option=pretty).decode("utf-8"))  # type: ignore[attr-defined]
+                elif args.pkginfo:
+                    print(dumps(model.pkginfo.dict(), option=pretty).decode("utf-8"))  # type: ignore[attr-defined]
+                else:
+                    print(dumps(model.dict(), option=pretty).decode("utf-8"))
+
         case "import":
             packages: List[Package] = []
-            if any(file.suffix == ".sig" for file in args.file):
-                if len(args.file) % 2 != 0:
-                    raise RuntimeError(
-                        "If signatures for packages are provided, they need to be provided for all of them!"
+            for package_path in args.file:
+                packages.append(
+                    asyncio.run(
+                        Package.from_file(
+                            package=package_path,
+                            signature=Path(str(package_path) + ".sig") if args.with_signature else None,
+                        )
                     )
-                for package_file, signature in pairwise(args.file):
-                    packages.append(asyncio.run(Package.from_file(package=package_file, signature=signature)))
-            else:
-                for package_file in args.file:
-                    packages.append(asyncio.run(Package.from_file(package=package_file)))
+                )
 
             outputpackagebase = OutputPackageBase.from_package(packages=packages)
             if args.dry_run:

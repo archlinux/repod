@@ -51,16 +51,19 @@ class ArgParseFactory:
             "file",
             nargs="+",
             type=cls.string_to_file_path,
-            help=(
-                "package files and signatures "
-                "(the first file is always regarded as the package, the second as the signature)"
-            ),
+            help="package files",
         )
         mutual_exclusive_inspect = package_inspect_parser.add_mutually_exclusive_group()
         mutual_exclusive_inspect.add_argument("-B", "--buildinfo", action="store_true", help="only inspect .BUILDINFO")
         mutual_exclusive_inspect.add_argument("-M", "--mtree", action="store_true", help="only inspect .MTREE")
         mutual_exclusive_inspect.add_argument("-P", "--pkginfo", action="store_true", help="only inspect .PKGINFO")
         package_inspect_parser.add_argument("-p", "--pretty", action="store_true", help="pretty print output")
+        package_inspect_parser.add_argument(
+            "-s",
+            "--with-signature",
+            action="store_true",
+            help="locate and use a signature file for each provided package file",
+        )
 
         package_import_parser = package_subcommands.add_parser(
             name="import",
@@ -70,10 +73,7 @@ class ArgParseFactory:
             "file",
             nargs="+",
             type=cls.string_to_file_path,
-            help=(
-                "package files and signatures "
-                "(the first file is always regarded as the package, the second as the signature)"
-            ),
+            help="package files",
         )
         package_import_parser.add_argument(
             "repo",
@@ -87,6 +87,12 @@ class ArgParseFactory:
             help="only show output, but do not write output to file",
         )
         package_import_parser.add_argument("-p", "--pretty", action="store_true", help="pretty print output")
+        package_import_parser.add_argument(
+            "-s",
+            "--with-signature",
+            action="store_true",
+            help="locate and use a signature file for each provided package file",
+        )
 
         management = subcommands.add_parser(name="management", help="interact with management repositories")
         management_subcommands = management.add_subparsers(dest="management")

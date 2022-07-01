@@ -12,19 +12,49 @@ from repod.cli import cli
 
 
 @mark.parametrize(
-    "args, only_package, dup_package, expectation",
+    "args, expectation",
     [
-        (Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False), True, False, does_not_raise()),
-        (Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False), True, False, does_not_raise()),
-        (Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False), True, False, does_not_raise()),
-        (Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True), True, False, does_not_raise()),
-        (Namespace(package="import", dry_run=True), True, False, does_not_raise()),
-        (Namespace(package="import", dry_run=False), True, False, does_not_raise()),
-        (Namespace(package="import", dry_run=True), False, False, does_not_raise()),
-        (Namespace(package="import", dry_run=False), False, False, does_not_raise()),
-        (Namespace(package="import", dry_run=True), False, True, raises(RuntimeError)),
-        (Namespace(package="import", dry_run=False), False, True, raises(RuntimeError)),
-        (Namespace(package="foo"), True, False, raises(RuntimeError)),
+        (
+            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=True),
+            does_not_raise(),
+        ),
+        (
+            Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=True),
+            does_not_raise(),
+        ),
+        (
+            Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=True),
+            does_not_raise(),
+        ),
+        (
+            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=True),
+            does_not_raise(),
+        ),
+        (Namespace(package="import", dry_run=True, with_signature=False), does_not_raise()),
+        (Namespace(package="import", dry_run=False, with_signature=False), does_not_raise()),
+        (Namespace(package="import", dry_run=True, with_signature=False), does_not_raise()),
+        (Namespace(package="import", dry_run=False, with_signature=False), does_not_raise()),
+        (Namespace(package="import", dry_run=True, with_signature=True), does_not_raise()),
+        (Namespace(package="import", dry_run=False, with_signature=True), does_not_raise()),
+        (Namespace(package="import", dry_run=True, with_signature=True), does_not_raise()),
+        (Namespace(package="import", dry_run=False, with_signature=True), does_not_raise()),
+        (Namespace(package="foo"), raises(RuntimeError)),
     ],
 )
 def test_repod_file_package(
@@ -32,19 +62,12 @@ def test_repod_file_package(
     default_package_file: Tuple[Path, ...],
     tmp_path: Path,
     args: Namespace,
-    only_package: bool,
-    dup_package: bool,
     expectation: ContextManager[str],
 ) -> None:
     caplog.set_level(DEBUG)
 
     if args.package in ["inspect", "import"]:
-        if only_package:
-            args.file = [default_package_file[0]]
-        else:
-            args.file = [default_package_file[0], default_package_file[1]]
-        if dup_package:
-            args.file += [default_package_file[0]]
+        args.file = [default_package_file[0]]
     if args.package == "import":
         args.repo = tmp_path
 

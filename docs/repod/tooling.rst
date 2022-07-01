@@ -31,12 +31,13 @@ To get the entire metadata collected by repod, use:
 
 .. code:: sh
 
-  repod-file package inspect <package> <signature>
+  repod-file package inspect <package>
 
 .. note::
 
-  The signature file is optional, but if present should be added to the call to
-  ``repod-file`` as it provides the additional ``pgpsig`` data for the output.
+  By default package signature files are not considered. To enforce the
+  locating and use of accompanying signature files, use the ``-s``/
+  ``--with-signature`` flag.
 
 The output of ``repod-file package inspect`` can be modified by using the
 ``-p``/ ``--pretty`` option (for pretty printing the JSON output).
@@ -60,15 +61,13 @@ splitting|) need to be consumed at once.
 
 .. code:: sh
 
-  repod-file package import <package> <signature> <repo>
+  repod-file package import <package> <repo>
 
 .. note::
 
-  All packages must either be provided with or without their accompanying
-  signatures. If signatures are present the packages and signatures are to be
-  provided in tuples of two (the first is always the package, the second always
-  the signature). The last parameter is always considered as the output
-  directory.
+  By default package signature files are not considered. To enforce the
+  locating and use of accompanying signature files, use the ``-s``/
+  ``--with-signature`` flag.
 
 The output of the above command may be displayed using the ``-d``/
 ``--dry-run`` flag (nothing is written to the output directory in this case).

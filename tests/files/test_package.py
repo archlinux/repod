@@ -1,6 +1,7 @@
+from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
-from typing import Tuple
+from typing import ContextManager, Tuple
 
 from pytest import LogCaptureFixture, mark, raises
 
@@ -9,26 +10,41 @@ from repod.files import package
 
 
 @mark.parametrize(
-    "add_sig",
+    "add_sig, valid_sig_name, sig_exists, expectation",
     [
-        (True),
-        (False),
+        (True, True, True, does_not_raise()),
+        (True, False, True, raises(RepoManagementFileError)),
+        (True, True, False, raises(RepoManagementFileError)),
+        (False, True, True, does_not_raise()),
     ],
 )
 async def test_package_from_file(
     add_sig: bool,
+    valid_sig_name: bool,
+    sig_exists: bool,
+    expectation: ContextManager[str],
     caplog: LogCaptureFixture,
     default_package_file: Tuple[Path, ...],
     default_sync_db_file: Tuple[Path],
 ) -> None:
     caplog.set_level(DEBUG)
-    assert isinstance(
-        await package.Package.from_file(
-            package=default_package_file[0],
-            signature=default_package_file[1] if add_sig else None,
-        ),
-        package.PackageV1,
-    )
+
+    signature = default_package_file[1]
+
+    if not sig_exists:
+        signature.unlink()
+
+    if not valid_sig_name:
+        signature = Path("foo")
+
+    with expectation:
+        assert isinstance(
+            await package.Package.from_file(
+                package=default_package_file[0],
+                signature=signature if add_sig else None,
+            ),
+            package.PackageV1,
+        )
 
     with raises(RepoManagementFileError):
         await package.Package.from_file(package=default_sync_db_file[0])
