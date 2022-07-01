@@ -66,7 +66,7 @@ FilesV1
 
    This schema represents the definition of :ref:`files_v1`.
 
-.. literalinclude:: schema/FilesV1.json
+.. literalinclude:: ../schema/FilesV1.json
    :language: json
 
 .. _outputpackagebase_schema:
@@ -89,7 +89,7 @@ Below is a list of currently understood versions of the schema.
 OutputPackageBaseV1
 """""""""""""""""""
 
-.. literalinclude:: schema/OutputPackageBaseV1.json
+.. literalinclude:: ../schema/OutputPackageBaseV1.json
    :language: json
 
 .. _outputpackage_schema:
@@ -108,7 +108,7 @@ Below is a list of currently understood versions of the schema.
 OutputPackageV1
 """""""""""""""
 
-.. literalinclude:: schema/OutputPackageV1.json
+.. literalinclude:: ../schema/OutputPackageV1.json
    :language: json
 
 .. _packagedesc_schema:
@@ -130,7 +130,7 @@ PackageDescV1
 
    This schema represents the definition of :ref:`desc_v1`.
 
-.. literalinclude:: schema/PackageDescV1.json
+.. literalinclude:: ../schema/PackageDescV1.json
    :language: json
 
 .. |version control repository| raw:: html

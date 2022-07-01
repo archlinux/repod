@@ -28,7 +28,7 @@ Below is a list of currently understood versions of the schema.
 PackageV1
 ^^^^^^^^^
 
-.. literalinclude:: schema/PackageV1.json
+.. literalinclude:: ../schema/PackageV1.json
    :language: json
 
 .. _mtree:
@@ -59,7 +59,7 @@ Below is a list of currently understood versions of the schema.
 MTreeEntryV1
 """"""""""""
 
-.. literalinclude:: schema/MTreeEntryV1.json
+.. literalinclude:: ../schema/MTreeEntryV1.json
    :language: json
 
 .. _buildinfo:
@@ -89,7 +89,7 @@ Below is a list of currently understood versions of the schema.
 BuildInfoV1
 """""""""""
 
-.. literalinclude:: schema/BuildInfoV1.json
+.. literalinclude:: ../schema/BuildInfoV1.json
    :language: json
 
 .. _buildinfov2:
@@ -103,7 +103,7 @@ BuildInfoV2
   of the form ``<optional_epoch><pkgver>-<pkgrel>-<arch>`` (e.g.
   ``20220207-1-any``)!
 
-.. literalinclude:: schema/BuildInfoV2.json
+.. literalinclude:: ../schema/BuildInfoV2.json
    :language: json
 
 .. _pkginfo:
@@ -131,7 +131,7 @@ Below is a list of currently understood versions of the schema.
 PkgInfoV1
 """""""""
 
-.. literalinclude:: schema/PkgInfoV1.json
+.. literalinclude:: ../schema/PkgInfoV1.json
    :language: json
 
 .. _pkginfov2:
@@ -141,7 +141,7 @@ PkgInfoV2
 
 In this version the ``pkgtype`` field has been added.
 
-.. literalinclude:: schema/PkgInfoV2.json
+.. literalinclude:: ../schema/PkgInfoV2.json
    :language: json
 
 .. |mtree| raw:: html
