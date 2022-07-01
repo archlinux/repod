@@ -11,29 +11,43 @@ should not be used in a production environment!*
 
 ## Installation
 
-This project is Python based and uses [poetry](https://python-poetry.org/) for
-its development.
-
-To create sdist tarball and wheel run
+You can install the latest released version of repod by executing
 
 ```
-poetry build
+pip install repod
 ```
 
-To install the resulting wheel using `pip` run
+## Requirements
 
-```
-pip install dist/*.whl
-```
+When installing repod, its dependencies are automatically installed.
 
-## Documentation
+However, the project has a few special dependencies which can be replaced by
+other packages, depending on availability.
 
-The user facing documentation of repod can be found in [docs](docs/) and is
-built using
+### Pyalpm
 
-```
-tox -e docs
-```
+The Python package [pyalpm](https://pypi.org/project/pyalpm/) is not
+installable on all operating systems as it depends on the availability of
+[libalpm](https://man.archlinux.org/man/libalpm.3) (a C library), which is
+usually provided via [pacman](https://man.archlinux.org/man/pacman.8).
+
+However, if `pyalpm` is detected, repod will make use of it for version
+comparison instead of a builtin implementation of this functionality, which is
+based on [vercmp](https://man.archlinux.org/man/vercmp.8).
+
+### Python-magic
+
+By default the [python-magic](https://pypi.org/project/python-magic/) Python
+package is used by repod to detect file types. The detection is based on
+`libmagic` (a C library), usually provided via
+[file](https://darwinsys.com/file/).
+
+Confusingly, the file project also offers a Python module called `file-magic`,
+but it is not available on pypi.org and mostly only found on e.g. Linux
+distributions.
+
+If file's `file-magic` Python module is detected, repod will make use of it for
+file type detection instead of using `python-magic`.
 
 ## Contributing
 
