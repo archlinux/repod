@@ -12,6 +12,9 @@ For more detailed information have a look at the |git log|.
 [Unreleased]
 ------------
 
+[0.1.0-alpha1] - 2022-07-01
+---------------------------
+
 Added
 ^^^^^
 
