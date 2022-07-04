@@ -52,6 +52,7 @@ pyzstd = "^0.15.2"
 python-magic = "^0.4.26"
 email-validator = "^1.2.1"
 pyalpm = {version = "^0.10.6", optional = true, extras = ["vercmp"]}
+pyxdg = "^0.28"
 
 [tool.poetry.extras]
 vercmp = ["pyalpm"]
