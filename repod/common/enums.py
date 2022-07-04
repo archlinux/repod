@@ -128,6 +128,21 @@ class PkgTypeEnum(Enum):
     DEBUG = "debug"
 
 
+class SettingsTypeEnum(Enum):
+    """An Enum to distinguish different Settings types
+
+    Attributes
+    ----------
+    USER: str
+        User Settings
+    SYSTEM: str
+        System Settings
+    """
+
+    USER = "user"
+    SYSTEM = "system"
+
+
 def pkg_types_for_pkgtype_regex() -> str:
     """Return the members of PkgTypeEnum formatted for use in the PKGTYPE regular expression
 
