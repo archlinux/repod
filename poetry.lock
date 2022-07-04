@@ -472,6 +472,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "pyxdg"
+version = "0.28"
+description = "PyXDG contains implementations of freedesktop.org standards in python."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pyzstd"
 version = "0.15.2"
 description = "Python bindings to Zstandard (zstd) compression library, the API is similar to Python's bz2/lzma/zlib modules."
@@ -738,7 +746,7 @@ vercmp = ["pyalpm"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "50c9b0ca38a5ad64032abfcd8944ce4d0155ac09402afe6492b02b3c5bac3ac2"
+content-hash = "36200cd9210977473d8b74238430dd959c9dea7e2856631026e581264a36fcbc"
 
 [metadata.files]
 aiofiles = [
@@ -1099,6 +1107,10 @@ python-magic = [
 pytz = [
     {file = "pytz-2022.1-py2.py3-none-any.whl", hash = "sha256:e68985985296d9a66a881eb3193b0906246245294a881e7c8afe623866ac6a5c"},
     {file = "pytz-2022.1.tar.gz", hash = "sha256:1e760e2fe6a8163bc0b3d9a19c4f84342afa0a2affebfaa84b01b978a02ecaa7"},
+]
+pyxdg = [
+    {file = "pyxdg-0.28-py2.py3-none-any.whl", hash = "sha256:bdaf595999a0178ecea4052b7f4195569c1ff4d344567bccdc12dfdf02d545ab"},
+    {file = "pyxdg-0.28.tar.gz", hash = "sha256:3267bb3074e934df202af2ee0868575484108581e6f3cb006af1da35395e88b4"},
 ]
 pyzstd = [
     {file = "pyzstd-0.15.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e02c5ec165cd218cc774a757eed14e5794f438d327a37e6804133c6aaf866ffb"},
