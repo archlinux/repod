@@ -7,6 +7,7 @@ import tomli
 from pydantic import AnyUrl, BaseModel, BaseSettings, constr, root_validator, validator
 from pydantic.env_settings import SettingsSourceCallable
 
+from repod.common.enums import SettingsTypeEnum
 from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
     MANAGEMENT_REPO,
@@ -145,7 +146,7 @@ class ManagementRepo(BaseModel):
         A URL describing the VCS upstream of the management repository
     """
 
-    directory: Path = MANAGEMENT_REPO
+    directory: Path
     url: AnyUrl
 
     @validator("directory")
@@ -195,6 +196,36 @@ class ManagementRepo(BaseModel):
             raise ValueError(f"When using ssh a user is required (but none is provided): '{url}'")
 
         return url
+
+
+class UserManagementRepo(ManagementRepo):
+    """A user-level ManagementRepo, which defaults to XDG compliant directory locations
+
+    Attributes
+    ----------
+    directory: Path
+        A Path instance describing the location of the management repository (defaults to
+        MANAGEMENT_REPO[SettingsTypeEnum.USER])
+    url: AnyUrl
+        A URL describing the VCS upstream of the management repository
+    """
+
+    directory: Path = MANAGEMENT_REPO[SettingsTypeEnum.USER]
+
+
+class SystemManagementRepo(ManagementRepo):
+    """A system-level ManagementRepo, which defaults to system-wide directory locations
+
+    Attributes
+    ----------
+    directory: Path
+        A Path instance describing the location of the management repository (defaults to
+        MANAGEMENT_REPO[SettingsTypeEnum.SYSTEM])
+    url: AnyUrl
+        A URL describing the VCS upstream of the management repository
+    """
+
+    directory: Path = MANAGEMENT_REPO[SettingsTypeEnum.SYSTEM]
 
 
 class PackageRepo(Architecture, PackagePool, SourcePool):
@@ -494,10 +525,16 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
 
     output_dict: Dict[str, Any] = {}
     config_files: List[Path] = []
-    if SETTINGS_LOCATION.exists():
-        config_files += [SETTINGS_LOCATION]
-    if SETTINGS_OVERRIDE_LOCATION.exists():
-        config_files += sorted(SETTINGS_OVERRIDE_LOCATION.glob("*.conf"))
+    if isinstance(settings, UserSettings):
+        if SETTINGS_LOCATION[SettingsTypeEnum.USER].exists():
+            config_files += [SETTINGS_LOCATION[SettingsTypeEnum.USER]]
+        if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].exists():
+            config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].glob("*.conf"))
+    if isinstance(settings, SystemSettings):
+        if SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM].exists():
+            config_files += [SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM]]
+        if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].exists():
+            config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].glob("*.conf"))
 
     for config_file in config_files:
         with open(config_file, "rb") as file:
@@ -541,8 +578,8 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
 
     repositories: List[PackageRepo]
     management_repo: Optional[ManagementRepo]
-    package_repo_base: Path = PACKAGE_REPO_BASE
-    source_repo_base: Path = SOURCE_REPO_BASE
+    package_repo_base: Path
+    source_repo_base: Path
 
     class Config:
         env_file_encoding = "utf-8"
@@ -946,3 +983,84 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
             )
 
         return values
+
+
+class UserSettings(Settings):
+    """User-level Settings, which assume XDG compliant configuration locations and defaults
+
+    Attributes
+    ----------
+    repositories: List[PackageRepo]
+        A list of PackageRepo instances that each define a binary package repository (with optional staging and testing
+        locations). Each may define optional overrides for Architecture, UserManagementRepo, PackagePool and SourcePool
+    package_repo_base: Path
+        A directory that serves as the base for all directories, that are defined for the package repositories and are
+        used for storing symlinks to binary package files and their signatures (defaults to
+        PACKAGE_REPO_BASE[SettingsTypeEnum.USER])
+    source_repo_base: Path
+        A directory that serves as the base for all directories, that are defined for the package repositories and are
+        used for storing symlinks to source tarballs (defaults to SOURCE_REPO_BASE[SettingsTypeEnum.USER])
+    architecture: Optional[str]
+        An optional Architecture string (see Architecture), that if set is used for each package
+        repository to set its CPU architecture unless a package repository defines an architecture itself
+        NOTE: It is mandatory to provide an architecture for each package repository!
+    management_repo: Optional[UserManagementRepo]
+        An optional UserManagementRepo, that if set is used for each package repository to manage the state of each
+        package repository, unless a package repository defines a management repository itself
+        NOTE: It is mandatory to provide a management repository for each package repository!
+    package_pool: Optional[Path]
+        An optional directory, that if set is used for each package repository to store the binary packages and their
+        signatures in, unless a package repository defines a package pool itself. From this directory the active
+        packages are symlinked into their respective package repository directories
+        NOTE: It is mandatory to provide a package pool for each package repository!
+    source_pool: Optional[Path]
+        An optional directory, that if set is used for each package repository to store the binary source tarballs for
+        each package in, unless a package repository defines a source pool itself. From this directory the active
+        source tarballs of packages are symlinked into their respective package repository directories
+        NOTE: It is mandatory to provide a source pool for each package repository!
+    """
+
+    management_repo: Optional[UserManagementRepo]
+    package_repo_base: Path = PACKAGE_REPO_BASE[SettingsTypeEnum.USER]
+    source_repo_base: Path = SOURCE_REPO_BASE[SettingsTypeEnum.USER]
+
+
+class SystemSettings(Settings):
+    """System-level Settings, which assume system-wide configuration locations and defaults
+
+    Attributes
+    ----------
+    repositories: List[PackageRepo]
+        A list of PackageRepo instances that each define a binary package repository (with optional staging and testing
+        locations). Each may define optional overrides for Architecture, SystemManagementRepo, PackagePool and
+        SourcePool
+    package_repo_base: Path
+        A directory that serves as the base for all directories, that are defined for the package repositories and are
+        used for storing symlinks to binary package files and their signatures (defaults to
+        PACKAGE_REPO_BASE[SettingsTypeEnum.SYSTEM])
+    source_repo_base: Path
+        A directory that serves as the base for all directories, that are defined for the package repositories and are
+        used for storing symlinks to source tarballs (defaults to SOURCE_REPO_BASE[SettingsTypeEnum.SYSTEM])
+    architecture: Optional[str]
+        An optional Architecture string (see Architecture), that if set is used for each package
+        repository to set its CPU architecture unless a package repository defines an architecture itself
+        NOTE: It is mandatory to provide an architecture for each package repository!
+    management_repo: Optional[SystemManagementRepo]
+        An optional SystemManagementRepo, that if set is used for each package repository to manage the state of each
+        package repository, unless a package repository defines a management repository itself
+        NOTE: It is mandatory to provide a management repository for each package repository!
+    package_pool: Optional[Path]
+        An optional directory, that if set is used for each package repository to store the binary packages and their
+        signatures in, unless a package repository defines a package pool itself. From this directory the active
+        packages are symlinked into their respective package repository directories
+        NOTE: It is mandatory to provide a package pool for each package repository!
+    source_pool: Optional[Path]
+        An optional directory, that if set is used for each package repository to store the binary source tarballs for
+        each package in, unless a package repository defines a source pool itself. From this directory the active
+        source tarballs of packages are symlinked into their respective package repository directories
+        NOTE: It is mandatory to provide a source pool for each package repository!
+    """
+
+    management_repo: Optional[SystemManagementRepo]
+    package_repo_base: Path = PACKAGE_REPO_BASE[SettingsTypeEnum.SYSTEM]
+    source_repo_base: Path = SOURCE_REPO_BASE[SettingsTypeEnum.SYSTEM]

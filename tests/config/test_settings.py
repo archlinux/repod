@@ -5,6 +5,7 @@ from unittest.mock import Mock, call, patch
 
 from pytest import fixture, mark, raises
 
+from repod.common.enums import SettingsTypeEnum
 from repod.config import settings
 
 
@@ -132,15 +133,54 @@ def test_package_repo(
 
 
 @patch("tomli.load", return_value={})
-def test_read_toml_configuration_settings(
+def test_read_toml_configuration_settings_user(
     toml_load_mock: Mock,
     empty_toml_file: Path,
     empty_toml_files_in_dir: Path,
+    tmp_path: Path,
 ) -> None:
-    with patch("repod.config.settings.SETTINGS_LOCATION", empty_toml_file):
-        settings.read_toml_configuration_settings(Mock())
-        with patch("repod.config.settings.SETTINGS_OVERRIDE_LOCATION", empty_toml_files_in_dir):
-            settings.read_toml_configuration_settings(Mock())
+    with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.USER: empty_toml_file}):
+        settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
+        with patch(
+            "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
+            {SettingsTypeEnum.USER: empty_toml_files_in_dir},
+        ):
+            settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
+            toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
+
+    with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.USER: tmp_path / "foo.toml"}):
+        settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
+        with patch(
+            "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
+            {SettingsTypeEnum.USER: empty_toml_files_in_dir},
+        ):
+            settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
+            toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
+
+
+@patch("tomli.load", return_value={})
+def test_read_toml_configuration_settings_system(
+    toml_load_mock: Mock,
+    empty_toml_file: Path,
+    empty_toml_files_in_dir: Path,
+    tmp_path: Path,
+) -> None:
+    with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.SYSTEM: empty_toml_file}):
+        settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
+        with patch(
+            "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
+            {SettingsTypeEnum.SYSTEM: empty_toml_files_in_dir},
+        ):
+            settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
+            toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
+
+    with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.SYSTEM: tmp_path / "foo.toml"}):
+        settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
+        with patch(
+            "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
+            {SettingsTypeEnum.SYSTEM: empty_toml_files_in_dir},
+        ):
+            settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
             toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
 
 
@@ -1122,10 +1162,19 @@ def settings_params(request: Any, empty_dir: Path) -> Iterator[Tuple[Dict[str, A
     )
 
 
-def test_settings(
+def test_systemsettings(
     settings_params: Tuple[Dict[str, Any], ContextManager[str]],
 ) -> None:
     with settings_params[1]:
-        conf = settings.Settings(**settings_params[0])
-        assert isinstance(conf, settings.Settings)
+        conf = settings.SystemSettings(**settings_params[0])
+        assert isinstance(conf, settings.SystemSettings)
+        assert len(conf.repositories) > 0
+
+
+def test_usersettings(
+    settings_params: Tuple[Dict[str, Any], ContextManager[str]],
+) -> None:
+    with settings_params[1]:
+        conf = settings.UserSettings(**settings_params[0])
+        assert isinstance(conf, settings.UserSettings)
         assert len(conf.repositories) > 0
