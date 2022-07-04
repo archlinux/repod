@@ -14,7 +14,7 @@ stages:
 
 variables:
   BUILD_PUBLISH_PACKAGES: python-poetry python-tox
-  SYSTEM_PACKAGES: pyalpm python-aiofiles python-email-validator python-jinja python-magic python-orjson python-pydantic python-pyzstd python-subprocess-tee python-tomli
+  SYSTEM_PACKAGES: pyalpm python-aiofiles python-email-validator python-jinja python-magic python-orjson python-pydantic python-pyxdg python-pyzstd python-subprocess-tee python-tomli
   SYSTEM_INSTALL_PACKAGES: python-build python-installer python-poetry python-setuptools python-wheel
   SYSTEM_TEST_PACKAGES: python-coverage python-pytest python-pytest-asyncio python-pytest-lazy-fixture python-sphinx python-sphinx_rtd_theme
   TEST_PACKAGES: base-devel python-poetry python-tox
