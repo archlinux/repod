@@ -7,9 +7,10 @@ import tomli
 from pydantic import AnyUrl, BaseModel, BaseSettings, constr, root_validator, validator
 from pydantic.env_settings import SettingsSourceCallable
 
-from repod.common.enums import SettingsTypeEnum
+from repod.common.enums import CompressionTypeEnum, SettingsTypeEnum
 from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
+    DEFAULT_DATABASE_COMPRESSION,
     MANAGEMENT_REPO,
     PACKAGE_REPO_BASE,
     SETTINGS_LOCATION,
@@ -66,6 +67,18 @@ class Architecture(BaseModel):
     """
 
     architecture: Optional[constr(regex=f"^{ARCHITECTURE}$")]  # type: ignore[valid-type]  # noqa: F722
+
+
+class DatabaseCompression(BaseModel):
+    """Compression type for repository sync databases
+
+    Attributes
+    ----------
+    database_compression: CompressionTypeEnum
+        A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
+    """
+
+    database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
 
 
 class PackagePool(BaseModel):
@@ -542,7 +555,7 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
     return output_dict
 
 
-class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
+class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, SourcePool):
     """A class to describe a configuration for repod
 
     Attributes
@@ -560,6 +573,8 @@ class Settings(Architecture, BaseSettings, PackagePool, SourcePool):
         An optional Architecture string (see Architecture), that if set is used for each package
         repository to set its CPU architecture unless a package repository defines an architecture itself
         NOTE: It is mandatory to provide an architecture for each package repository!
+    database_compression: CompressionTypeEnum
+        A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
     management_repo: Optional[ManagementRepo]
         An optional ManagementRepo, that if set is used for each package repository to manage the state of each package
         repository, unless a package repository defines a management repository itself
