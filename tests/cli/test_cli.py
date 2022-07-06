@@ -168,14 +168,26 @@ def test_repod_file_schema(
 @mark.parametrize(
     "args, expectation",
     [
-        (Namespace(subcommand="package", verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="package", verbose=True, debug=False), does_not_raise()),
-        (Namespace(subcommand="package", verbose=False, debug=True), does_not_raise()),
-        (Namespace(subcommand="package", verbose=True, debug=True), does_not_raise()),
-        (Namespace(subcommand="management", verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="syncdb", verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="schema", verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="foo", verbose=False, debug=False), raises(RuntimeError)),
+        (Namespace(subcommand="package", config=None, system=False, verbose=False, debug=False), does_not_raise()),
+        (
+            Namespace(subcommand="package", config=Path("/foo.conf"), system=False, verbose=False, debug=False),
+            does_not_raise(),
+        ),
+        (Namespace(subcommand="package", config=None, system=False, verbose=True, debug=False), does_not_raise()),
+        (Namespace(subcommand="package", config=None, system=False, verbose=False, debug=True), does_not_raise()),
+        (Namespace(subcommand="package", config=None, system=False, verbose=True, debug=True), does_not_raise()),
+        (Namespace(subcommand="management", config=None, system=False, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="syncdb", config=None, system=False, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="schema", config=None, system=False, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="foo", config=None, system=False, verbose=False, debug=False), raises(RuntimeError)),
+        (Namespace(subcommand="package", config=None, system=True, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="package", config=None, system=True, verbose=True, debug=False), does_not_raise()),
+        (Namespace(subcommand="package", config=None, system=True, verbose=False, debug=True), does_not_raise()),
+        (Namespace(subcommand="package", config=None, system=True, verbose=True, debug=True), does_not_raise()),
+        (Namespace(subcommand="management", config=None, system=True, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="syncdb", config=None, system=True, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="schema", config=None, system=True, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="foo", config=None, system=True, verbose=False, debug=False), raises(RuntimeError)),
     ],
 )
 @patch("repod.cli.cli.repod_file_schema")
@@ -183,7 +195,11 @@ def test_repod_file_schema(
 @patch("repod.cli.cli.repod_file_management")
 @patch("repod.cli.cli.repod_file_package")
 @patch("repod.cli.argparse.ArgumentParser.parse_args")
+@patch("repod.cli.cli.SystemSettings")
+@patch("repod.cli.cli.UserSettings")
 def test_repod_file(
+    usersettings_mock: Mock,
+    systemsettings_mock: Mock,
     parse_args_mock: Mock,
     repod_file_package_mock: Mock,
     repod_file_management_mock: Mock,
@@ -205,6 +221,11 @@ def test_repod_file(
                 repod_file_syncdb_mock.assert_called_once_with(args=args)
             case "schema":
                 repod_file_schema_mock.assert_called_once_with(args=args)
+        match args.system:
+            case True:
+                systemsettings_mock.assert_called_once()
+            case False:
+                usersettings_mock.assert_called_once()
 
 
 @patch("repod.cli.argparse.ArgumentParser.parse_args")
@@ -214,14 +235,42 @@ def test_repod_file_raise_on_argumenterror(parse_args_mock: Mock) -> None:
         cli.repod_file()
 
 
-def transform_databases(db: str, json_dir: Path, default_syncdb: Path) -> None:
+def transform_databases(db: str, json_dir: Path, default_syncdb: Path, tmp_path: Path) -> None:
+    custom_config = f"""
+    [[repositories]]
+
+    name = "{tmp_path}/data/repo/foo"
+    staging = "{tmp_path}/data/repo/foo-staging"
+    testing = "{tmp_path}/data/repo/foo-testing"
+    package_pool = "{tmp_path}/data/pool/package/foo"
+    source_pool = "{tmp_path}/data/pool/source/foo"
+
+    [repositories.management_repo]
+    directory = "{tmp_path}/management/foo"
+    """
+
+    conf_dir = tmp_path / "config"
+    conf_dir.mkdir()
+    config_path = conf_dir / "repod.conf"
+    with open(config_path, "w") as file:
+        file.write(custom_config)
+
     commands.run_command(
-        cmd=["repod-file", "management", "import", f"/var/lib/pacman/sync/{db}.files", str(json_dir)],
+        cmd=[
+            "repod-file",
+            "-d",
+            "-c",
+            f"{config_path}",
+            "management",
+            "import",
+            f"/var/lib/pacman/sync/{db}.files",
+            str(json_dir),
+        ],
         debug=True,
         check=True,
     )
     commands.run_command(
-        cmd=["repod-file", "management", "export", str(json_dir), str(default_syncdb)],
+        cmd=["repod-file", "-d", "-c", f"{config_path}", "management", "export", str(json_dir), str(default_syncdb)],
         debug=True,
         check=True,
     )
@@ -283,11 +332,12 @@ def list_databases(db_path: Path) -> None:
     not Path("/var/lib/pacman/sync/core.files").exists(),
     reason="/var/lib/pacman/sync/core.files does not exist",
 )
-def test_transform_core_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+def test_transform_core_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
     transform_databases(
         db="core",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
+        tmp_path=tmp_path,
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))
 
@@ -297,11 +347,12 @@ def test_transform_core_databases(empty_dir: Path, empty_syncdbs: List[Path]) ->
     not Path("/var/lib/pacman/sync/extra.files").exists(),
     reason="/var/lib/pacman/sync/extra.files does not exist",
 )
-def test_transform_extra_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+def test_transform_extra_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
     transform_databases(
         db="extra",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
+        tmp_path=tmp_path,
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))
 
@@ -311,11 +362,12 @@ def test_transform_extra_databases(empty_dir: Path, empty_syncdbs: List[Path]) -
     not Path("/var/lib/pacman/sync/community.files").exists(),
     reason="/var/lib/pacman/sync/community.files does not exist",
 )
-def test_transform_community_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+def test_transform_community_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
     transform_databases(
         db="community",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
+        tmp_path=tmp_path,
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))
 
@@ -325,10 +377,11 @@ def test_transform_community_databases(empty_dir: Path, empty_syncdbs: List[Path
     not Path("/var/lib/pacman/sync/multilib.files").exists(),
     reason="/var/lib/pacman/sync/multilib.files does not exist",
 )
-def test_transform_multilib_databases(empty_dir: Path, empty_syncdbs: List[Path]) -> None:
+def test_transform_multilib_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
     transform_databases(
         db="multilib",
         json_dir=empty_dir,
         default_syncdb=empty_syncdbs[0],
+        tmp_path=tmp_path,
     )
     list_databases(db_path=Path(empty_syncdbs[0].parent))

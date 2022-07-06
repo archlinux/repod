@@ -4,12 +4,14 @@ from logging import DEBUG, INFO, WARNING, StreamHandler, debug, getLogger
 from pathlib import Path
 from sys import stdout
 from typing import List
+from unittest.mock import patch
 
 from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
 
 from repod import export_schemas
 from repod.cli import argparse
 from repod.common.enums import CompressionTypeEnum
+from repod.config import SystemSettings, UserSettings
 from repod.files import Package
 from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.package import RepoDbTypeEnum
@@ -183,6 +185,10 @@ def repod_file() -> None:
     ch.setLevel(loglevel)
     logger.addHandler(ch)
     debug(f"ArgumentParser: {args}")
+
+    with patch("repod.config.settings.CUSTOM_CONFIG", args.config):
+        settings = SystemSettings() if args.system else UserSettings()
+    debug(f"Settings: {settings}")
 
     match args.subcommand:
         case "package":
