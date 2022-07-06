@@ -19,6 +19,7 @@ def test_architecture_validate_architecture(default_arch: str) -> None:
 @mark.parametrize(
     "url, expectation",
     [
+        (None, does_not_raise()),
         ("https://foo.bar", does_not_raise()),
         ("ssh://git@foo.bar", does_not_raise()),
         ("ssh://foo.bar", raises(ValueError)),
@@ -229,7 +230,7 @@ def test_read_toml_configuration_settings_system(
             (True, Path("source_repo_base")),
             does_not_raise(),
         ),
-        # raise_on_no_repo
+        # no_repo
         (
             "x86_64",
             (Path("parent_management_repo"), "https://parent.foo.bar"),
@@ -238,7 +239,7 @@ def test_read_toml_configuration_settings_system(
             Path("parent_source_pool"),
             (True, Path("package_repo_base")),
             (True, Path("source_repo_base")),
-            raises(ValueError),
+            does_not_raise(),
         ),
         # raise_on_no_architecture
         (
@@ -1066,7 +1067,7 @@ def test_read_toml_configuration_settings_system(
     ids=[
         "single_repo_with_overrides",
         "single_repo_with_no_overrides",
-        "raise_on_no_repo",
+        "no_repo",
         "raise_on_no_architecture",
         "raise_on_conflicting_repo_source_base",
         "raise_on_no_management_repo",
@@ -1162,19 +1163,60 @@ def settings_params(request: Any, empty_dir: Path) -> Iterator[Tuple[Dict[str, A
     )
 
 
+@patch("repod.config.settings.get_default_packagerepo")
 def test_systemsettings(
+    get_default_packagerepo_mock: Mock,
     settings_params: Tuple[Dict[str, Any], ContextManager[str]],
 ) -> None:
+    get_default_packagerepo_mock.return_value = settings.PackageRepo(
+        architecture="any",
+        name="default",
+        management_repo=settings.UserManagementRepo(),
+        package_pool=settings_params[0]["package_pool"],
+        source_pool=settings_params[0]["source_pool"],
+    )
     with settings_params[1]:
         conf = settings.SystemSettings(**settings_params[0])
         assert isinstance(conf, settings.SystemSettings)
         assert len(conf.repositories) > 0
 
 
+@patch("repod.config.settings.get_default_packagerepo")
 def test_usersettings(
+    get_default_packagerepo_mock: Mock,
     settings_params: Tuple[Dict[str, Any], ContextManager[str]],
 ) -> None:
+    get_default_packagerepo_mock.return_value = settings.PackageRepo(
+        architecture="any",
+        name="default",
+        management_repo=settings.UserManagementRepo(),
+        package_pool=settings_params[0]["package_pool"],
+        source_pool=settings_params[0]["source_pool"],
+    )
     with settings_params[1]:
         conf = settings.UserSettings(**settings_params[0])
         assert isinstance(conf, settings.UserSettings)
         assert len(conf.repositories) > 0
+
+
+@mark.parametrize(
+    "settings_type, expectation",
+    [
+        (SettingsTypeEnum.SYSTEM, does_not_raise()),
+        (SettingsTypeEnum.USER, does_not_raise()),
+        (None, raises(RuntimeError)),
+    ],
+)
+def test_get_default_packagerepo(
+    settings_type: SettingsTypeEnum,
+    expectation: ContextManager[str],
+    tmp_path: Path,
+) -> None:
+    package_pool_base = tmp_path / "package_pool_base"
+    package_pool_base.mkdir()
+    source_pool_base = tmp_path / "source_pool_base"
+    source_pool_base.mkdir()
+    with patch("repod.config.settings.PACKAGE_POOL_BASE", {settings_type: package_pool_base}):
+        with patch("repod.config.settings.SOURCE_POOL_BASE", {settings_type: source_pool_base}):
+            with expectation:
+                assert isinstance(settings.get_default_packagerepo(settings_type=settings_type), settings.PackageRepo)

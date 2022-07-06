@@ -1,1 +1,1 @@
-from repod.config.settings import Settings  # noqa: F401
+from repod.config.settings import SystemSettings, UserSettings  # noqa: F401

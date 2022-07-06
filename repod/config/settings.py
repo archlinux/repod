@@ -1,5 +1,6 @@
 import os
 from collections import Counter
+from logging import debug
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -12,9 +13,11 @@ from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
     DEFAULT_DATABASE_COMPRESSION,
     MANAGEMENT_REPO,
+    PACKAGE_POOL_BASE,
     PACKAGE_REPO_BASE,
     SETTINGS_LOCATION,
     SETTINGS_OVERRIDE_LOCATION,
+    SOURCE_POOL_BASE,
     SOURCE_REPO_BASE,
 )
 
@@ -155,12 +158,12 @@ class ManagementRepo(BaseModel):
     ----------
     directory: Path
         A Path instance describing the location of the management repository
-    url: AnyUrl
+    url: Optional[AnyUrl]
         A URL describing the VCS upstream of the management repository
     """
 
     directory: Path
-    url: AnyUrl
+    url: Optional[AnyUrl]
 
     @validator("directory")
     def validate_directory(cls, directory: Path) -> Path:
@@ -180,7 +183,7 @@ class ManagementRepo(BaseModel):
         return Path(validate_directory(directory=directory))
 
     @validator("url")
-    def validate_url(cls, url: AnyUrl) -> AnyUrl:
+    def validate_url(cls, url: Optional[AnyUrl]) -> Optional[AnyUrl]:
         """A validator for the url attribute
 
         Parameters
@@ -200,6 +203,8 @@ class ManagementRepo(BaseModel):
             A validated instance of AnyUrl
         """
 
+        if url is None:
+            return url
         valid_schemes = ["https", "ssh"]
         if url.scheme not in valid_schemes:
             raise ValueError(
@@ -539,17 +544,21 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
     output_dict: Dict[str, Any] = {}
     config_files: List[Path] = []
     if isinstance(settings, UserSettings):
+        debug("Detected user-mode settings...")
         if SETTINGS_LOCATION[SettingsTypeEnum.USER].exists():
             config_files += [SETTINGS_LOCATION[SettingsTypeEnum.USER]]
         if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].exists():
             config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].glob("*.conf"))
     if isinstance(settings, SystemSettings):
+        debug("Detected system-mode settings...")
         if SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM].exists():
             config_files += [SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM]]
         if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].exists():
             config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].glob("*.conf"))
 
+    debug(f"Found config files to read: {config_files}")
     for config_file in config_files:
+        debug(f"Reading config file {config_file}...")
         with open(config_file, "rb") as file:
             output_dict | tomli.load(file)
     return output_dict
@@ -591,7 +600,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         NOTE: It is mandatory to provide a source pool for each package repository!
     """
 
-    repositories: List[PackageRepo]
+    repositories: List[PackageRepo] = []
     management_repo: Optional[ManagementRepo]
     package_repo_base: Path
     source_repo_base: Path
@@ -612,31 +621,6 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 env_settings,
                 file_secret_settings,
             )
-
-    @validator("repositories")
-    def validate_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
-        """A validator for the repositories attribute, ensuring that there is at least one repository defined
-
-        Parameters
-        ----------
-        repositories: List[PackageRepo]
-            A list of PackageRepo instances to validate
-
-        Raises
-        ------
-        ValueError
-            If there are no repositories defined
-
-        Returns
-        -------
-        List[PackageRepo]
-            A list of validated PackageRepo instances
-        """
-
-        if not repositories:
-            raise ValueError("There are no repositories defined!")
-
-        return repositories
 
     @root_validator
     def validate_package_repo_base_source_repo_base(cls, values: Dict[str, Any]) -> Dict[str, Any]:
@@ -1007,7 +991,8 @@ class UserSettings(Settings):
     ----------
     repositories: List[PackageRepo]
         A list of PackageRepo instances that each define a binary package repository (with optional staging and testing
-        locations). Each may define optional overrides for Architecture, UserManagementRepo, PackagePool and SourcePool
+        locations). Each may define optional overrides for Architecture, UserManagementRepo, PackagePool and SourcePool.
+        If no PackageRepo is provided, a default will be created using get_default_packagerepo()
     package_repo_base: Path
         A directory that serves as the base for all directories, that are defined for the package repositories and are
         used for storing symlinks to binary package files and their signatures (defaults to
@@ -1039,6 +1024,29 @@ class UserSettings(Settings):
     package_repo_base: Path = PACKAGE_REPO_BASE[SettingsTypeEnum.USER]
     source_repo_base: Path = SOURCE_REPO_BASE[SettingsTypeEnum.USER]
 
+    @validator("repositories")
+    def validate_user_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
+        """Validator for the repositories attribute
+
+        If the attribute is not set or is an empty list, it will be populated with a default generated by
+        get_default_packagerepo()
+
+        Parameters
+        ----------
+        repositories:  List[PackageRepo]
+            A list of PackageRepo instances to validate
+
+        Returns
+        -------
+        List[PackageRepo]
+            A validated list of PackageRepo instances
+        """
+
+        if not repositories:
+            return [get_default_packagerepo(settings_type=SettingsTypeEnum.USER)]
+        else:
+            return repositories
+
 
 class SystemSettings(Settings):
     """System-level Settings, which assume system-wide configuration locations and defaults
@@ -1048,7 +1056,8 @@ class SystemSettings(Settings):
     repositories: List[PackageRepo]
         A list of PackageRepo instances that each define a binary package repository (with optional staging and testing
         locations). Each may define optional overrides for Architecture, SystemManagementRepo, PackagePool and
-        SourcePool
+        SourcePool.
+        If no PackageRepo is provided, a default will be created using get_default_packagerepo()
     package_repo_base: Path
         A directory that serves as the base for all directories, that are defined for the package repositories and are
         used for storing symlinks to binary package files and their signatures (defaults to
@@ -1079,3 +1088,69 @@ class SystemSettings(Settings):
     management_repo: Optional[SystemManagementRepo]
     package_repo_base: Path = PACKAGE_REPO_BASE[SettingsTypeEnum.SYSTEM]
     source_repo_base: Path = SOURCE_REPO_BASE[SettingsTypeEnum.SYSTEM]
+
+    @validator("repositories")
+    def validate_system_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
+        """Validator for the repositories attribute
+
+        If the attribute is not set or is an empty list, it will be populated with a default generated by
+        get_default_packagerepo()
+
+        Parameters
+        ----------
+        repositories:  List[PackageRepo]
+            A list of PackageRepo instances to validate
+
+        Returns
+        -------
+        List[PackageRepo]
+            A validated list of PackageRepo instances
+        """
+
+        if not repositories:
+            return [get_default_packagerepo(settings_type=SettingsTypeEnum.SYSTEM)]
+        else:
+            return repositories
+
+
+def get_default_packagerepo(settings_type: SettingsTypeEnum) -> PackageRepo:
+    """Return a default PackageRepo
+
+    If SettingsTypeEnum.SYSTEM is provided as settings_type, a PackageRepo using system wide default directories is
+    returned.
+    If SettingsTypeEnum.USER is provided as settings_type, a PackageRepo using per-user default directories is returned.
+
+    Parameters
+    ----------
+    settings_type: SettingsTypeEnum
+        A settings type based upon which the PackageRepo is created
+
+    Raises
+    ------
+    RuntimeError
+        If an invalid SettingsTypeEnum member is provided
+
+    Returns
+    -------
+    PackageRepo
+        A PackageRepo instance with defaults based upon settings_type
+    """
+
+    if settings_type == SettingsTypeEnum.USER:
+        return PackageRepo(
+            architecture="any",
+            name="default",
+            management_repo=UserManagementRepo(),
+            package_pool=PACKAGE_POOL_BASE[SettingsTypeEnum.USER] / "default",
+            source_pool=SOURCE_POOL_BASE[SettingsTypeEnum.USER] / "default",
+        )
+    elif settings_type == SettingsTypeEnum.SYSTEM:
+        return PackageRepo(
+            name="default",
+            architecture="any",
+            management_repo=SystemManagementRepo(),
+            package_pool=PACKAGE_POOL_BASE[SettingsTypeEnum.SYSTEM] / "default",
+            source_pool=SOURCE_POOL_BASE[SettingsTypeEnum.SYSTEM] / "default",
+        )
+    else:
+        raise RuntimeError("Invalid settings_type provided for creating a default PackageRepo!")
