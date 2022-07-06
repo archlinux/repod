@@ -24,6 +24,12 @@ class ArgParseFactory:
             help="debug output",
         )
         self.parser.add_argument(
+            "-s",
+            "--system",
+            action="store_true",
+            help="system mode",
+        )
+        self.parser.add_argument(
             "-v",
             "--verbose",
             action="store_true",
