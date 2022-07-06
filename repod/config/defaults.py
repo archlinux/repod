@@ -26,5 +26,11 @@ MANAGEMENT_REPO = {
     SettingsTypeEnum.SYSTEM: Path("/var/lib/repod/management/default/"),
     SettingsTypeEnum.USER: Path(xdg_state_home + "/repod/management/default/"),
 }
-PACKAGE_POOL = Path("/var/lib/repod/pool/package/default")
-SOURCE_POOL = Path("/var/lib/repod/pool/source/default")
+PACKAGE_POOL_BASE = {
+    SettingsTypeEnum.SYSTEM: Path("/var/lib/repod/pool/package/"),
+    SettingsTypeEnum.USER: Path(xdg_state_home + "/repod/pool/package/"),
+}
+SOURCE_POOL_BASE = {
+    SettingsTypeEnum.SYSTEM: Path("/var/lib/repod/pool/source/"),
+    SettingsTypeEnum.USER: Path(xdg_state_home + "/repod/source/package/"),
+}
