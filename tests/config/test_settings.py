@@ -1,9 +1,11 @@
 from contextlib import nullcontext as does_not_raise
+from copy import deepcopy
+from logging import DEBUG
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Iterator, Optional, Tuple
+from typing import ContextManager, Dict, Optional
 from unittest.mock import Mock, call, patch
 
-from pytest import fixture, mark, raises
+from pytest import LogCaptureFixture, mark, raises
 
 from repod.common.enums import SettingsTypeEnum
 from repod.config import settings
@@ -38,25 +40,6 @@ def test_mangement_repo(
         )
 
 
-@patch(
-    "os.access",
-    Mock(side_effect=[False, False, True, True]),
-)
-@patch("repod.config.settings.Path.exists", Mock(side_effect=[True, True, False, False, False, True, False]))
-@patch("repod.config.settings.Path.is_dir", Mock(side_effect=[False, True, True]))
-@patch("repod.config.settings.Path.parent", return_value=Mock())
-def test_validate_directory(parent_mock: Mock) -> None:
-    parent_mock.exists.side_effect = [False, True, True, True]
-    parent_mock.is_dir.side_effect = [False, True, True]
-    with raises(ValueError):
-        settings.validate_directory(directory=Path("foo"))
-    for _ in range(5):
-        with raises(ValueError):
-            settings.validate_directory(directory=Path("/foo"))
-    assert settings.validate_directory(directory=Path("/foo"))
-    assert settings.validate_directory(directory=Path("/foo"))
-
-
 @mark.parametrize(
     "name, staging, testing, package_pool, source_pool, management_repo, url, expectation",
     [
@@ -72,16 +55,11 @@ def test_validate_directory(parent_mock: Mock) -> None:
         (Path("foo-bar123"), None, None, False, False, True, "https://foo.bar", does_not_raise()),
         (Path("foo-bar123"), Path("bar"), None, False, False, True, "https://foo.bar", does_not_raise()),
         (Path("foo-bar123"), Path("bar"), Path("baz"), False, False, True, "https://foo.bar", does_not_raise()),
-        (Path("foo-bar123"), Path("bar"), Path("baz"), True, False, True, "https://foo.bar", raises(ValueError)),
-        (Path("foo-bar123"), Path("bar"), Path("baz"), False, True, True, "https://foo.bar", raises(ValueError)),
         (Path(" foo"), None, None, False, False, False, None, raises(ValueError)),
         (Path("foo"), Path(" bar"), None, False, False, False, None, raises(ValueError)),
         (Path("foo"), Path("bar "), Path(" baz"), False, False, False, None, raises(ValueError)),
         (Path("foo"), Path("foo"), None, False, False, False, None, raises(ValueError)),
         (Path("foo"), None, Path("foo"), False, False, False, None, raises(ValueError)),
-        (Path("foo"), None, None, True, True, False, None, raises(ValueError)),
-        (Path("foo"), Path("bar"), None, True, True, False, None, raises(ValueError)),
-        (Path("foo"), Path("bar"), Path("baz"), True, True, False, None, raises(ValueError)),
         (Path("foo"), Path("bar"), Path("bar"), False, False, False, None, raises(ValueError)),
         (Path("FOO"), None, None, False, False, False, None, raises(ValueError)),
         (Path("FOO"), Path("bar"), None, False, False, False, None, raises(ValueError)),
@@ -133,18 +111,31 @@ def test_package_repo(
         )
 
 
+@mark.parametrize(
+    "override_location_exists",
+    [
+        (True),
+        (False),
+    ],
+)
 @patch("tomli.load", return_value={})
 def test_read_toml_configuration_settings_user(
     toml_load_mock: Mock,
     empty_toml_file: Path,
     empty_toml_files_in_dir: Path,
     tmp_path: Path,
+    override_location_exists: bool,
 ) -> None:
+    if override_location_exists:
+        override_dir = empty_toml_files_in_dir
+    else:
+        override_dir = tmp_path / "foo"
+
     with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.USER: empty_toml_file}):
         settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
         with patch(
             "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
-            {SettingsTypeEnum.USER: empty_toml_files_in_dir},
+            {SettingsTypeEnum.USER: override_dir},
         ):
             settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
             toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
@@ -153,7 +144,7 @@ def test_read_toml_configuration_settings_user(
         settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
         with patch(
             "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
-            {SettingsTypeEnum.USER: empty_toml_files_in_dir},
+            {SettingsTypeEnum.USER: override_dir},
         ):
             settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
             toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
@@ -185,1018 +176,727 @@ def test_read_toml_configuration_settings_system(
             toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
 
 
-@fixture(
-    scope="function",
-    params=[
-        # single_repo_with_overrides
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    "x86_64",
-                    Path("foo"),
-                    Path("child_package_pool"),
-                    Path("child_source_pool"),
-                    Path("staging"),
-                    Path("testing"),
-                    (Path("child_management_repo"), "https://child.foo.bar"),
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            does_not_raise(),
-        ),
-        # single_repo_with_no_overrides
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            does_not_raise(),
-        ),
-        # no_repo
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            does_not_raise(),
-        ),
-        # raise_on_no_architecture
-        (
-            None,
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_repo_source_base
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("same")),
-            (True, Path("same")),
-            raises(ValueError),
-        ),
-        # raise_on_no_management_repo
-        (
-            "x86_64",
-            None,
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_no_package_pool
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            None,
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_no_source_pool
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            None,
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_no_package_repo_base
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (False, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_no_source_repo_base
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (False, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_repo_name_staging_name
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-                (
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_repo_name_testing_name
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-                (
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                    None,
-                    Path("foo"),
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_repo_name_management_repo_dir
-        (
-            "x86_64",
-            (Path("package_repo_base/foo/x86_64"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_repo_staging_management_repo_dir
-        (
-            "x86_64",
-            (Path("package_repo_base/bar/x86_64"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_repo_testing_management_repo_dir
-        (
-            "x86_64",
-            (Path("package_repo_base/bar/x86_64"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_repo_name_below_management_repo_dir
-        (
-            "x86_64",
-            (Path("parent_repod"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("parent_repod/package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_staging_testing_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-                (
-                    None,
-                    Path("baz"),
-                    None,
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_testing_staging_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    Path("testing"),
-                    None,
-                ),
-                (
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                    Path("testing"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_management_repo_dir_below_package_repo_base_dir
-        (
-            "x86_64",
-            (Path("package_repo_base/bar/x86_64"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_management_repo_dir_below_source_repo_base_dir
-        (
-            "x86_64",
-            (Path("source_repo_base/bar/x86_64/parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_management_repo_dir_below_package_pool_dir
-        (
-            "x86_64",
-            (Path("parent_package_pool/parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_management_repo_dir_below_source_pool_dir
-        (
-            "x86_64",
-            (Path("parent_source_pool/parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_pool_dir_below_source_pool_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_source_pool/parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_pool_dir_below_management_repo_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_management_repo/parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_pool_dir_below_package_repo_base_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("package_repo_base/parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_pool_dir_below_source_repo_base_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("source_repo_base/parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_pool_dir_below_package_pool_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_package_pool/parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_pool_dir_below_management_repo_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_management_repo/parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_pool_dir_below_package_repo_base_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("package_repo_base/parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_pool_dir_below_source_repo_base_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    Path("bar"),
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("source_repo_base/parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_duplicate_repositories
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_conflicting_package_repo_base_source_repo_base
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("package_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_repo_base_below_source_repo_base_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("source_repo_base/package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_repo_base_below_management_repo_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("parent_management_repo/package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_repo_base_below_package_pool_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("parent_package_pool/package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_package_repo_base_below_source_pool_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("parent_source_pool/package_repo_base")),
-            (True, Path("source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_repo_base_below_package_repo_base
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("package_repo_base/source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_repo_base_below_management_repo_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("parent_management_repo/source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_repo_base_below_package_pool_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("parent_package_pool/source_repo_base")),
-            raises(ValueError),
-        ),
-        # raise_on_source_repo_base_below_source_pool_dir
-        (
-            "x86_64",
-            (Path("parent_management_repo"), "https://parent.foo.bar"),
-            [
-                (
-                    None,
-                    Path("foo"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-            ],
-            Path("parent_package_pool"),
-            Path("parent_source_pool"),
-            (True, Path("package_repo_base")),
-            (True, Path("parent_source_pool/source_repo_base")),
-            raises(ValueError),
-        ),
-    ],
-    ids=[
-        "single_repo_with_overrides",
-        "single_repo_with_no_overrides",
-        "no_repo",
-        "raise_on_no_architecture",
-        "raise_on_conflicting_repo_source_base",
-        "raise_on_no_management_repo",
-        "raise_on_no_package_pool",
-        "raise_on_no_source_pool",
-        "raise_on_no_package_repo_base",
-        "raise_on_no_source_repo_base",
-        "raise_on_conflicting_repo_name_staging_name",
-        "raise_on_conflicting_repo_name_testing_name",
-        "raise_on_conflicting_repo_name_management_repo_dir",
-        "raise_on_conflicting_repo_staging_management_repo_dir",
-        "raise_on_conflicting_repo_testing_management_repo_dir",
-        "raise_on_repo_name_below_management_repo_dir",
-        "raise_on_conflicting_staging_testing_dir",
-        "raise_on_conflicting_testing_staging_dir",
-        "raise_on_management_repo_dir_below_package_repo_base_dir",
-        "raise_on_management_repo_dir_below_source_repo_base_dir",
-        "raise_on_management_repo_dir_below_package_pool_dir",
-        "raise_on_management_repo_dir_below_source_pool_dir",
-        "raise_on_package_pool_dir_below_source_pool_dir",
-        "raise_on_package_pool_dir_below_management_repo_dir",
-        "raise_on_package_pool_dir_below_package_repo_base_dir",
-        "raise_on_package_pool_dir_below_source_repo_base_dir",
-        "raise_on_source_pool_dir_below_package_pool_dir",
-        "raise_on_source_pool_dir_below_management_repo_dir",
-        "raise_on_source_pool_dir_below_package_repo_base_dir",
-        "raise_on_source_pool_dir_below_source_repo_base_dir",
-        "raise_on_duplicate_repositories",
-        "raise_on_conflicting_package_repo_base_source_repo_base",
-        "raise_on_package_repo_base_below_source_repo_base_dir",
-        "raise_on_package_repo_base_below_management_repo_dir",
-        "raise_on_package_repo_base_below_package_pool_dir",
-        "raise_on_package_repo_base_below_source_pool_dir",
-        "raise_on_source_repo_base_below_package_repo_base",
-        "raise_on_source_repo_base_below_management_repo_dir",
-        "raise_on_source_repo_base_below_package_pool_dir",
-        "raise_on_source_repo_base_below_source_pool_dir",
+@mark.parametrize(
+    "has_managementrepo, has_repositories",
+    [
+        (True, True),
+        (False, False),
     ],
 )
-def settings_params(request: Any, empty_dir: Path) -> Iterator[Tuple[Dict[str, Any], ContextManager[str]]]:
-    # create management repository directory
-    if request.param[1]:
-        Path(empty_dir / request.param[1][0]).mkdir(parents=True, exist_ok=True)
-    # create management repository directories for each repository
-    for repo in request.param[2]:
-        if repo[6]:
-            Path(empty_dir / repo[6][0]).mkdir(parents=True, exist_ok=True)
-    # create package pool directory
-    if request.param[3]:
-        Path(empty_dir / request.param[3]).mkdir(parents=True, exist_ok=True)
-    # create source pool directory
-    if request.param[4]:
-        Path(empty_dir / request.param[4]).mkdir(parents=True, exist_ok=True)
-    # create package repository base directory
-    if request.param[5][0]:
-        Path(empty_dir / request.param[5][1]).mkdir(parents=True, exist_ok=True)
-    # create source repository base directory
-    if request.param[6][0]:
-        Path(empty_dir / request.param[6][1]).mkdir(parents=True, exist_ok=True)
-
-    yield (
-        {
-            "architecture": request.param[0] or None,
-            "management_repo": settings.ManagementRepo(
-                directory=empty_dir / request.param[1][0],
-                url=request.param[1][1],
-            )
-            if request.param[1]
-            else None,
-            "repositories": [
-                settings.PackageRepo(
-                    architecture=repo_settings[0] if repo_settings[0] else None,
-                    name=repo_settings[1],
-                    package_pool=(empty_dir / repo_settings[2]) if repo_settings[2] else None,
-                    source_pool=(empty_dir / repo_settings[3]) if repo_settings[3] else None,
-                    staging=repo_settings[4],
-                    testing=repo_settings[5],
-                    management_repo=settings.ManagementRepo(
-                        directory=empty_dir / repo_settings[6][0],
-                        url=repo_settings[6][1],
-                    )
-                    if repo_settings[6]
-                    else None,
-                )
-                for repo_settings in request.param[2]
-            ],
-            "package_pool": empty_dir / request.param[3] if request.param[3] else None,
-            "source_pool": empty_dir / request.param[4] if request.param[4] else None,
-            "package_repo_base": empty_dir / request.param[5][1] if request.param[5][0] else request.param[5][1],
-            "source_repo_base": empty_dir / request.param[6][1] if request.param[6][0] else request.param[6][1],
-        },
-        request.param[7],
-    )
-
-
+@patch("repod.config.settings.Settings.consolidate_repositories_with_defaults")
+@patch("repod.config.settings.Settings.ensure_non_overlapping_repositories")
+@patch("repod.config.settings.Settings.create_repository_directories")
+@patch("repod.config.settings.get_default_managementrepo")
 @patch("repod.config.settings.get_default_packagerepo")
 def test_systemsettings(
     get_default_packagerepo_mock: Mock,
-    settings_params: Tuple[Dict[str, Any], ContextManager[str]],
+    get_default_managementrepo_mock: Mock,
+    create_repository_directories_mock: Mock,
+    ensure_non_overlapping_repositories_mock: Mock,
+    consolidate_repositories_with_defaults_mock: Mock,
+    has_managementrepo: bool,
+    has_repositories: bool,
+    caplog: LogCaptureFixture,
 ) -> None:
+    caplog.set_level(DEBUG)
+
+    get_default_managementrepo_mock.return_value = settings.ManagementRepo(directory=Path("/default_management_repo"))
     get_default_packagerepo_mock.return_value = settings.PackageRepo(
         architecture="any",
         name="default",
-        management_repo=settings.UserManagementRepo(),
-        package_pool=settings_params[0]["package_pool"],
-        source_pool=settings_params[0]["source_pool"],
+        management_repo=settings.ManagementRepo(directory=Path("/default_management_repo")),
+        package_pool=Path("/default_package_pool"),
+        source_pool=Path("/default_source_pool"),
     )
-    with settings_params[1]:
-        conf = settings.SystemSettings(**settings_params[0])
-        assert isinstance(conf, settings.SystemSettings)
-        assert len(conf.repositories) > 0
+
+    with patch("repod.config.settings.SystemSettings._management_repo_base", Path("/default/management_repo_base")):
+        with patch("repod.config.settings.SystemSettings._package_pool_base", Path("/default/package_pool_base")):
+            with patch("repod.config.settings.SystemSettings._package_repo_base", Path("/default/package_repo_base")):
+                with patch("repod.config.settings.SystemSettings._source_pool_base", Path("/default/source_pool_base")):
+                    with patch(
+                        "repod.config.settings.SystemSettings._source_repo_base", Path("/default/source_repo_base")
+                    ):
+                        conf = settings.SystemSettings(
+                            management_repo=(
+                                settings.ManagementRepo(directory=Path("/custom_management_repo"))
+                                if has_managementrepo
+                                else None
+                            ),
+                            repositories=[
+                                settings.PackageRepo(
+                                    architecture="any",
+                                    name="custom",
+                                    management_repo=settings.ManagementRepo(directory=Path("/custom_management_repo")),
+                                    package_pool=Path("/custom_package_pool"),
+                                    source_pool=Path("/custom_source_pool"),
+                                )
+                            ]
+                            if has_repositories
+                            else [],
+                        )
+                        assert isinstance(conf, settings.SystemSettings)
+                        assert len(conf.repositories) > 0
+
+                        create_repository_directories_mock.assert_called_once()
+                        ensure_non_overlapping_repositories_mock.assert_called_once()
+                        consolidate_repositories_with_defaults_mock.assert_called_once()
 
 
+@mark.parametrize(
+    "has_managementrepo, has_repositories",
+    [
+        (True, True),
+        (False, False),
+    ],
+)
+@patch("repod.config.settings.Settings.consolidate_repositories_with_defaults")
+@patch("repod.config.settings.Settings.ensure_non_overlapping_repositories")
+@patch("repod.config.settings.Settings.create_repository_directories")
+@patch("repod.config.settings.get_default_managementrepo")
 @patch("repod.config.settings.get_default_packagerepo")
 def test_usersettings(
     get_default_packagerepo_mock: Mock,
-    settings_params: Tuple[Dict[str, Any], ContextManager[str]],
+    get_default_managementrepo_mock: Mock,
+    create_repository_directories_mock: Mock,
+    ensure_non_overlapping_repositories_mock: Mock,
+    consolidate_repositories_with_defaults_mock: Mock,
+    has_managementrepo: bool,
+    has_repositories: bool,
+    caplog: LogCaptureFixture,
 ) -> None:
+    caplog.set_level(DEBUG)
+
+    get_default_managementrepo_mock.return_value = settings.ManagementRepo(directory=Path("/default_management_repo"))
     get_default_packagerepo_mock.return_value = settings.PackageRepo(
         architecture="any",
         name="default",
-        management_repo=settings.UserManagementRepo(),
-        package_pool=settings_params[0]["package_pool"],
-        source_pool=settings_params[0]["source_pool"],
+        management_repo=settings.ManagementRepo(directory=Path("/default_management_repo")),
+        package_pool=Path("/default_package_pool"),
+        source_pool=Path("/default_source_pool"),
     )
-    with settings_params[1]:
-        conf = settings.UserSettings(**settings_params[0])
-        assert isinstance(conf, settings.UserSettings)
-        assert len(conf.repositories) > 0
+
+    with patch("repod.config.settings.UserSettings._management_repo_base", Path("/default/management_repo_base")):
+        with patch("repod.config.settings.UserSettings._package_pool_base", Path("/default/package_pool_base")):
+            with patch("repod.config.settings.UserSettings._package_repo_base", Path("/default/package_repo_base")):
+                with patch("repod.config.settings.UserSettings._source_pool_base", Path("/default/source_pool_base")):
+                    with patch(
+                        "repod.config.settings.UserSettings._source_repo_base", Path("/default/source_repo_base")
+                    ):
+                        conf = settings.UserSettings(
+                            management_repo=(
+                                settings.ManagementRepo(directory=Path("/custom_management_repo"))
+                                if has_managementrepo
+                                else None
+                            ),
+                            repositories=[
+                                settings.PackageRepo(
+                                    architecture="any",
+                                    name="custom",
+                                    management_repo=settings.ManagementRepo(directory=Path("/custom_management_repo")),
+                                    package_pool=Path("/custom_package_pool"),
+                                    source_pool=Path("/custom_source_pool"),
+                                )
+                            ]
+                            if has_repositories
+                            else [],
+                        )
+                        assert isinstance(conf, settings.UserSettings)
+                        assert len(conf.repositories) > 0
+
+                        create_repository_directories_mock.assert_called_once()
+                        ensure_non_overlapping_repositories_mock.assert_called_once()
+                        consolidate_repositories_with_defaults_mock.assert_called_once()
+
+
+@mark.parametrize(
+    (
+        "repo_has_architecture"
+        ", repo_has_database_compression"
+        ", repo_has_management_repo"
+        ", repo_has_package_pool"
+        ", repo_has_source_pool"
+        ", repo_has_staging_testing"
+    ),
+    [
+        (True, True, True, True, True, True),
+        (False, False, False, False, False, False),
+    ],
+)
+def test_settings_consolidate_repositories_with_defaults(
+    repo_has_architecture: bool,
+    repo_has_database_compression: bool,
+    repo_has_management_repo: bool,
+    repo_has_package_pool: bool,
+    repo_has_source_pool: bool,
+    repo_has_staging_testing: bool,
+    packagerepo_in_tmp_path: settings.PackageRepo,
+    tmp_path: Path,
+) -> None:
+    if not repo_has_architecture:
+        packagerepo_in_tmp_path.architecture = None
+
+    if not repo_has_database_compression:
+        packagerepo_in_tmp_path.database_compression = None
+
+    if not repo_has_management_repo:
+        packagerepo_in_tmp_path.management_repo = None
+
+    if not repo_has_package_pool:
+        packagerepo_in_tmp_path.package_pool = None
+
+    if not repo_has_source_pool:
+        packagerepo_in_tmp_path.source_pool = None
+
+    if not repo_has_staging_testing:
+        packagerepo_in_tmp_path.staging = None
+        packagerepo_in_tmp_path.testing = None
+
+    with patch("repod.config.settings.Settings._package_repo_base", tmp_path / "_package_repo_base"):
+        with patch("repod.config.settings.Settings._source_repo_base", tmp_path / "_source_repo_base"):
+            with patch("repod.config.settings.Settings._package_pool_base", tmp_path / "_package_pool_base"):
+                with patch("repod.config.settings.Settings._source_pool_base", tmp_path / "_source_pool_base"):
+                    with patch(
+                        "repod.config.settings.Settings._management_repo_base", tmp_path / "_management_repo_base"
+                    ):
+                        repos = settings.Settings.consolidate_repositories_with_defaults(
+                            architecture=settings.DEFAULT_ARCHITECTURE,
+                            database_compression=settings.DEFAULT_DATABASE_COMPRESSION,
+                            management_repo=settings.ManagementRepo(directory=tmp_path / settings.DEFAULT_NAME),
+                            package_pool=tmp_path / "package_pool_dir",
+                            repositories=[packagerepo_in_tmp_path],
+                            source_pool=tmp_path / "source_pool_dir",
+                        )
+
+    assert (
+        repos[0].architecture == packagerepo_in_tmp_path.architecture
+        if repo_has_architecture
+        else settings.DEFAULT_ARCHITECTURE
+    )
+
+    assert (
+        repos[0].database_compression == packagerepo_in_tmp_path.database_compression
+        if repo_has_database_compression
+        else settings.DEFAULT_DATABASE_COMPRESSION
+    )
+
+    assert (
+        repos[0].management_repo == packagerepo_in_tmp_path.management_repo
+        if repo_has_management_repo
+        else settings.ManagementRepo(directory=tmp_path / settings.DEFAULT_NAME)
+    )
+
+    assert (
+        repos[0].package_pool == packagerepo_in_tmp_path.package_pool
+        if repo_has_package_pool
+        else tmp_path / "package_pool_dir"
+    )
+
+    assert (
+        repos[0].source_pool == packagerepo_in_tmp_path.source_pool
+        if repo_has_source_pool
+        else tmp_path / "source_pool_dir"
+    )
+
+
+@mark.parametrize("with_staging_testing", [(True), (False)])
+def test_settings_create_repository_directories(
+    with_staging_testing: bool,
+    packagerepo_in_tmp_path: settings.PackageRepo,
+) -> None:
+    if not with_staging_testing:
+        packagerepo_in_tmp_path.staging = None
+        packagerepo_in_tmp_path.testing = None
+
+    settings.Settings.create_repository_directories(repositories=[packagerepo_in_tmp_path])
+    assert packagerepo_in_tmp_path._stable_repo_dir.exists()
+    assert packagerepo_in_tmp_path._stable_source_repo_dir.exists()
+
+    if with_staging_testing:
+        assert packagerepo_in_tmp_path._staging_repo_dir.exists()
+        assert packagerepo_in_tmp_path._staging_source_repo_dir.exists()
+        assert packagerepo_in_tmp_path._testing_repo_dir.exists()
+        assert packagerepo_in_tmp_path._testing_source_repo_dir.exists()
+
+    assert packagerepo_in_tmp_path._package_pool_dir.exists()
+    assert packagerepo_in_tmp_path._source_pool_dir.exists()
+    assert packagerepo_in_tmp_path._management_repo_dir.exists()
+
+
+@mark.parametrize(
+    "base_overrides, repo_overrides, expectation",
+    [
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+            },
+            does_not_raise(),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {},
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/default/repo/source_repo_base/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "package_pool_dir": Path("/default/repo/source_repo_base/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "source_pool_dir": Path("/default/repo/source_repo_base/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/source_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/default/repo/package_repo_base/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "package_pool_dir": Path("/default/repo/package_repo_base/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "source_pool_dir": Path("/default/repo/package_repo_base/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/repo/management_repo_dir"),
+                "package_pool_dir": Path("/repo/management_repo_dir"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/repo/management_repo_dir"),
+                "source_pool_dir": Path("/repo/management_repo_dir"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/repo/management_repo_dir"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/repo/management_repo_dir"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/repo/management_repo_dir"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/repo/management_repo_dir"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/repo/management_repo_dir"),
+                "package_pool_dir": Path("/repo/management_repo_dir/foo/bar"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "package_pool_dir": Path("/repo/source_pool_dir/foo/bar"),
+                "source_pool_dir": Path("/repo/source_pool_dir"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "package_pool_dir": Path("/default/repo/package_repo_base/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "package_pool_dir": Path("/default/repo/source_repo_base/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "management_repo_dir": Path("/repo/management_repo_dir/"),
+                "source_pool_dir": Path("/repo/management_repo_dir/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "package_pool_dir": Path("/repo/package_pool_dir/"),
+                "source_pool_dir": Path("/repo/package_pool_dir/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "source_pool_dir": Path("/default/repo/package_repo_base/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "source_pool_dir": Path("/default/repo/source_repo_base/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/management_repo_dir/foo/bar/"),
+                "management_repo_dir": Path("/repo/management_repo_dir/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/staging_repo_dir/foo/bar/"),
+                "staging_repo_dir": Path("/repo/staging_repo_dir/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/testing_repo_dir/foo/bar/"),
+                "testing_repo_dir": Path("/repo/testing_repo_dir/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "management_repo_dir": Path("/management_repo_dir/"),
+                "stable_repo_dir": Path("/repo/stable/"),
+                "staging_repo_dir": Path("/management_repo_dir/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/stable/"),
+                "staging_repo_dir": Path("/repo/stable/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/stable/"),
+                "staging_repo_dir": Path("/repo/testing/foo/bar/"),
+                "testing_repo_dir": Path("/repo/testing/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "management_repo_dir": Path("/management_repo_dir/"),
+                "stable_repo_dir": Path("/repo/stable/"),
+                "testing_repo_dir": Path("/management_repo_dir/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/stable/"),
+                "testing_repo_dir": Path("/repo/stable/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/stable/"),
+                "staging_repo_dir": Path("/repo/staging/"),
+                "testing_repo_dir": Path("/repo/staging/foo/bar/"),
+            },
+            raises(ValueError),
+        ),
+    ],
+)
+def test_ensure_non_overlapping_repositories(
+    packagerepo_in_tmp_path: settings.PackageRepo,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+    base_overrides: Dict[str, Path],
+    repo_overrides: Dict[str, Path],
+    expectation: ContextManager[str],
+) -> None:
+    caplog.set_level(DEBUG)
+
+    _management_repo_base = base_overrides.get("management_repo_base")
+    _package_pool_base = base_overrides.get("package_pool_base")
+    _package_repo_base = base_overrides.get("package_repo_base")
+    _source_pool_base = base_overrides.get("source_pool_base")
+    _source_repo_base = base_overrides.get("source_repo_base")
+
+    packagerepo2 = deepcopy(packagerepo_in_tmp_path)
+
+    if repo_overrides.get("management_repo_dir"):
+        packagerepo2._management_repo_dir = repo_overrides.get("management_repo_dir")  # type: ignore[assignment]
+
+    if repo_overrides.get("package_pool_dir"):
+        packagerepo2._package_pool_dir = repo_overrides.get("package_pool_dir")  # type: ignore[assignment]
+
+    if repo_overrides.get("source_pool_dir"):
+        packagerepo2._source_pool_dir = repo_overrides.get("source_pool_dir")  # type: ignore[assignment]
+
+    if repo_overrides.get("stable_repo_dir"):
+        packagerepo2._stable_repo_dir = repo_overrides.get("stable_repo_dir")  # type: ignore[assignment]
+
+    if repo_overrides.get("staging_repo_dir"):
+        packagerepo2._staging_repo_dir = repo_overrides.get("staging_repo_dir")  # type: ignore[assignment]
+
+    if repo_overrides.get("testing_repo_dir"):
+        packagerepo2._testing_repo_dir = repo_overrides.get("testing_repo_dir")  # type: ignore[assignment]
+
+    with patch("repod.config.settings.Settings._management_repo_base", _management_repo_base):
+        with patch("repod.config.settings.Settings._package_pool_base", _package_pool_base):
+            with patch("repod.config.settings.Settings._package_repo_base", _package_repo_base):
+                with patch("repod.config.settings.Settings._source_pool_base", _source_pool_base):
+                    with patch("repod.config.settings.Settings._source_repo_base", _source_repo_base):
+                        with expectation:
+                            settings.Settings.ensure_non_overlapping_repositories(
+                                repositories=[packagerepo_in_tmp_path, packagerepo2]
+                            )
 
 
 @mark.parametrize(
@@ -1204,7 +904,33 @@ def test_usersettings(
     [
         (SettingsTypeEnum.SYSTEM, does_not_raise()),
         (SettingsTypeEnum.USER, does_not_raise()),
-        (None, raises(RuntimeError)),
+        (Mock(value="foo"), raises(RuntimeError)),
+    ],
+)
+def test_get_default_managementrepo(
+    settings_type: SettingsTypeEnum,
+    expectation: ContextManager[str],
+    tmp_path: Path,
+) -> None:
+    package_pool_base = tmp_path / "package_pool_base"
+    package_pool_base.mkdir()
+    source_pool_base = tmp_path / "source_pool_base"
+    source_pool_base.mkdir()
+    with patch("repod.config.settings.PACKAGE_POOL_BASE", {settings_type: package_pool_base}):
+        with patch("repod.config.settings.SOURCE_POOL_BASE", {settings_type: source_pool_base}):
+            with expectation:
+                assert isinstance(
+                    settings.get_default_managementrepo(settings_type=settings_type),
+                    settings.ManagementRepo,
+                )
+
+
+@mark.parametrize(
+    "settings_type, expectation",
+    [
+        (SettingsTypeEnum.SYSTEM, does_not_raise()),
+        (SettingsTypeEnum.USER, does_not_raise()),
+        (Mock(value="foo"), raises(RuntimeError)),
     ],
 )
 def test_get_default_packagerepo(
@@ -1220,3 +946,85 @@ def test_get_default_packagerepo(
         with patch("repod.config.settings.SOURCE_POOL_BASE", {settings_type: source_pool_base}):
             with expectation:
                 assert isinstance(settings.get_default_packagerepo(settings_type=settings_type), settings.PackageRepo)
+
+
+@mark.parametrize(
+    "path, path_name, other, other_name, expectation",
+    [
+        (Path("foo"), "foo", Path("bar"), "bar", does_not_raise()),
+        (Path("foo"), "foo", Path("foo"), "bar", raises(ValueError)),
+    ],
+)
+def test_raise_on_path_equals_other(
+    path: Path, path_name: str, other: Path, other_name: str, expectation: ContextManager[str]
+) -> None:
+    with expectation:
+        settings.raise_on_path_equals_other(path=path, path_name=path_name, other=other, other_name=other_name)
+
+
+@mark.parametrize(
+    "path, path_name, other, other_name, expectation",
+    [
+        (Path("/foo"), "foo", Path("/bar"), "bar", does_not_raise()),
+        (Path("/bar/foo"), "foo", Path("/bar"), "bar", raises(ValueError)),
+    ],
+)
+def test_raise_on_path_in_other(
+    path: Path, path_name: str, other: Path, other_name: str, expectation: ContextManager[str]
+) -> None:
+    with expectation:
+        settings.raise_on_path_in_other(path=path, path_name=path_name, other=other, other_name=other_name)
+
+
+@mark.parametrize(
+    "path, base_path, output, expectation",
+    [
+        (Path("bar"), Path("/foo"), Path("/foo/bar"), does_not_raise()),
+        (Path("/foo/bar"), Path("/foo"), Path("/foo/bar"), does_not_raise()),
+        (Path("/foo/bar"), Path("foo"), Path("/foo/bar"), raises(ValueError)),
+    ],
+)
+def test_to_absolute_path(path: Path, base_path: Path, output: Path, expectation: ContextManager[str]) -> None:
+    with expectation:
+        assert settings.to_absolute_path(path=path, base_path=base_path) == output
+
+
+@mark.parametrize(
+    "dir_exists, mkdir_raises, dir_is_dir, dir_writable, expectation",
+    [
+        (True, False, True, True, does_not_raise()),
+        (True, False, True, False, raises(ValueError)),
+        (True, False, False, True, raises(ValueError)),
+        (False, False, True, True, does_not_raise()),
+        (False, True, True, True, raises(ValueError)),
+    ],
+)
+def test_create_and_validate_directory(
+    dir_exists: bool,
+    mkdir_raises: bool,
+    dir_is_dir: bool,
+    dir_writable: bool,
+    expectation: ContextManager[str],
+    tmp_path: Path,
+) -> None:
+
+    directory = tmp_path / "directory"
+    if dir_is_dir:
+        if dir_exists:
+            directory.mkdir()
+    else:
+        if dir_exists:
+            directory.touch()
+
+    if mkdir_raises:
+        with patch("repod.config.settings.Path.mkdir", Mock(side_effect=PermissionError)):
+            with expectation:
+                settings.create_and_validate_directory(directory=directory)
+    else:
+        if not dir_writable:
+            with patch("os.access", Mock(return_value=False)):
+                with expectation:
+                    settings.create_and_validate_directory(directory=directory)
+        else:
+            with expectation:
+                settings.create_and_validate_directory(directory=directory)

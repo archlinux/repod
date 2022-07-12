@@ -1,18 +1,27 @@
 import os
-from collections import Counter
 from logging import debug
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import tomli
-from pydantic import AnyUrl, BaseModel, BaseSettings, constr, root_validator, validator
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    BaseSettings,
+    PrivateAttr,
+    constr,
+    root_validator,
+    validator,
+)
 from pydantic.env_settings import SettingsSourceCallable
 
 from repod.common.enums import CompressionTypeEnum, SettingsTypeEnum
 from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
+    DEFAULT_ARCHITECTURE,
     DEFAULT_DATABASE_COMPRESSION,
-    MANAGEMENT_REPO,
+    DEFAULT_NAME,
+    MANAGEMENT_REPO_BASE,
     PACKAGE_POOL_BASE,
     PACKAGE_REPO_BASE,
     SETTINGS_LOCATION,
@@ -21,43 +30,65 @@ from repod.config.defaults import (
     SOURCE_REPO_BASE,
 )
 
+DIR_MODE = "0755"
 
-def validate_directory(directory: Path) -> Path:
-    """A validator for an absolute and writable directory Path
+
+def to_absolute_path(path: Path, base_path: Path) -> Path:
+    """Turn provided directory into absolute Path
 
     Parameters
     ----------
     directory: Path
-        A Path instance to validate
+        An absolute or relative directory
+    base_path: Path
+        An absolute directory that is prepended to directory if it is relative
 
     Raises
     ------
     ValueError
-        If directory is not absolute, not a directory, not writable, or if the directory's parent is not writable
-        (in case the directory does not exist yet
+        If base_path is relative
 
     Returns
     -------
     Path
-        A validated Path instances representing an absolute directory
+        An absolute directory Path
     """
 
-    if not directory.is_absolute():
-        raise ValueError(f"The directory '{directory}' is not an absolute path.")
-    if directory.exists():
-        if not directory.is_dir():
-            raise ValueError(f"Not a directory: '{directory}'.")
-        if not os.access(directory, os.W_OK):
-            raise ValueError(f"The directory '{directory}' is not writable.")
-    else:
-        if not directory.parent.exists():
-            raise ValueError(f"The parent directory of '{directory}' does not exist")
-        if not directory.parent.is_dir():
-            raise ValueError(f"The parent of '{directory}' is not a directory.")
-        if not os.access(directory.parent, os.W_OK):
-            raise ValueError(f"The parent directory of '{directory}' is not writable.")
+    if not base_path.is_absolute():
+        raise ValueError(f"The base_path must be absolute, but '{base_path}' is provided!")
 
-    return directory
+    if not path.is_absolute():
+        debug(f"Converting path {path} to {base_path / path}...")
+        path = base_path / path
+
+    return path
+
+
+def create_and_validate_directory(directory: Path) -> None:
+    """Create a directory (if it does not exist yet) and ensure that it is writable
+
+    Parameters
+    ----------
+    directory: Path
+        A directory path to create and validate
+
+    Returns
+    -------
+    Path
+        An absolute path
+    """
+
+    if not directory.exists():
+        debug(f"Creating directory {directory}...")
+        try:
+            directory.mkdir(mode=int(DIR_MODE, base=8), parents=True, exist_ok=True)
+        except PermissionError as e:
+            raise ValueError(e)
+
+    if not directory.is_dir():
+        raise ValueError(f"Not a directory: '{directory}'.")
+    if not os.access(directory, os.W_OK):
+        raise ValueError(f"The directory '{directory}' is not writable.")
 
 
 class Architecture(BaseModel):
@@ -81,7 +112,7 @@ class DatabaseCompression(BaseModel):
         A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
     """
 
-    database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
+    database_compression: Optional[CompressionTypeEnum]
 
 
 class PackagePool(BaseModel):
@@ -95,27 +126,6 @@ class PackagePool(BaseModel):
 
     package_pool: Optional[Path]
 
-    @validator("package_pool")
-    def validate_package_pool(cls, package_pool: Optional[Path]) -> Optional[Path]:
-        """A validator for the package_pool attribute
-
-        Parameters
-        ----------
-        package_pool: Optional[Path]
-            An optional Path instance to validate. If a Path instance is provided, validate_directory() is used for
-            validation
-
-        Returns
-        -------
-        Optional[Path]
-            A validated Path instance, if a Path is provided, else None
-        """
-
-        if package_pool is None:
-            return package_pool
-        else:
-            return Path(validate_directory(directory=package_pool))
-
 
 class SourcePool(BaseModel):
     """A model describing a single "source_pool" attribute
@@ -127,27 +137,6 @@ class SourcePool(BaseModel):
     """
 
     source_pool: Optional[Path]
-
-    @validator("source_pool")
-    def validate_source_pool(cls, source_pool: Optional[Path]) -> Optional[Path]:
-        """A validator for the source_pool attribute
-
-        Parameters
-        ----------
-        source_pool: Optional[Path]
-            An optional Path instance to validate. If a Path instance is provided, validate_directory() is used for
-            validation
-
-        Returns
-        -------
-        Optional[Path]
-            A validated Path instance, if a Path is provided, else None
-        """
-
-        if source_pool is None:
-            return source_pool
-        else:
-            return Path(validate_directory(directory=source_pool))
 
 
 class ManagementRepo(BaseModel):
@@ -165,42 +154,25 @@ class ManagementRepo(BaseModel):
     directory: Path
     url: Optional[AnyUrl]
 
-    @validator("directory")
-    def validate_directory(cls, directory: Path) -> Path:
-        """A validator for the directory attribute
-
-        Parameters
-        ----------
-        directory: Path
-            A Path, that describes the location for the ManagementRepo
-
-        Returns
-        -------
-        Path
-            A validated Path
-        """
-
-        return Path(validate_directory(directory=directory))
-
     @validator("url")
     def validate_url(cls, url: Optional[AnyUrl]) -> Optional[AnyUrl]:
         """A validator for the url attribute
 
         Parameters
         ----------
-        url: AnyUrl
+        url: Optional[AnyUrl]
             An instance of AnyUrl, that describes an upstream repository URL
 
         Raises
         ------
         ValueError
-            If the url scheme is not one of "https" or "ssh" or if the url scheme is "ssh", but no user is provided in
-            the URL string
+            If the url is set and the scheme is not one of "https" or "ssh" or if the url scheme is "ssh", but no user
+            is provided in the URL string
 
         Returns
         -------
-        AnyUrl
-            A validated instance of AnyUrl
+        Optional[AnyUrl]
+            A validated instance of AnyUrl or None
         """
 
         if url is None:
@@ -216,37 +188,7 @@ class ManagementRepo(BaseModel):
         return url
 
 
-class UserManagementRepo(ManagementRepo):
-    """A user-level ManagementRepo, which defaults to XDG compliant directory locations
-
-    Attributes
-    ----------
-    directory: Path
-        A Path instance describing the location of the management repository (defaults to
-        MANAGEMENT_REPO[SettingsTypeEnum.USER])
-    url: AnyUrl
-        A URL describing the VCS upstream of the management repository
-    """
-
-    directory: Path = MANAGEMENT_REPO[SettingsTypeEnum.USER]
-
-
-class SystemManagementRepo(ManagementRepo):
-    """A system-level ManagementRepo, which defaults to system-wide directory locations
-
-    Attributes
-    ----------
-    directory: Path
-        A Path instance describing the location of the management repository (defaults to
-        MANAGEMENT_REPO[SettingsTypeEnum.SYSTEM])
-    url: AnyUrl
-        A URL describing the VCS upstream of the management repository
-    """
-
-    directory: Path = MANAGEMENT_REPO[SettingsTypeEnum.SYSTEM]
-
-
-class PackageRepo(Architecture, PackagePool, SourcePool):
+class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
     """A model providing all required attributes to describe a package repository
 
     Attributes
@@ -254,6 +196,8 @@ class PackageRepo(Architecture, PackagePool, SourcePool):
     architecture: Optional[str]
         An optional string, that serves as an override to the application-wide architecture.
         The attribute defines the CPU architecture for the package repository
+    database_compression: CompressionTypeEnum
+        A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
     package_pool: Optional[Path]
         An optional directory, that serves as an override to the application-wide package_pool.
         The attribute defines the location to store the binary packages and their signatures in
@@ -270,7 +214,30 @@ class PackageRepo(Architecture, PackagePool, SourcePool):
         An optional instance of ManagementRepo, that serves as an override to the application-wide management_repo
         The attribute defines the directory and upstream VCS repository that is used to track changes to a package
         repository
+
+    PrivateAttributes
+    -----------------
+    _management_repo_dir: Path
+        The absolute path to the directory in a management repository used for the PackageRepo (unset by default)
+    _package_pool_base: Path
+        The absolute path to the directory used as base for package pool directories (unset by default)
+    _package_repo_base: Path
+        The absolute path to the directory used as base for package repository directories (unset by default)
+    _source_pool_base: Path
+        The absolute path to the directory used as base for source pool directories (unset by default)
+    _source_repo_base: Path
+        The absolute path to the directory used as base for source repository directories (unset by default)
     """
+
+    _management_repo_dir: Path = PrivateAttr()
+    _package_pool_dir: Path = PrivateAttr()
+    _source_pool_dir: Path = PrivateAttr()
+    _stable_repo_dir: Path = PrivateAttr()
+    _stable_source_repo_dir: Path = PrivateAttr()
+    _staging_repo_dir: Path = PrivateAttr()
+    _staging_source_repo_dir: Path = PrivateAttr()
+    _testing_repo_dir: Path = PrivateAttr()
+    _testing_source_repo_dir: Path = PrivateAttr()
 
     name: Path
     staging: Optional[Path]
@@ -386,69 +353,6 @@ class PackageRepo(Architecture, PackagePool, SourcePool):
             )
         return values
 
-    @root_validator
-    def validate_unique_package_pool_source_pool(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        """A root validator for the optional package_pool and source_pool attributes ensuring both are not the same Path
-
-        Parameters
-        ----------
-        values: Dict[str, Any]
-            A dict with all values of the PackageRepo instance
-
-        Raises
-        ------
-        ValueError
-            If package_pool and source_pool are the same Path
-
-        Returns
-        -------
-        values: Dict[str, Any]
-            The unmodified dict with all values of the PackageRepo instance
-        """
-
-        source_pool, package_pool = values.get("source_pool"), values.get("package_pool")
-        if source_pool and package_pool and source_pool == package_pool:
-            raise ValueError(f"The package pool '{package_pool}' is the same as the source pool '{source_pool}'")
-        return values
-
-    @root_validator
-    def validate_unique_management_repo_directory(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        """A root validator for the optional management_repo, package_pool and source_pool attributes ensuring the first
-        does not use the same directory as the latter two
-
-        Parameters
-        ----------
-        values: Dict[str, Any]
-            A dict with all values of the PackageRepo instance
-
-        Raises
-        ------
-        ValueError
-            If management_repo.directory is the same Path as either package_pool or source_pool
-
-        Returns
-        -------
-        values: Dict[str, Any]
-            The unmodified dict with all values of the PackageRepo instance
-        """
-
-        management_repo, package_pool, source_pool = (
-            values.get("management_repo"),
-            values.get("package_pool"),
-            values.get("source_pool"),
-        )
-        if management_repo and package_pool and management_repo.directory == package_pool:
-            raise ValueError(
-                f"The management_repo location '{management_repo.directory}' is "
-                f"the same as the package pool '{package_pool}'"
-            )
-        if management_repo and source_pool and management_repo.directory == source_pool:
-            raise ValueError(
-                f"The management_repo location '{management_repo.directory}' is "
-                f"the same as the source pool '{source_pool}'"
-            )
-        return values
-
 
 def raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
     """Raise on two Path instances pointing at the same file
@@ -472,7 +376,7 @@ def raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_na
 
     if path == other:
         raise ValueError(
-            f"The {path_name} directory '{path}' " f"can not be the same as the {other_name} directory '{other}'."
+            f"The {path_name} directory '{path}' can not be the same as the {other_name} directory '{other}'."
         )
 
 
@@ -497,9 +401,7 @@ def raise_on_path_in_other(path: Path, path_name: str, other: Path, other_name: 
     """
 
     if set(path.parts).issuperset(set(other.parts)):
-        raise ValueError(
-            f"The {path_name} directory '{path}' " f"can not reside in the {other_name} directory '{other}'."
-        )
+        raise ValueError(f"The {path_name} directory '{path}' can not reside in the {other_name} directory '{other}'.")
 
 
 def raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: List[Path], other_name: str) -> None:
@@ -560,50 +462,77 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
     for config_file in config_files:
         debug(f"Reading config file {config_file}...")
         with open(config_file, "rb") as file:
-            output_dict | tomli.load(file)
+            file_dict = tomli.load(file)
+            debug(f"Read configuration: {file_dict}")
+            output_dict = output_dict | file_dict
+
+    debug(f"Combined configuration: {output_dict}")
     return output_dict
 
 
 class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, SourcePool):
     """A class to describe a configuration for repod
 
+    NOTE: Do not initialize this class directly and instead use UserSettings (for per-user configuration) or
+    SystemSettings (for system-wide configuration) instead, as the Settings class lacks the required private attributes
+    which define default directory locations.
+
     Attributes
     ----------
-    repositories: List[PackageRepo]
-        A list of PackageRepo instances that each define a binary package repository (with optional staging and testing
-        locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
-    package_repo_base: Path
-        A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to binary package files and their signatures (defaults to PACKAGE_REPO_BASE)
-    source_repo_base: Path
-        A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to source tarballs (defaults to SOURCE_REPO_BASE)
-    architecture: Optional[str]
-        An optional Architecture string (see Architecture), that if set is used for each package
-        repository to set its CPU architecture unless a package repository defines an architecture itself
-        NOTE: It is mandatory to provide an architecture for each package repository!
+    architecture: str
+        An optional Architecture string, that (if set) defines the CPU architecture for any package repository which
+        does not define one itself (defaults to DEFAULT_ARCHITECTURE).
     database_compression: CompressionTypeEnum
-        A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
+        A member of CompressionTypeEnum which defines the default database compression for any package repository
+        without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
     management_repo: Optional[ManagementRepo]
-        An optional ManagementRepo, that if set is used for each package repository to manage the state of each package
-        repository, unless a package repository defines a management repository itself
-        NOTE: It is mandatory to provide a management repository for each package repository!
+        An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
+        which does not define one itself.
+        If unset, a default one is created during validation.
+    repositories: List[PackageRepo]
+        A list of PackageRepos that each define a binary package repository (with optional staging and testing
+        locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
+        If no repository is defined, a default one is created during validation.
     package_pool: Optional[Path]
-        An optional directory, that if set is used for each package repository to store the binary packages and their
-        signatures in, unless a package repository defines a package pool itself. From this directory the active
-        packages are symlinked into their respective package repository directories
-        NOTE: It is mandatory to provide a package pool for each package repository!
+        An optional relative or absolute directory, that is used as PackagePool for each PackageRepo, which does not
+        define one itself.
+        If a relative path is provided, it is prepended with _package_pool_base during validation.
+        If an absolute path is provided, it is used as is.
+        If unset, it is set to _package_pool_base / DEFAULT_NAME during validation.
     source_pool: Optional[Path]
-        An optional directory, that if set is used for each package repository to store the binary source tarballs for
-        each package in, unless a package repository defines a source pool itself. From this directory the active
-        source tarballs of packages are symlinked into their respective package repository directories
-        NOTE: It is mandatory to provide a source pool for each package repository!
+        An optional relative or absolute directory, that is used as SourcePool for each PackageRepo, which does not
+        define one itself.
+        If a relative path is provided, it is prepended with _source_pool_base during validation.
+        If an absolute path is provided, it is used as is.
+        If unset, it is set to _source_pool_base / DEFAULT_NAME during validation.
+
+    PrivateAttributes
+    -----------------
+    _settings_type: SettingsTypeEnum
+        The type of Settings an instance represents (unset by default)
+    _management_repo_base: Path
+        The absolute path to the directory used as base for management repositories (unset by default)
+    _package_pool_base: Path
+        The absolute path to the directory used as base for package pool directories (unset by default)
+    _package_repo_base: Path
+        The absolute path to the directory used as base for package repository directories (unset by default)
+    _source_pool_base: Path
+        The absolute path to the directory used as base for source pool directories (unset by default)
+    _source_repo_base: Path
+        The absolute path to the directory used as base for source repository directories (unset by default)
     """
 
-    repositories: List[PackageRepo] = []
+    _settings_type: SettingsTypeEnum = PrivateAttr()
+    _management_repo_base: Path = PrivateAttr()
+    _package_pool_base: Path = PrivateAttr()
+    _package_repo_base: Path = PrivateAttr()
+    _source_pool_base: Path = PrivateAttr()
+    _source_repo_base: Path = PrivateAttr()
+
+    architecture: str = DEFAULT_ARCHITECTURE
+    database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
     management_repo: Optional[ManagementRepo]
-    package_repo_base: Path
-    source_repo_base: Path
+    repositories: List[PackageRepo] = []
 
     class Config:
         env_file_encoding = "utf-8"
@@ -622,158 +551,333 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 file_secret_settings,
             )
 
+    @validator("management_repo")
+    def validate_management_repo(cls, management_repo: Optional[ManagementRepo]) -> ManagementRepo:
+        """Validate the ManagementRepo and return a default if none is set
+
+        Return a default ManagementRepo created by a call to get_default_managementrepo() if none is set.
+
+        Parameters
+        ----------
+        management_repo: Optional[ManagementRepo]
+            The optional ManagementRepo
+
+        Returns
+        -------
+        ManagementRepo
+            The instance's ManagementRepo or a default one
+        """
+
+        if not management_repo:
+            debug("No configured global management repository found! Setting up default...")
+            management_repo = get_default_managementrepo(settings_type=cls._settings_type)
+
+        return management_repo
+
+    @validator("repositories")
+    def validate_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
+        """Validator for the repositories attribute
+
+        If the attribute is not set or is an empty list, it will be populated with a default generated by
+        get_default_packagerepo()
+
+        Parameters
+        ----------
+        repositories:  List[PackageRepo]
+            A list of PackageRepo instances to validate
+
+        Returns
+        -------
+        List[PackageRepo]
+            A validated list of PackageRepo instances
+        """
+
+        if not repositories:
+            debug("No configured package repository found! Setting up default...")
+            repositories = [get_default_packagerepo(settings_type=cls._settings_type)]
+
+        return repositories
+
     @root_validator
-    def validate_package_repo_base_source_repo_base(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        """A root_validator to ensure, that package_repo_base and source_repo_base are valid
+    def consolidate_and_create_repositories(
+        cls,
+        values: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Consolidate repositories with global data and create respective directories
+
+        Private attributes of each PackageRepo are consolidated with the global defaults provided by the Settings
+        object.
+        Application wide defaults are either provided by private attributes or by manually set attributes on the
+        Settings object.
 
         Parameters
         ----------
         values: Dict[str, Any]
-            A dict with all values of the Settings instance
-
-        Raises
-        ------
-        ValueError
-            If either path does not exists, is not absolute, or is not writable,
-            if package_repo_base and source_repo_base are the same,
-            if either of the two equals the other or is located in the respective other,
-            if either of the two is equal to or located in any of the management repository directories, source pool
-            directories or package pool directories,
-            or if any of the management repository directories resides below the package_repo_base or source_repo_base
-            directories.
+            A dict representing the keys and values of the Settings object
 
         Returns
         -------
-        values: Dict[str, Any]
-            The unmodified dict with all values of the Settings instance
+        Dict[str, Any]
+            A dict of validated keys and values of the Settings object
         """
 
-        package_repo_base: Path = values.get("package_repo_base")  # type: ignore[assignment]
-        source_repo_base: Path = values.get("source_repo_base")  # type: ignore[assignment]
-        for directory in [package_repo_base, source_repo_base]:
-            validate_directory(directory=directory)
+        debug("Consolidating and creating repository directories...")
 
-        repositories: List[PackageRepo] = values.get("repositories")  # type: ignore[assignment]
-        management_repo, package_pool, source_pool = (
-            values.get("management_repo"),
-            values.get("package_pool"),
-            values.get("source_pool"),
-        )
-        management_repo_dirs = (
-            [repo.management_repo.directory for repo in repositories if repo.management_repo]
-            + [management_repo.directory]
-            if management_repo
-            else []
-        )
-        package_pool_dirs = (
-            [repo.package_pool for repo in repositories if repo.package_pool] + [package_pool] if package_pool else []
-        )
-        source_pool_dirs = (
-            [repo.source_pool for repo in repositories if repo.source_pool] + [source_pool] if source_pool else []
+        repositories = cls.consolidate_repositories_with_defaults(
+            architecture=values.get("architecture"),  # type: ignore[arg-type]
+            database_compression=values.get("database_compression"),
+            management_repo=values.get("management_repo"),  # type: ignore[arg-type]
+            package_pool=to_absolute_path(
+                path=values.get("package_pool") or cls._package_pool_base / DEFAULT_NAME,
+                base_path=cls._package_pool_base,
+            ),
+            repositories=values.get("repositories"),  # type: ignore[arg-type]
+            source_pool=to_absolute_path(
+                path=values.get("source_pool") or cls._source_pool_base / DEFAULT_NAME,
+                base_path=cls._source_pool_base,
+            ),
         )
 
+        cls.ensure_non_overlapping_repositories(repositories=repositories)
+        cls.create_repository_directories(repositories=repositories)
+
+        return values
+
+    @classmethod
+    def consolidate_repositories_with_defaults(
+        cls,
+        architecture: str,
+        database_compression: CompressionTypeEnum,
+        management_repo: ManagementRepo,
+        package_pool: Path,
+        repositories: List[PackageRepo],
+        source_pool: Path,
+    ) -> List[PackageRepo]:
+        """Consolidate each repository with global defaults
+
+        The settings-wide defaults are used if a repository does not define the respective attribute.
+        The consolidated attributes (e.g. canonicalized paths) are persisted using the dedicated private attribute of
+        each PackageRepo object.
+
+        Parameters
+        ----------
+        architecture: str
+            The settings-wide default CPU architecture
+        database_compression: CompressionTypeEnum
+            The settings-wide default database compression
+        management_repo: ManagementRepo
+            The settings-wide default management repo
+        package_pool: Path
+            The settings-wide default package_pool
+        repositories: List[PackageRepo]
+            The list of package repositories
+        source_pool: Path
+            The settings-wide default source_pool
+
+        Returns
+        -------
+        List[PackageRepo]
+            The validated and consolidated list of PackageRepo objects
+        """
+
+        debug("Consolidating repositories with defaults...")
+
+        for repo in repositories:
+            if not repo.architecture and architecture:
+                debug(f"Using global architecture ({architecture}) for repo {repo.name}.")
+                repo.architecture = architecture
+            if not repo.database_compression and database_compression:
+                debug(f"Using global database compression ({database_compression.value}) for repo {repo.name}.")
+                repo.database_compression = database_compression
+            if not repo.management_repo and management_repo:
+                debug(f"Using global management_repo ({management_repo}) for repo {repo.name}.")
+                repo.management_repo = management_repo
+            if not repo.package_pool and package_pool:
+                debug(f"Using global package_pool ({package_pool}) for repo {repo.name}.")
+                repo.package_pool = package_pool
+            if not repo.source_pool and source_pool:
+                debug(f"Using global source_pool ({source_pool}) for repo {repo.name}.")
+                repo.source_pool = source_pool
+
+            repo._stable_repo_dir = to_absolute_path(
+                path=repo.name / repo.architecture,  # type: ignore[operator]
+                base_path=cls._package_repo_base,
+            )
+            repo._stable_source_repo_dir = to_absolute_path(
+                path=repo.name / repo.architecture,  # type: ignore[operator]
+                base_path=cls._source_repo_base,
+            )
+            if repo.staging:
+                repo._staging_repo_dir = to_absolute_path(
+                    path=repo.staging / repo.architecture,  # type: ignore[operator]
+                    base_path=cls._package_repo_base,
+                )
+                repo._staging_source_repo_dir = to_absolute_path(
+                    path=repo.staging / repo.architecture,  # type: ignore[operator]
+                    base_path=cls._source_repo_base,
+                )
+            if repo.testing:
+                repo._testing_repo_dir = to_absolute_path(
+                    path=repo.testing / repo.architecture,  # type: ignore[operator]
+                    base_path=cls._package_repo_base,
+                )
+                repo._testing_source_repo_dir = to_absolute_path(
+                    path=repo.testing / repo.architecture,  # type: ignore[operator]
+                    base_path=cls._source_repo_base,
+                )
+
+            repo._package_pool_dir = to_absolute_path(
+                path=repo.package_pool,  # type: ignore[arg-type]
+                base_path=cls._package_pool_base,
+            )
+            repo._source_pool_dir = to_absolute_path(
+                path=repo.source_pool,  # type: ignore[arg-type]
+                base_path=cls._source_pool_base,
+            )
+
+            repo._management_repo_dir = to_absolute_path(
+                path=(
+                    repo.management_repo.directory / repo.architecture / repo.name  # type: ignore[operator,union-attr]
+                ),
+                base_path=cls._management_repo_base,
+            )
+
+        return repositories
+
+    @classmethod
+    def create_repository_directories(cls, repositories: List[PackageRepo]) -> None:
+        """Create the directories associated with package repositories
+
+        Create directories only if the do not exist yet and validate that the directories are writeable.
+
+        Parameters
+        ----------
+        repositories: List[PackageRepo]
+            A list of package repositories for which to create directories
+        """
+
+        for repo in repositories:
+            debug(f"Creating directories of repo {repo.name}...")
+            create_and_validate_directory(directory=repo._stable_repo_dir)
+            create_and_validate_directory(directory=repo._stable_source_repo_dir)
+            if repo.staging:
+                create_and_validate_directory(directory=repo._staging_repo_dir)
+                create_and_validate_directory(directory=repo._staging_source_repo_dir)
+            if repo.testing:
+                create_and_validate_directory(directory=repo._testing_repo_dir)
+                create_and_validate_directory(directory=repo._testing_source_repo_dir)
+
+            create_and_validate_directory(directory=repo._package_pool_dir)
+            create_and_validate_directory(directory=repo._source_pool_dir)
+
+            create_and_validate_directory(directory=repo._management_repo_dir)
+
+    @classmethod
+    def ensure_non_overlapping_repositories(cls, repositories: List[PackageRepo]) -> None:
+        """Ensure that all repositories do not have overlapping directories
+
+        Ensure that
+            * there are no duplicate repository names
+            * source repository base directories do not overlap with management repository directories, package pool
+              directories, source pool directories, or package repository base directory
+            * package repository base directories do not overlap with management repository directories, package pool
+              directories, source pool directories, or package repository base directory
+            * management repository directories do not overlap with package pools, source pools, package repository
+              base directories or source repository base directories
+            * package pool directories do not overlap with management repository directories, source pool directories,
+              package repository base directories, or source repository base directories
+            * source pool directories do not overlap with management repository directories, package pool directories,
+              package repository base directories, or source repository base directories
+            * stable repository directories do not overlap with management repository directories, staging repository
+              directories, or testing repository directories
+            * staging repository directories do not overlap with management repository directories, stable repository
+              directories, or testing repository directories
+            * testing repository directories do not overlap with management repository directories, stable repository
+              directories, or staging repository directories
+
+        Parameters
+        ----------
+        repositories: List[PackageRepo]
+            A list of package repositories for which to create directories
+        """
+
+        debug("Ensuring package repositories have no overlapping directories...")
+
+        debug(f"Default source repository base directory: {cls._source_repo_base}")
+        debug(f"Default package repository base directory: {cls._package_repo_base}")
+
+        stable_repo_dirs = [repo._stable_repo_dir for repo in repositories]
+        debug(f"Stable repository directories: {stable_repo_dirs}")
+        duplicate_dirs = [name for name in stable_repo_dirs if stable_repo_dirs.count(name) > 1]
+        if duplicate_dirs:
+            raise ValueError(
+                f"Duplicate stable repository directories detected: {[str(name) for name in duplicate_dirs]}"
+            )
+
+        management_repo_dirs = [repo._management_repo_dir for repo in repositories]
+        debug(f"Management repository directories: {management_repo_dirs}")
+        package_pool_dirs = [repo._package_pool_dir for repo in repositories if repo.package_pool]
+        debug(f"Package pool directories: {package_pool_dirs}")
+        source_pool_dirs = [repo._source_pool_dir for repo in repositories if repo.source_pool]
+        debug(f"Source pool directories: {source_pool_dirs}")
+        staging_repo_dirs = [repo._staging_repo_dir for repo in repositories if repo.staging]
+        debug(f"Staging repository directories: {staging_repo_dirs}")
+        testing_repo_dirs = [repo._testing_repo_dir for repo in repositories if repo.testing]
+        debug(f"Testing repository directories: {testing_repo_dirs}")
+
+        # test base directories
         raise_on_path_in_list_of_paths(
-            path=source_repo_base,
+            path=cls._source_repo_base,
             path_name="source repository base",
             path_list=management_repo_dirs,
             other_name="management repository",
         )
         raise_on_path_in_list_of_paths(
-            path=source_repo_base,
+            path=cls._source_repo_base,
             path_name="source repository base",
             path_list=package_pool_dirs,
             other_name="package pool",
         )
         raise_on_path_in_list_of_paths(
-            path=source_repo_base,
+            path=cls._source_repo_base,
             path_name="source repository base",
             path_list=source_pool_dirs,
             other_name="source pool",
         )
         raise_on_path_in_list_of_paths(
-            path=source_repo_base,
+            path=cls._source_repo_base,
             path_name="source repository base",
-            path_list=[package_repo_base],
+            path_list=[cls._package_repo_base],
             other_name="package repository base",
         )
 
         raise_on_path_in_list_of_paths(
-            path=package_repo_base,
+            path=cls._package_repo_base,
+            path_name="package repository base",
+            path_list=management_repo_dirs,
+            other_name="management repository",
+        )
+        raise_on_path_in_list_of_paths(
+            path=cls._package_repo_base,
             path_name="package repository base",
             path_list=package_pool_dirs,
             other_name="package pool",
         )
         raise_on_path_in_list_of_paths(
-            path=package_repo_base,
+            path=cls._package_repo_base,
             path_name="package repository base",
             path_list=source_pool_dirs,
             other_name="source pool",
         )
         raise_on_path_in_list_of_paths(
-            path=package_repo_base,
+            path=cls._package_repo_base,
             path_name="package repository base",
-            path_list=[source_repo_base],
+            path_list=[cls._source_repo_base],
             other_name="source repository base",
         )
-        raise_on_path_in_list_of_paths(
-            path=package_repo_base,
-            path_name="package repository base",
-            path_list=management_repo_dirs,
-            other_name="management repository",
-        )
 
-        for source_pool_dir in source_pool_dirs:
-            raise_on_path_in_list_of_paths(
-                path=source_pool_dir,
-                path_name="source pool",
-                path_list=package_pool_dirs,
-                other_name="package pool",
-            )
-            raise_on_path_in_list_of_paths(
-                path=source_pool_dir,
-                path_name="source pool",
-                path_list=management_repo_dirs,
-                other_name="management repository",
-            )
-            raise_on_path_in_list_of_paths(
-                path=source_pool_dir,
-                path_name="source pool",
-                path_list=[package_repo_base],
-                other_name="package repository base",
-            )
-            raise_on_path_in_list_of_paths(
-                path=source_pool_dir,
-                path_name="source pool",
-                path_list=[source_repo_base],
-                other_name="source repository base",
-            )
-
-        for package_pool_dir in package_pool_dirs:
-            raise_on_path_in_list_of_paths(
-                path=package_pool_dir,
-                path_name="package pool",
-                path_list=source_pool_dirs,
-                other_name="source pool",
-            )
-            raise_on_path_in_list_of_paths(
-                path=package_pool_dir,
-                path_name="package pool",
-                path_list=management_repo_dirs,
-                other_name="management repository",
-            )
-            raise_on_path_in_list_of_paths(
-                path=package_pool_dir,
-                path_name="package pool",
-                path_list=[package_repo_base],
-                other_name="package repository base",
-            )
-            raise_on_path_in_list_of_paths(
-                path=package_pool_dir,
-                path_name="package pool",
-                path_list=[source_repo_base],
-                other_name="source repository base",
-            )
-
+        # management repository directories do not overlap with package pool directories, source pool directories,
+        # package repository base directories or source repository base directories
         for management_repo_dir in management_repo_dirs:
             raise_on_path_in_list_of_paths(
                 path=management_repo_dir,
@@ -790,198 +894,137 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=management_repo_dir,
                 path_name="management repository",
-                path_list=[package_repo_base],
+                path_list=[cls._package_repo_base],
                 other_name="package repository base",
             )
             raise_on_path_in_list_of_paths(
                 path=management_repo_dir,
                 path_name="management repository",
-                path_list=[source_repo_base],
+                path_list=[cls._source_repo_base],
                 other_name="source repository base",
             )
 
-        for repo in repositories:
-            repo_package_pool = repo.package_pool or package_pool
-            repo_source_pool = repo.source_pool or source_pool
-
-            if repo_package_pool:
-                raise_on_path_equals_other(
-                    path=package_repo_base,
-                    path_name="package repository base",
-                    other=repo_package_pool,
-                    other_name="repository package pool",
-                )
-                raise_on_path_in_other(
-                    path=package_repo_base,
-                    path_name="package repository base",
-                    other=repo_package_pool,
-                    other_name="repository package pool",
-                )
-                raise_on_path_in_other(
-                    path=repo_package_pool,
-                    path_name="repository package pool",
-                    other=package_repo_base,
-                    other_name="package repository base",
-                )
-                raise_on_path_equals_other(
-                    path=source_repo_base,
-                    path_name="source repository base",
-                    other=repo_package_pool,
-                    other_name="repository package pool",
-                )
-                raise_on_path_in_other(
-                    path=source_repo_base,
-                    path_name="source repository base",
-                    other=repo_package_pool,
-                    other_name="repository package pool",
-                )
-                raise_on_path_in_other(
-                    path=repo_package_pool,
-                    path_name="repository package pool",
-                    other=source_repo_base,
-                    other_name="source repository base",
-                )
-
-            if repo_source_pool:
-                raise_on_path_equals_other(
-                    path=package_repo_base,
-                    path_name="package repository base",
-                    other=repo_source_pool,
-                    other_name="repository source pool",
-                )
-                raise_on_path_in_other(
-                    path=package_repo_base,
-                    path_name="package repository base",
-                    other=repo_source_pool,
-                    other_name="repository source pool",
-                )
-                raise_on_path_equals_other(
-                    path=source_repo_base,
-                    path_name="source repository base",
-                    other=repo_source_pool,
-                    other_name="repository source pool",
-                )
-                raise_on_path_in_other(
-                    path=source_repo_base,
-                    path_name="source repository base",
-                    other=repo_source_pool,
-                    other_name="repository source pool",
-                )
-
-        return values
-
-    @root_validator
-    def validate_existing_paths_for_repositories(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        """A root_validator to ensure, that each PackageRepo has an Architecture, a ManagementRepo, a PackagePool and a
-        SourcePool
-
-        Parameters
-        ----------
-        values: Dict[str, Any]
-            A dict with all values of the Settings instance
-
-        Raises
-        ------
-        ValueError
-            If a repository has no Architecture, ManagementRepo, PackagePool or SourcePool associated with it,
-            if the stable repository directory is also one of the management repository, staging or testing directories,
-            if a repository's staging repository directory is one of the testing repository directories,
-            if a repository's testing repository directory is one of the staging repository directories,
-            or if a duplicate repository (name and architecture) exists.
-
-        Returns
-        -------
-        values: Dict[str, Any]
-            The unmodified dict with all values of the Settings instance
-        """
-
-        architecture: Optional[str] = values.get("architecture")
-        management_repo: Optional[ManagementRepo] = values.get("management_repo")
-        package_pool: Optional[Path] = values.get("package_pool")
-        repositories: List[PackageRepo] = values.get("repositories")  # type: ignore[assignment]
-        source_pool: Optional[Path] = values.get("source_pool")
-        package_repo_base: Path = values.get("package_repo_base")  # type: ignore[assignment]
-
-        staging_dirs = [
-            (package_repo_base / repo.staging / Path(repo.architecture or architecture))  # type: ignore[arg-type]
-            for repo in repositories
-            if repo.staging
-        ]
-        testing_dirs = [
-            (package_repo_base / repo.testing / Path(repo.architecture or architecture))  # type: ignore[arg-type]
-            for repo in repositories
-            if repo.testing
-        ]
-        management_repo_dirs = (
-            [repo.management_repo.directory for repo in repositories if repo.management_repo]
-            + [management_repo.directory]
-            if management_repo
-            else []
-        )
-
-        for repo in repositories:
-            if not repo.architecture and not architecture:
-                raise ValueError(f"The repository '{repo.name}' does not have a CPU architecture associated with it.")
-            if not repo.management_repo and not management_repo:
-                raise ValueError(
-                    f"The repository '{repo.name}' does not have a management repository associated with it."
-                )
-            if not repo.package_pool and not package_pool:
-                raise ValueError(f"The repository '{repo.name}' does not have a package pool associated with it.")
-            if not repo.source_pool and not source_pool:
-                raise ValueError(f"The repository '{repo.name}' does not have a source pool associated with it.")
-
-            repo_dir = package_repo_base / repo.name / Path(repo.architecture or architecture)  # type: ignore[arg-type]
+        # package pool directories do not overlap with management repository directories, source pool directories,
+        # package repository base directories, or source repository base directories
+        for package_pool_dir in package_pool_dirs:
             raise_on_path_in_list_of_paths(
-                path=repo_dir,
-                path_name="stable repository",
-                path_list=staging_dirs,
-                other_name="staging repository",
+                path=package_pool_dir,
+                path_name="package pool",
+                path_list=management_repo_dirs,
+                other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
-                path=repo_dir,
-                path_name="stable repository",
-                path_list=testing_dirs,
-                other_name="testing repository",
+                path=package_pool_dir,
+                path_name="package pool",
+                path_list=source_pool_dirs,
+                other_name="source pool",
             )
             raise_on_path_in_list_of_paths(
-                path=repo_dir,
+                path=package_pool_dir,
+                path_name="package pool",
+                path_list=[cls._package_repo_base],
+                other_name="package repository base",
+            )
+            raise_on_path_in_list_of_paths(
+                path=package_pool_dir,
+                path_name="package pool",
+                path_list=[cls._source_repo_base],
+                other_name="source repository base",
+            )
+
+        # source pool directories do not overlap with management repository directories, package pool directories,
+        # package repository base directories, or source repository base directories
+        for source_pool_dir in source_pool_dirs:
+            raise_on_path_in_list_of_paths(
+                path=source_pool_dir,
+                path_name="source pool",
+                path_list=management_repo_dirs,
+                other_name="management repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=source_pool_dir,
+                path_name="source pool",
+                path_list=package_pool_dirs,
+                other_name="package pool",
+            )
+            raise_on_path_in_list_of_paths(
+                path=source_pool_dir,
+                path_name="source pool",
+                path_list=[cls._package_repo_base],
+                other_name="package repository base",
+            )
+            raise_on_path_in_list_of_paths(
+                path=source_pool_dir,
+                path_name="source pool",
+                path_list=[cls._source_repo_base],
+                other_name="source repository base",
+            )
+
+        # stable repository directories do not overlap with staging repository directories, testing repository
+        # directories or management repository directories
+        for stable_repo_dir in stable_repo_dirs:
+            raise_on_path_in_list_of_paths(
+                path=stable_repo_dir,
                 path_name="stable repository",
                 path_list=management_repo_dirs,
                 other_name="management repository",
             )
-
-            if repo.staging:
-                staging_dir = (
-                    package_repo_base / repo.staging / Path(repo.architecture or architecture)  # type: ignore[arg-type]
-                )
-                raise_on_path_in_list_of_paths(
-                    path=staging_dir,
-                    path_name="the staging repository",
-                    path_list=testing_dirs,
-                    other_name="testing repository",
-                )
-
-            if repo.testing:
-                testing_dir = (
-                    package_repo_base / repo.testing / Path(repo.architecture or architecture)  # type: ignore[arg-type]
-                )
-                raise_on_path_in_list_of_paths(
-                    path=testing_dir,
-                    path_name="testing repository",
-                    path_list=staging_dirs,
-                    other_name="staging repository",
-                )
-
-        names_architectures = [(inner.name, inner.architecture or architecture) for inner in repositories]
-        if len(set(names_architectures)) < len(names_architectures):
-            duplicates = [k for k, v in Counter(names_architectures).items() if v > 1]
-            raise ValueError(
-                f"The following {'combination' if len(duplicates) == 1 else 'combinations'} of (stable) "
-                f"repository name and architecture {'is' if len(duplicates) == 1 else 'are'} not unique: {duplicates}"
+            raise_on_path_in_list_of_paths(
+                path=stable_repo_dir,
+                path_name="stable repository",
+                path_list=staging_repo_dirs,
+                other_name="staging repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=stable_repo_dir,
+                path_name="stable repository",
+                path_list=testing_repo_dirs,
+                other_name="testing repository",
             )
 
-        return values
+        # staging repository directories do not overlap with management repository directories, stable repository
+        # directories, or testing repository directories
+        for staging_repo_dir in staging_repo_dirs:
+            raise_on_path_in_list_of_paths(
+                path=staging_repo_dir,
+                path_name="staging repository",
+                path_list=management_repo_dirs,
+                other_name="management repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=staging_repo_dir,
+                path_name="staging repository",
+                path_list=stable_repo_dirs,
+                other_name="stable repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=staging_repo_dir,
+                path_name="staging repository",
+                path_list=testing_repo_dirs,
+                other_name="testing repository",
+            )
+
+        # testing repository directories do not overlap with management repository directories, stable repository
+        # directories, or staging repository directories
+        for testing_repo_dir in testing_repo_dirs:
+            raise_on_path_in_list_of_paths(
+                path=testing_repo_dir,
+                path_name="testing repository",
+                path_list=management_repo_dirs,
+                other_name="management repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=testing_repo_dir,
+                path_name="testing repository",
+                path_list=stable_repo_dirs,
+                other_name="stable repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=testing_repo_dir,
+                path_name="testing repository",
+                path_list=staging_repo_dirs,
+                other_name="staging repository",
+            )
 
 
 class UserSettings(Settings):
@@ -989,63 +1032,60 @@ class UserSettings(Settings):
 
     Attributes
     ----------
+    architecture: str
+        An optional Architecture string, that (if set) defines the CPU architecture for any package repository which
+        does not define one itself (defaults to DEFAULT_ARCHITECTURE).
+    database_compression: CompressionTypeEnum
+        A member of CompressionTypeEnum which defines the default database compression for any package repository
+        without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
+    management_repo: Optional[ManagementRepo]
+        An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
+        which does not define one itself.
+        If unset, a default one is created during validation.
     repositories: List[PackageRepo]
-        A list of PackageRepo instances that each define a binary package repository (with optional staging and testing
-        locations). Each may define optional overrides for Architecture, UserManagementRepo, PackagePool and SourcePool.
-        If no PackageRepo is provided, a default will be created using get_default_packagerepo()
-    package_repo_base: Path
-        A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to binary package files and their signatures (defaults to
-        PACKAGE_REPO_BASE[SettingsTypeEnum.USER])
-    source_repo_base: Path
-        A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to source tarballs (defaults to SOURCE_REPO_BASE[SettingsTypeEnum.USER])
-    architecture: Optional[str]
-        An optional Architecture string (see Architecture), that if set is used for each package
-        repository to set its CPU architecture unless a package repository defines an architecture itself
-        NOTE: It is mandatory to provide an architecture for each package repository!
-    management_repo: Optional[UserManagementRepo]
-        An optional UserManagementRepo, that if set is used for each package repository to manage the state of each
-        package repository, unless a package repository defines a management repository itself
-        NOTE: It is mandatory to provide a management repository for each package repository!
+        A list of PackageRepos that each define a binary package repository (with optional staging and testing
+        locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
+        If no repository is defined, a default one is created during validation.
     package_pool: Optional[Path]
-        An optional directory, that if set is used for each package repository to store the binary packages and their
-        signatures in, unless a package repository defines a package pool itself. From this directory the active
-        packages are symlinked into their respective package repository directories
-        NOTE: It is mandatory to provide a package pool for each package repository!
+        An optional relative or absolute directory, that is used as PackagePool for each PackageRepo, which does not
+        define one itself.
+        If a relative path is provided, it is prepended with _package_pool_base during validation.
+        If an absolute path is provided, it is used as is.
+        If unset, it is set to _package_pool_base / DEFAULT_NAME during validation.
     source_pool: Optional[Path]
-        An optional directory, that if set is used for each package repository to store the binary source tarballs for
-        each package in, unless a package repository defines a source pool itself. From this directory the active
-        source tarballs of packages are symlinked into their respective package repository directories
-        NOTE: It is mandatory to provide a source pool for each package repository!
+        An optional relative or absolute directory, that is used as SourcePool for each PackageRepo, which does not
+        define one itself.
+        If a relative path is provided, it is prepended with _source_pool_base during validation.
+        If an absolute path is provided, it is used as is.
+        If unset, it is set to _source_pool_base / DEFAULT_NAME during validation.
+
+    PrivateAttributes
+    -----------------
+    _settings_type: SettingsTypeEnum
+        The type of Settings an instance represents (SettingsTypeEnum.USER)
+    _management_repo_base: Path
+        The absolute path to the directory used as base for management repositories
+        (MANAGEMENT_REPO_BASE[SettingsTypeEnum.USER])
+    _package_pool_base: Path
+        The absolute path to the directory used as base for package pool directories
+        (PACKAGE_POOL_BASE[SettingsTypeEnum.USER])
+    _package_repo_base: Path
+        The absolute path to the directory used as base for package repository directories
+        (PACKAGE_REPO_BASE[SettingsTypeEnum.USER])
+    _source_pool_base: Path
+        The absolute path to the directory used as base for source pool directories
+        (SOURCE_POOL_BASE[SettingsTypeEnum.USER])
+    _source_repo_base: Path
+        The absolute path to the directory used as base for source repository directories
+        (SOURCE_REPO_BASE[SettingsTypeEnum.USER])
     """
 
-    management_repo: Optional[UserManagementRepo]
-    package_repo_base: Path = PACKAGE_REPO_BASE[SettingsTypeEnum.USER]
-    source_repo_base: Path = SOURCE_REPO_BASE[SettingsTypeEnum.USER]
-
-    @validator("repositories")
-    def validate_user_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
-        """Validator for the repositories attribute
-
-        If the attribute is not set or is an empty list, it will be populated with a default generated by
-        get_default_packagerepo()
-
-        Parameters
-        ----------
-        repositories:  List[PackageRepo]
-            A list of PackageRepo instances to validate
-
-        Returns
-        -------
-        List[PackageRepo]
-            A validated list of PackageRepo instances
-        """
-
-        if not repositories:
-            return [get_default_packagerepo(settings_type=SettingsTypeEnum.USER)]
-        else:
-            return repositories
+    _settings_type = SettingsTypeEnum.USER
+    _management_repo_base = MANAGEMENT_REPO_BASE[SettingsTypeEnum.USER]
+    _package_pool_base = PACKAGE_POOL_BASE[SettingsTypeEnum.USER]
+    _package_repo_base = PACKAGE_REPO_BASE[SettingsTypeEnum.USER]
+    _source_pool_base = SOURCE_POOL_BASE[SettingsTypeEnum.USER]
+    _source_repo_base = SOURCE_REPO_BASE[SettingsTypeEnum.USER]
 
 
 class SystemSettings(Settings):
@@ -1053,64 +1093,91 @@ class SystemSettings(Settings):
 
     Attributes
     ----------
+    architecture: str
+        An optional Architecture string, that (if set) defines the CPU architecture for any package repository which
+        does not define one itself (defaults to DEFAULT_ARCHITECTURE).
+    database_compression: CompressionTypeEnum
+        A member of CompressionTypeEnum which defines the default database compression for any package repository
+        without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
+    management_repo: Optional[ManagementRepo]
+        An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
+        which does not define one itself.
+        If unset, a default one is created during validation.
     repositories: List[PackageRepo]
-        A list of PackageRepo instances that each define a binary package repository (with optional staging and testing
-        locations). Each may define optional overrides for Architecture, SystemManagementRepo, PackagePool and
-        SourcePool.
-        If no PackageRepo is provided, a default will be created using get_default_packagerepo()
-    package_repo_base: Path
-        A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to binary package files and their signatures (defaults to
-        PACKAGE_REPO_BASE[SettingsTypeEnum.SYSTEM])
-    source_repo_base: Path
-        A directory that serves as the base for all directories, that are defined for the package repositories and are
-        used for storing symlinks to source tarballs (defaults to SOURCE_REPO_BASE[SettingsTypeEnum.SYSTEM])
-    architecture: Optional[str]
-        An optional Architecture string (see Architecture), that if set is used for each package
-        repository to set its CPU architecture unless a package repository defines an architecture itself
-        NOTE: It is mandatory to provide an architecture for each package repository!
-    management_repo: Optional[SystemManagementRepo]
-        An optional SystemManagementRepo, that if set is used for each package repository to manage the state of each
-        package repository, unless a package repository defines a management repository itself
-        NOTE: It is mandatory to provide a management repository for each package repository!
+        A list of PackageRepos that each define a binary package repository (with optional staging and testing
+        locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
+        If no repository is defined, a default one is created during validation.
     package_pool: Optional[Path]
-        An optional directory, that if set is used for each package repository to store the binary packages and their
-        signatures in, unless a package repository defines a package pool itself. From this directory the active
-        packages are symlinked into their respective package repository directories
-        NOTE: It is mandatory to provide a package pool for each package repository!
+        An optional relative or absolute directory, that is used as PackagePool for each PackageRepo, which does not
+        define one itself.
+        If a relative path is provided, it is prepended with _package_pool_base during validation.
+        If an absolute path is provided, it is used as is.
+        If unset, it is set to _package_pool_base / DEFAULT_NAME during validation.
     source_pool: Optional[Path]
-        An optional directory, that if set is used for each package repository to store the binary source tarballs for
-        each package in, unless a package repository defines a source pool itself. From this directory the active
-        source tarballs of packages are symlinked into their respective package repository directories
-        NOTE: It is mandatory to provide a source pool for each package repository!
+        An optional relative or absolute directory, that is used as SourcePool for each PackageRepo, which does not
+        define one itself.
+        If a relative path is provided, it is prepended with _source_pool_base during validation.
+        If an absolute path is provided, it is used as is.
+        If unset, it is set to _source_pool_base / DEFAULT_NAME during validation.
+
+    PrivateAttributes
+    -----------------
+    _settings_type: SettingsTypeEnum
+        The type of Settings an instance represents (SettingsTypeEnum.SYSTEM)
+    _management_repo_base: Path
+        The absolute path to the directory used as base for management repositories
+        (MANAGEMENT_REPO_BASE[SettingsTypeEnum.SYSTEM])
+    _package_pool_base: Path
+        The absolute path to the directory used as base for package pool directories
+        (PACKAGE_POOL_BASE[SettingsTypeEnum.SYSTEM])
+    _package_repo_base: Path
+        The absolute path to the directory used as base for package repository directories
+        (PACKAGE_REPO_BASE[SettingsTypeEnum.SYSTEM])
+    _source_pool_base: Path
+        The absolute path to the directory used as base for source pool directories
+        (SOURCE_POOL_BASE[SettingsTypeEnum.SYSTEM])
+    _source_repo_base: Path
+        The absolute path to the directory used as base for source repository directories
+        (SOURCE_REPO_BASE[SettingsTypeEnum.SYSTEM])
     """
 
-    management_repo: Optional[SystemManagementRepo]
-    package_repo_base: Path = PACKAGE_REPO_BASE[SettingsTypeEnum.SYSTEM]
-    source_repo_base: Path = SOURCE_REPO_BASE[SettingsTypeEnum.SYSTEM]
+    _settings_type = SettingsTypeEnum.SYSTEM
+    _management_repo_base = MANAGEMENT_REPO_BASE[SettingsTypeEnum.SYSTEM]
+    _package_pool_base = PACKAGE_POOL_BASE[SettingsTypeEnum.SYSTEM]
+    _package_repo_base = PACKAGE_REPO_BASE[SettingsTypeEnum.SYSTEM]
+    _source_pool_base = SOURCE_POOL_BASE[SettingsTypeEnum.SYSTEM]
+    _source_repo_base = SOURCE_REPO_BASE[SettingsTypeEnum.SYSTEM]
 
-    @validator("repositories")
-    def validate_system_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
-        """Validator for the repositories attribute
 
-        If the attribute is not set or is an empty list, it will be populated with a default generated by
-        get_default_packagerepo()
+def get_default_managementrepo(settings_type: SettingsTypeEnum) -> ManagementRepo:
+    """Return a default ManagementRepo instance depending on settings type
 
-        Parameters
-        ----------
-        repositories:  List[PackageRepo]
-            A list of PackageRepo instances to validate
 
-        Returns
-        -------
-        List[PackageRepo]
-            A validated list of PackageRepo instances
-        """
+    Parameters
+    ----------
+    settings_type: SettingsTypeEnum
+        A settings type
 
-        if not repositories:
-            return [get_default_packagerepo(settings_type=SettingsTypeEnum.SYSTEM)]
-        else:
-            return repositories
+    Raises
+    ------
+    RuntimeError
+        If the provided SettingsTypeEnum member is not valid
+
+    Returns
+    -------
+    ManagementRepo
+        A ManagementRepo using system-wide locations if SettingsTypeEnum.SYSTEM is provided, or a ManagementRepo using
+        per-user locations if SettingsTypeEnum.USER is provided.
+    """
+
+    debug(f"Creating default ManagementRepo for settings_type {settings_type.value}...")
+    match settings_type:
+        case SettingsTypeEnum.SYSTEM:
+            return ManagementRepo(directory=MANAGEMENT_REPO_BASE[SettingsTypeEnum.SYSTEM] / DEFAULT_NAME)
+        case SettingsTypeEnum.USER:
+            return ManagementRepo(directory=MANAGEMENT_REPO_BASE[SettingsTypeEnum.USER] / DEFAULT_NAME)
+        case _:
+            raise RuntimeError("Invalid settings_type provided for creating a default ManagementRepo!")
 
 
 def get_default_packagerepo(settings_type: SettingsTypeEnum) -> PackageRepo:
@@ -1136,21 +1203,23 @@ def get_default_packagerepo(settings_type: SettingsTypeEnum) -> PackageRepo:
         A PackageRepo instance with defaults based upon settings_type
     """
 
-    if settings_type == SettingsTypeEnum.USER:
-        return PackageRepo(
-            architecture="any",
-            name="default",
-            management_repo=UserManagementRepo(),
-            package_pool=PACKAGE_POOL_BASE[SettingsTypeEnum.USER] / "default",
-            source_pool=SOURCE_POOL_BASE[SettingsTypeEnum.USER] / "default",
-        )
-    elif settings_type == SettingsTypeEnum.SYSTEM:
-        return PackageRepo(
-            name="default",
-            architecture="any",
-            management_repo=SystemManagementRepo(),
-            package_pool=PACKAGE_POOL_BASE[SettingsTypeEnum.SYSTEM] / "default",
-            source_pool=SOURCE_POOL_BASE[SettingsTypeEnum.SYSTEM] / "default",
-        )
-    else:
-        raise RuntimeError("Invalid settings_type provided for creating a default PackageRepo!")
+    debug(f"Creating default PackageRepo for settings_type: {settings_type.value}...")
+    match settings_type:
+        case SettingsTypeEnum.USER:
+            return PackageRepo(
+                architecture=DEFAULT_ARCHITECTURE,
+                name=DEFAULT_NAME,
+                management_repo=ManagementRepo(directory=MANAGEMENT_REPO_BASE[SettingsTypeEnum.USER] / DEFAULT_NAME),
+                package_pool=PACKAGE_POOL_BASE[SettingsTypeEnum.USER] / DEFAULT_NAME,
+                source_pool=SOURCE_POOL_BASE[SettingsTypeEnum.USER] / DEFAULT_NAME,
+            )
+        case SettingsTypeEnum.SYSTEM:
+            return PackageRepo(
+                name=DEFAULT_NAME,
+                architecture=DEFAULT_ARCHITECTURE,
+                management_repo=ManagementRepo(directory=MANAGEMENT_REPO_BASE[SettingsTypeEnum.SYSTEM] / DEFAULT_NAME),
+                package_pool=PACKAGE_POOL_BASE[SettingsTypeEnum.SYSTEM] / DEFAULT_NAME,
+                source_pool=SOURCE_POOL_BASE[SettingsTypeEnum.SYSTEM] / DEFAULT_NAME,
+            )
+        case _:
+            raise RuntimeError("Invalid settings_type provided for creating a default PackageRepo!")

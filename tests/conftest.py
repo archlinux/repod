@@ -18,6 +18,13 @@ from pytest import fixture
 
 from repod.common.defaults import ARCHITECTURES
 from repod.common.enums import CompressionTypeEnum, PkgTypeEnum
+from repod.config.settings import (
+    DEFAULT_ARCHITECTURE,
+    DEFAULT_DATABASE_COMPRESSION,
+    DEFAULT_NAME,
+    ManagementRepo,
+    PackageRepo,
+)
 from repod.files import open_tarfile
 from repod.files.buildinfo import BuildInfo, BuildInfoV1, BuildInfoV2
 from repod.files.common import ZstdTarFile
@@ -1486,3 +1493,35 @@ def params_for_vercmp() -> Any:
 @fixture(scope="session", params=params_for_vercmp())
 def pyalpm_vercmp_fun(request: Any) -> Any:
     return request.param
+
+
+@fixture(scope="function")
+def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
+    management_repo_base = tmp_path / "management_repo_base"
+    source_repo_base = tmp_path / "source_repo_base"
+    source_pool_base = tmp_path / "source_pool_base"
+    package_repo_base = tmp_path / "package_repo_base"
+    package_pool_base = tmp_path / "package_pool_base"
+
+    package_repo = PackageRepo(
+        name=DEFAULT_NAME,
+        architecture=DEFAULT_ARCHITECTURE,
+        database_compression=DEFAULT_DATABASE_COMPRESSION,
+        management_repo=ManagementRepo(directory=(management_repo_base / DEFAULT_NAME)),
+        package_pool=(package_pool_base / DEFAULT_NAME),
+        source_pool=(source_pool_base / DEFAULT_NAME),
+        staging=Path(f"{DEFAULT_NAME}-staging"),
+        testing=Path(f"{DEFAULT_NAME}-testing"),
+    )
+
+    package_repo._management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/default"
+    package_repo._package_pool_dir = package_pool_base / "default"
+    package_repo._source_pool_dir = source_pool_base / "default"
+    package_repo._stable_repo_dir = package_repo_base / f"default/{DEFAULT_ARCHITECTURE}"
+    package_repo._stable_source_repo_dir = source_repo_base / f"default/{DEFAULT_ARCHITECTURE}"
+    package_repo._staging_repo_dir = package_repo_base / Path(f"{DEFAULT_NAME}-staging/{DEFAULT_ARCHITECTURE}")
+    package_repo._staging_source_repo_dir = source_repo_base / Path(f"{DEFAULT_NAME}-staging/{DEFAULT_ARCHITECTURE}")
+    package_repo._testing_repo_dir = package_repo_base / Path(f"{DEFAULT_NAME}-testing/{DEFAULT_ARCHITECTURE}")
+    package_repo._testing_source_repo_dir = source_repo_base / Path(f"{DEFAULT_NAME}-testing/{DEFAULT_ARCHITECTURE}")
+
+    return package_repo
