@@ -18,6 +18,12 @@ class ArgParseFactory:
     def __init__(self, description: str = "default") -> None:
         self.parser = ArgumentParser(description=description)
         self.parser.add_argument(
+            "-c",
+            "--config",
+            type=self.string_to_file_path,
+            help="configuration file",
+        )
+        self.parser.add_argument(
             "-d",
             "--debug",
             action="store_true",
