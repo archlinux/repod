@@ -1466,13 +1466,13 @@ def invalid_json_file(tmp_path: Path) -> Path:
 
 @fixture(scope="function")
 def empty_toml_file(tmp_path: Path) -> Path:
-    return Path(NamedTemporaryFile(suffix=".toml", dir=tmp_path, delete=False).name)
+    return Path(NamedTemporaryFile(suffix=".conf", dir=tmp_path, delete=False).name)
 
 
 @fixture(scope="function")
 def empty_toml_files_in_dir(tmp_path: Path) -> Path:
     for i in range(5):
-        NamedTemporaryFile(suffix=".toml", dir=tmp_path, delete=False)
+        NamedTemporaryFile(suffix=".conf", dir=tmp_path, delete=False)
     return tmp_path
 
 
