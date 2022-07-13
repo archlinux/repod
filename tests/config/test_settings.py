@@ -67,18 +67,12 @@ def test_mangement_repo(
         (Path("foo_BAR123"), None, None, False, False, False, None, raises(ValueError)),
         (Path("foo_BAR123"), Path("bar"), None, False, False, False, None, raises(ValueError)),
         (Path("foo_BAR123"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
-        (Path("/foo"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("/foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
-        (Path("/foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
         (Path(".foo"), None, None, False, False, False, None, raises(ValueError)),
         (Path(".foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
         (Path(".foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
         (Path("-foo"), None, None, False, False, False, None, raises(ValueError)),
         (Path("-foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
         (Path("-foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
-        (Path("foo/bar"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo/bar"), Path("bar"), None, False, False, False, None, raises(ValueError)),
-        (Path("foo/bar"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
         (Path("."), None, None, False, False, False, None, raises(ValueError)),
         (Path("."), Path("bar"), None, False, False, False, None, raises(ValueError)),
         (Path("."), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
@@ -112,10 +106,12 @@ def test_package_repo(
 
 
 @mark.parametrize(
-    "override_location_exists",
+    "override_location_exists, custom_config_provided",
     [
-        (True),
-        (False),
+        (True, False),
+        (False, False),
+        (True, True),
+        (False, True),
     ],
 )
 @patch("tomli.load", return_value={})
@@ -125,29 +121,31 @@ def test_read_toml_configuration_settings_user(
     empty_toml_files_in_dir: Path,
     tmp_path: Path,
     override_location_exists: bool,
+    custom_config_provided: bool,
 ) -> None:
     if override_location_exists:
         override_dir = empty_toml_files_in_dir
     else:
         override_dir = tmp_path / "foo"
 
-    with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.USER: empty_toml_file}):
-        settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
-        with patch(
-            "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
-            {SettingsTypeEnum.USER: override_dir},
-        ):
+    with patch("repod.config.settings.CUSTOM_CONFIG", empty_toml_file if custom_config_provided else None):
+        with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.USER: empty_toml_file}):
             settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
-            toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
+            with patch(
+                "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
+                {SettingsTypeEnum.USER: override_dir},
+            ):
+                settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
+                toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
 
-    with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.USER: tmp_path / "foo.toml"}):
-        settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
-        with patch(
-            "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
-            {SettingsTypeEnum.USER: override_dir},
-        ):
+        with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.USER: tmp_path / "foo.toml"}):
             settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
-            toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
+            with patch(
+                "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
+                {SettingsTypeEnum.USER: override_dir},
+            ):
+                settings.read_toml_configuration_settings(Mock(spec=settings.UserSettings))
+                toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
 
 
 @patch("tomli.load", return_value={})

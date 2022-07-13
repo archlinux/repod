@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from logging import debug
 from pathlib import Path
@@ -31,6 +33,7 @@ from repod.config.defaults import (
 )
 
 DIR_MODE = "0755"
+CUSTOM_CONFIG: Optional[Path] = None
 
 
 def to_absolute_path(path: Path, base_path: Path) -> Path:
@@ -270,12 +273,6 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         if len(name.name) == 0:
             raise ValueError("The package repository can not be an empty string.")
 
-        if name.is_absolute():
-            raise ValueError("The package repository name '{name.name}' can not be an absolute path.")
-
-        if len(name.parts) > 1:
-            raise ValueError("The package repository name '{name.name}' can not describe a directory structure.")
-
         disallowed_start_chars = [".", "-"]
         for char in disallowed_start_chars:
             if name.name.startswith(char):
@@ -445,18 +442,22 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
 
     output_dict: Dict[str, Any] = {}
     config_files: List[Path] = []
-    if isinstance(settings, UserSettings):
-        debug("Detected user-mode settings...")
-        if SETTINGS_LOCATION[SettingsTypeEnum.USER].exists():
-            config_files += [SETTINGS_LOCATION[SettingsTypeEnum.USER]]
-        if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].exists():
-            config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].glob("*.conf"))
-    if isinstance(settings, SystemSettings):
-        debug("Detected system-mode settings...")
-        if SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM].exists():
-            config_files += [SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM]]
-        if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].exists():
-            config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].glob("*.conf"))
+    if CUSTOM_CONFIG:
+        debug("Detected custom config location...")
+        config_files += [CUSTOM_CONFIG]
+    else:
+        if isinstance(settings, UserSettings):
+            debug("Detected user-mode settings...")
+            if SETTINGS_LOCATION[SettingsTypeEnum.USER].exists():
+                config_files += [SETTINGS_LOCATION[SettingsTypeEnum.USER]]
+            if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].exists():
+                config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.USER].glob("*.conf"))
+        if isinstance(settings, SystemSettings):
+            debug("Detected system-mode settings...")
+            if SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM].exists():
+                config_files += [SETTINGS_LOCATION[SettingsTypeEnum.SYSTEM]]
+            if SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].exists():
+                config_files += sorted(SETTINGS_OVERRIDE_LOCATION[SettingsTypeEnum.SYSTEM].glob("*.conf"))
 
     debug(f"Found config files to read: {config_files}")
     for config_file in config_files:
@@ -737,7 +738,9 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
             repo._management_repo_dir = to_absolute_path(
                 path=(
-                    repo.management_repo.directory / repo.architecture / repo.name  # type: ignore[operator,union-attr]
+                    repo.management_repo.directory  # type: ignore[operator,union-attr]
+                    / repo.architecture
+                    / (repo.name.name if repo.name.is_absolute() else repo.name)
                 ),
                 base_path=cls._management_repo_base,
             )
