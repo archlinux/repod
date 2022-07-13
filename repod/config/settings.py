@@ -220,8 +220,15 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
 
     PrivateAttributes
     -----------------
-    _management_repo_dir: Path
-        The absolute path to the directory in a management repository used for the PackageRepo (unset by default)
+    _stable_management_repo_dir: Path
+        The absolute path to the directory in a management repository used for the PackageRepo's stable packages (unset
+        by default)
+    _staging_management_repo_dir: Path
+        The absolute path to the directory in a management repository used for the PackageRepo's staging packages (unset
+        by default)
+    _testing_management_repo_dir: Path
+        The absolute path to the directory in a management repository used for the PackageRepo's testing packages (unset
+        by default)
     _package_pool_base: Path
         The absolute path to the directory used as base for package pool directories (unset by default)
     _package_repo_base: Path
@@ -232,7 +239,9 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         The absolute path to the directory used as base for source repository directories (unset by default)
     """
 
-    _management_repo_dir: Path = PrivateAttr()
+    _stable_management_repo_dir: Path = PrivateAttr()
+    _staging_management_repo_dir: Path = PrivateAttr()
+    _testing_management_repo_dir: Path = PrivateAttr()
     _package_pool_dir: Path = PrivateAttr()
     _source_pool_dir: Path = PrivateAttr()
     _stable_repo_dir: Path = PrivateAttr()
@@ -717,6 +726,14 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                     path=repo.staging / repo.architecture,  # type: ignore[operator]
                     base_path=cls._source_repo_base,
                 )
+                repo._staging_management_repo_dir = to_absolute_path(
+                    path=(
+                        repo.management_repo.directory  # type: ignore[operator,union-attr]
+                        / repo.architecture
+                        / (repo.staging.name if repo.staging.is_absolute() else repo.staging)
+                    ),
+                    base_path=cls._management_repo_base,
+                )
             if repo.testing:
                 repo._testing_repo_dir = to_absolute_path(
                     path=repo.testing / repo.architecture,  # type: ignore[operator]
@@ -725,6 +742,14 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 repo._testing_source_repo_dir = to_absolute_path(
                     path=repo.testing / repo.architecture,  # type: ignore[operator]
                     base_path=cls._source_repo_base,
+                )
+                repo._testing_management_repo_dir = to_absolute_path(
+                    path=(
+                        repo.management_repo.directory  # type: ignore[operator,union-attr]
+                        / repo.architecture
+                        / (repo.testing.name if repo.testing.is_absolute() else repo.testing)
+                    ),
+                    base_path=cls._management_repo_base,
                 )
 
             repo._package_pool_dir = to_absolute_path(
@@ -736,7 +761,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 base_path=cls._source_pool_base,
             )
 
-            repo._management_repo_dir = to_absolute_path(
+            repo._stable_management_repo_dir = to_absolute_path(
                 path=(
                     repo.management_repo.directory  # type: ignore[operator,union-attr]
                     / repo.architecture
@@ -766,14 +791,16 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             if repo.staging:
                 create_and_validate_directory(directory=repo._staging_repo_dir)
                 create_and_validate_directory(directory=repo._staging_source_repo_dir)
+                create_and_validate_directory(directory=repo._staging_management_repo_dir)
             if repo.testing:
                 create_and_validate_directory(directory=repo._testing_repo_dir)
                 create_and_validate_directory(directory=repo._testing_source_repo_dir)
+                create_and_validate_directory(directory=repo._testing_management_repo_dir)
 
             create_and_validate_directory(directory=repo._package_pool_dir)
             create_and_validate_directory(directory=repo._source_pool_dir)
 
-            create_and_validate_directory(directory=repo._management_repo_dir)
+            create_and_validate_directory(directory=repo._stable_management_repo_dir)
 
     @classmethod
     def ensure_non_overlapping_repositories(cls, repositories: List[PackageRepo]) -> None:
@@ -817,8 +844,12 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 f"Duplicate stable repository directories detected: {[str(name) for name in duplicate_dirs]}"
             )
 
-        management_repo_dirs = [repo._management_repo_dir for repo in repositories]
-        debug(f"Management repository directories: {management_repo_dirs}")
+        stable_management_repo_dirs = [repo._stable_management_repo_dir for repo in repositories]
+        debug(f"Management repository directories (stable): {stable_management_repo_dirs}")
+        staging_management_repo_dirs = [repo._staging_management_repo_dir for repo in repositories if repo.staging]
+        debug(f"Management repository directories (staging): {staging_management_repo_dirs}")
+        testing_management_repo_dirs = [repo._testing_management_repo_dir for repo in repositories if repo.testing]
+        debug(f"Management repository directories (testing): {testing_management_repo_dirs}")
         package_pool_dirs = [repo._package_pool_dir for repo in repositories if repo.package_pool]
         debug(f"Package pool directories: {package_pool_dirs}")
         source_pool_dirs = [repo._source_pool_dir for repo in repositories if repo.source_pool]
@@ -832,7 +863,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         raise_on_path_in_list_of_paths(
             path=cls._source_repo_base,
             path_name="source repository base",
-            path_list=management_repo_dirs,
+            path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
             other_name="management repository",
         )
         raise_on_path_in_list_of_paths(
@@ -857,7 +888,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         raise_on_path_in_list_of_paths(
             path=cls._package_repo_base,
             path_name="package repository base",
-            path_list=management_repo_dirs,
+            path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
             other_name="management repository",
         )
         raise_on_path_in_list_of_paths(
@@ -879,30 +910,99 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             other_name="source repository base",
         )
 
-        # management repository directories do not overlap with package pool directories, source pool directories,
-        # package repository base directories or source repository base directories
-        for management_repo_dir in management_repo_dirs:
+        # stable management repository directories do not overlap with staging or testing management repository
+        # directories, package pool directories, source pool directories, package repository base directories or source
+        # repository base directories
+        for stable_management_repo_dir in stable_management_repo_dirs:
             raise_on_path_in_list_of_paths(
-                path=management_repo_dir,
-                path_name="management repository",
+                path=stable_management_repo_dir,
+                path_name="stable management repository",
                 path_list=package_pool_dirs,
                 other_name="package pool",
             )
             raise_on_path_in_list_of_paths(
-                path=management_repo_dir,
-                path_name="management repository",
+                path=stable_management_repo_dir,
+                path_name="stable management repository",
                 path_list=source_pool_dirs,
                 other_name="source pool",
             )
             raise_on_path_in_list_of_paths(
-                path=management_repo_dir,
-                path_name="management repository",
+                path=stable_management_repo_dir,
+                path_name="stable management repository",
                 path_list=[cls._package_repo_base],
                 other_name="package repository base",
             )
             raise_on_path_in_list_of_paths(
-                path=management_repo_dir,
-                path_name="management repository",
+                path=stable_management_repo_dir,
+                path_name="stable management repository",
+                path_list=[cls._source_repo_base],
+                other_name="source repository base",
+            )
+            raise_on_path_in_list_of_paths(
+                path=stable_management_repo_dir,
+                path_name="stable management repository",
+                path_list=staging_management_repo_dirs,
+                other_name="staging management repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=stable_management_repo_dir,
+                path_name="stable management repository",
+                path_list=testing_management_repo_dirs,
+                other_name="testing management repository",
+            )
+
+        # staging management repository directories do not overlap with package pool directories, source pool
+        # directories, package repository base directories or source repository base directories
+        for staging_management_repo_dir in staging_management_repo_dirs:
+            raise_on_path_in_list_of_paths(
+                path=staging_management_repo_dir,
+                path_name="staging management repository",
+                path_list=package_pool_dirs,
+                other_name="package pool",
+            )
+            raise_on_path_in_list_of_paths(
+                path=staging_management_repo_dir,
+                path_name="staging management repository",
+                path_list=source_pool_dirs,
+                other_name="source pool",
+            )
+            raise_on_path_in_list_of_paths(
+                path=staging_management_repo_dir,
+                path_name="staging management repository",
+                path_list=[cls._package_repo_base],
+                other_name="package repository base",
+            )
+            raise_on_path_in_list_of_paths(
+                path=staging_management_repo_dir,
+                path_name="staging management repository",
+                path_list=[cls._source_repo_base],
+                other_name="source repository base",
+            )
+
+        # testing management repository directories do not overlap with package pool directories, source pool
+        # directories, package repository base directories or source repository base directories
+        for testing_management_repo_dir in testing_management_repo_dirs:
+            raise_on_path_in_list_of_paths(
+                path=testing_management_repo_dir,
+                path_name="testing management repository",
+                path_list=package_pool_dirs,
+                other_name="package pool",
+            )
+            raise_on_path_in_list_of_paths(
+                path=testing_management_repo_dir,
+                path_name="testing management repository",
+                path_list=source_pool_dirs,
+                other_name="source pool",
+            )
+            raise_on_path_in_list_of_paths(
+                path=testing_management_repo_dir,
+                path_name="testing management repository",
+                path_list=[cls._package_repo_base],
+                other_name="package repository base",
+            )
+            raise_on_path_in_list_of_paths(
+                path=testing_management_repo_dir,
+                path_name="testing management repository",
                 path_list=[cls._source_repo_base],
                 other_name="source repository base",
             )
@@ -913,7 +1013,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=package_pool_dir,
                 path_name="package pool",
-                path_list=management_repo_dirs,
+                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -941,7 +1041,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=source_pool_dir,
                 path_name="source pool",
-                path_list=management_repo_dirs,
+                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -969,7 +1069,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=stable_repo_dir,
                 path_name="stable repository",
-                path_list=management_repo_dirs,
+                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -991,7 +1091,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=staging_repo_dir,
                 path_name="staging repository",
-                path_list=management_repo_dirs,
+                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -1013,7 +1113,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=testing_repo_dir,
                 path_name="testing repository",
-                path_list=management_repo_dirs,
+                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(

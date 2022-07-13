@@ -1514,11 +1514,13 @@ def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
         testing=Path(f"{DEFAULT_NAME}-testing"),
     )
 
-    package_repo._management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/default"
-    package_repo._package_pool_dir = package_pool_base / "default"
-    package_repo._source_pool_dir = source_pool_base / "default"
-    package_repo._stable_repo_dir = package_repo_base / f"default/{DEFAULT_ARCHITECTURE}"
-    package_repo._stable_source_repo_dir = source_repo_base / f"default/{DEFAULT_ARCHITECTURE}"
+    package_repo._stable_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}"
+    package_repo._staging_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}-staging"
+    package_repo._testing_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}-testing"
+    package_repo._package_pool_dir = package_pool_base / DEFAULT_NAME
+    package_repo._source_pool_dir = source_pool_base / DEFAULT_NAME
+    package_repo._stable_repo_dir = package_repo_base / f"{DEFAULT_NAME}/{DEFAULT_ARCHITECTURE}"
+    package_repo._stable_source_repo_dir = source_repo_base / f"{DEFAULT_NAME}/{DEFAULT_ARCHITECTURE}"
     package_repo._staging_repo_dir = package_repo_base / Path(f"{DEFAULT_NAME}-staging/{DEFAULT_ARCHITECTURE}")
     package_repo._staging_source_repo_dir = source_repo_base / Path(f"{DEFAULT_NAME}-staging/{DEFAULT_ARCHITECTURE}")
     package_repo._testing_repo_dir = package_repo_base / Path(f"{DEFAULT_NAME}-testing/{DEFAULT_ARCHITECTURE}")

@@ -414,10 +414,12 @@ def test_settings_create_repository_directories(
         assert packagerepo_in_tmp_path._staging_source_repo_dir.exists()
         assert packagerepo_in_tmp_path._testing_repo_dir.exists()
         assert packagerepo_in_tmp_path._testing_source_repo_dir.exists()
+        assert packagerepo_in_tmp_path._staging_management_repo_dir.exists()
+        assert packagerepo_in_tmp_path._testing_management_repo_dir.exists()
 
     assert packagerepo_in_tmp_path._package_pool_dir.exists()
     assert packagerepo_in_tmp_path._source_pool_dir.exists()
-    assert packagerepo_in_tmp_path._management_repo_dir.exists()
+    assert packagerepo_in_tmp_path._stable_management_repo_dir.exists()
 
 
 @mark.parametrize(
@@ -457,7 +459,7 @@ def test_settings_create_repository_directories(
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/default/repo/source_repo_base/"),
+                "stable_management_repo_dir": Path("/default/repo/source_repo_base/"),
             },
             raises(ValueError),
         ),
@@ -512,7 +514,7 @@ def test_settings_create_repository_directories(
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/default/repo/package_repo_base/"),
+                "stable_management_repo_dir": Path("/default/repo/package_repo_base/"),
             },
             raises(ValueError),
         ),
@@ -554,8 +556,8 @@ def test_settings_create_repository_directories(
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/repo/management_repo_dir"),
-                "package_pool_dir": Path("/repo/management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "package_pool_dir": Path("/repo/stable_management_repo_dir"),
             },
             raises(ValueError),
         ),
@@ -569,8 +571,8 @@ def test_settings_create_repository_directories(
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/repo/management_repo_dir"),
-                "source_pool_dir": Path("/repo/management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "source_pool_dir": Path("/repo/stable_management_repo_dir"),
             },
             raises(ValueError),
         ),
@@ -578,13 +580,13 @@ def test_settings_create_repository_directories(
             {
                 "management_repo_base": Path("/default/management_repo_base/"),
                 "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/repo/management_repo_dir"),
+                "package_repo_base": Path("/repo/stable_management_repo_dir"),
                 "source_pool_base": Path("/default/pool/source_pool_base/"),
                 "source_repo_base": Path("/default/repo/source_repo_base/"),
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/repo/management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
             },
             raises(ValueError),
         ),
@@ -594,11 +596,11 @@ def test_settings_create_repository_directories(
                 "package_pool_base": Path("/default/pool/package_pool_base/"),
                 "package_repo_base": Path("/default/repo/package_repo_base/"),
                 "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/repo/management_repo_dir"),
+                "source_repo_base": Path("/repo/stable_management_repo_dir"),
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/repo/management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
             },
             raises(ValueError),
         ),
@@ -612,8 +614,38 @@ def test_settings_create_repository_directories(
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/repo/management_repo_dir"),
-                "package_pool_dir": Path("/repo/management_repo_dir/foo/bar"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "staging_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "testing_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "management_repo_base": Path("/default/management_repo_base/"),
+                "package_pool_base": Path("/default/pool/package_pool_base/"),
+                "package_repo_base": Path("/default/repo/package_repo_base/"),
+                "source_pool_base": Path("/default/pool/source_pool_base/"),
+                "source_repo_base": Path("/default/repo/source_repo_base/"),
+            },
+            {
+                "stable_repo_dir": Path("/repo/other"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "package_pool_dir": Path("/repo/stable_management_repo_dir/foo/bar"),
             },
             raises(ValueError),
         ),
@@ -670,8 +702,8 @@ def test_settings_create_repository_directories(
             },
             {
                 "stable_repo_dir": Path("/repo/other"),
-                "management_repo_dir": Path("/repo/management_repo_dir/"),
-                "source_pool_dir": Path("/repo/management_repo_dir/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir/"),
+                "source_pool_dir": Path("/repo/stable_management_repo_dir/foo/bar/"),
             },
             raises(ValueError),
         ),
@@ -727,8 +759,8 @@ def test_settings_create_repository_directories(
                 "source_repo_base": Path("/default/repo/source_repo_base/"),
             },
             {
-                "stable_repo_dir": Path("/repo/management_repo_dir/foo/bar/"),
-                "management_repo_dir": Path("/repo/management_repo_dir/"),
+                "stable_repo_dir": Path("/repo/stable_management_repo_dir/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir/"),
             },
             raises(ValueError),
         ),
@@ -769,9 +801,9 @@ def test_settings_create_repository_directories(
                 "source_repo_base": Path("/default/repo/source_repo_base/"),
             },
             {
-                "management_repo_dir": Path("/management_repo_dir/"),
+                "stable_management_repo_dir": Path("/stable_management_repo_dir/"),
                 "stable_repo_dir": Path("/repo/stable/"),
-                "staging_repo_dir": Path("/management_repo_dir/foo/bar/"),
+                "staging_repo_dir": Path("/stable_management_repo_dir/foo/bar/"),
             },
             raises(ValueError),
         ),
@@ -813,9 +845,9 @@ def test_settings_create_repository_directories(
                 "source_repo_base": Path("/default/repo/source_repo_base/"),
             },
             {
-                "management_repo_dir": Path("/management_repo_dir/"),
+                "stable_management_repo_dir": Path("/stable_management_repo_dir/"),
                 "stable_repo_dir": Path("/repo/stable/"),
-                "testing_repo_dir": Path("/management_repo_dir/foo/bar/"),
+                "testing_repo_dir": Path("/stable_management_repo_dir/foo/bar/"),
             },
             raises(ValueError),
         ),
@@ -868,8 +900,20 @@ def test_ensure_non_overlapping_repositories(
 
     packagerepo2 = deepcopy(packagerepo_in_tmp_path)
 
-    if repo_overrides.get("management_repo_dir"):
-        packagerepo2._management_repo_dir = repo_overrides.get("management_repo_dir")  # type: ignore[assignment]
+    if repo_overrides.get("stable_management_repo_dir"):
+        packagerepo2._stable_management_repo_dir = repo_overrides.get(  # type: ignore[assignment]
+            "stable_management_repo_dir"
+        )
+
+    if repo_overrides.get("staging_management_repo_dir"):
+        packagerepo2._staging_management_repo_dir = repo_overrides.get(  # type: ignore[assignment]
+            "staging_management_repo_dir"
+        )
+
+    if repo_overrides.get("testing_management_repo_dir"):
+        packagerepo2._testing_management_repo_dir = repo_overrides.get(  # type: ignore[assignment]
+            "testing_management_repo_dir"
+        )
 
     if repo_overrides.get("package_pool_dir"):
         packagerepo2._package_pool_dir = repo_overrides.get("package_pool_dir")  # type: ignore[assignment]
