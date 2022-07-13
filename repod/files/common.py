@@ -70,7 +70,7 @@ def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
     # Try and detect the instance of the libmagic shared library (loaded via
     # ctypes) used by the magic.py shipped with file.
     if hasattr(magic, "_libraries"):  # pragma: no cover
-        file = magic.detect_from_content(file_start_bytes).name  # type: ignore
+        file = magic.detect_from_content(file_start_bytes).name  # type: ignore[attr-defined]
     else:
         file = magic.from_buffer(file_start_bytes)
     file = " ".join(file.split()[0:3]).lower().strip(",")
