@@ -3,14 +3,14 @@ from argparse import Namespace
 from logging import DEBUG, INFO, WARNING, StreamHandler, debug, getLogger
 from pathlib import Path
 from sys import stdout
-from typing import List
+from typing import List, Union
 from unittest.mock import patch
 
 from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
 
 from repod import export_schemas
 from repod.cli import argparse
-from repod.common.enums import CompressionTypeEnum
+from repod.common.enums import CompressionTypeEnum, RepoTypeEnum
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
 from repod.repo import OutputPackageBase, SyncDatabase
@@ -19,13 +19,15 @@ from repod.repo.package import RepoDbTypeEnum
 ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
 
 
-def repod_file_package(args: Namespace) -> None:
+def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
     """Package related actions from the repod-file script
 
     Parameters
     ----------
     args: Namespace
         The options used for the Package related actions
+    settings: Union[SystemSettings, UserSettings]
+        A Settings instance that is used for deriving repository directories from
     """
 
     pretty = ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0
@@ -65,25 +67,39 @@ def repod_file_package(args: Namespace) -> None:
                 print(dumps(outputpackagebase.dict(), option=pretty).decode("utf-8"))
             else:
                 pkgbase = outputpackagebase.base  # type: ignore[attr-defined]
-                with open(args.repo / f"{pkgbase}.json", "wb") as output_file:
+                management_repo_dir = settings.get_repo_path(
+                    repo_type=RepoTypeEnum.MANAGEMENT,
+                    name=args.repo,
+                    staging=args.staging,
+                    testing=args.testing,
+                )
+                with open(management_repo_dir / f"{pkgbase}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case _:
             raise RuntimeError(f"Invalid subcommand {args.package} provided to the 'package' command!")
 
 
-def repod_file_management(args: Namespace) -> None:
+def repod_file_management(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
     """Management repo related actions from the repod-file script
 
     Parameters
     ----------
     args: Namespace
         The options used for the management repo related actions
+    settings: Union[SystemSettings, UserSettings]
+        A Settings instance that is used for deriving repository directories from
     """
 
     match args.management:
         case "import":
+            management_repo_dir = settings.get_repo_path(
+                repo_type=RepoTypeEnum.MANAGEMENT,
+                name=args.repo,
+                staging=args.staging,
+                testing=args.testing,
+            )
             for base, outputpackagebase in asyncio.run(SyncDatabase(database=args.file).outputpackagebases()):
-                with open(args.repo / f"{base}.json", "wb") as output_file:
+                with open(management_repo_dir / f"{base}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case "export":
             if "".join(args.file.suffixes) not in CompressionTypeEnum.as_db_file_suffixes():
@@ -98,25 +114,33 @@ def repod_file_management(args: Namespace) -> None:
                 database_type=RepoDbTypeEnum.DEFAULT,
                 compression_type=compression,
             )
-            asyncio.run(default_sync_db.stream_management_repo(path=args.repo))
+            management_repo_dir = settings.get_repo_path(
+                repo_type=RepoTypeEnum.MANAGEMENT,
+                name=args.repo,
+                staging=args.staging,
+                testing=args.testing,
+            )
+            asyncio.run(default_sync_db.stream_management_repo(path=management_repo_dir))
 
             files_sync_db = SyncDatabase(
                 database=Path("/".join(part.replace(".db", ".files") for part in args.file.parts)),
                 database_type=RepoDbTypeEnum.FILES,
                 compression_type=compression,
             )
-            asyncio.run(files_sync_db.stream_management_repo(path=args.repo))
+            asyncio.run(files_sync_db.stream_management_repo(path=management_repo_dir))
         case _:
             raise RuntimeError(f"Invalid subcommand {args.management} provided to the 'management' command!")
 
 
-def repod_file_syncdb(args: Namespace) -> None:
+def repod_file_syncdb(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
     """Repository sync database related actions from the repod-file script
 
     Parameters
     ----------
     args: Namespace
         The options used for the repository sync database related actions
+    settings: Union[SystemSettings, UserSettings]
+        A Settings instance that is used for deriving repository directories from
     """
 
     match args.syncdb:
@@ -133,16 +157,28 @@ def repod_file_syncdb(args: Namespace) -> None:
                 database_type=RepoDbTypeEnum.DEFAULT,
                 compression_type=compression,
             )
-            asyncio.run(default_sync_db.stream_management_repo(path=args.repo))
+            management_repo_dir = settings.get_repo_path(
+                repo_type=RepoTypeEnum.MANAGEMENT,
+                name=args.repo,
+                staging=args.staging,
+                testing=args.testing,
+            )
+            asyncio.run(default_sync_db.stream_management_repo(path=management_repo_dir))
             files_sync_db = SyncDatabase(
                 database=Path("/".join(part.replace(".db", ".files") for part in args.file.parts)),
                 database_type=RepoDbTypeEnum.FILES,
                 compression_type=compression,
             )
-            asyncio.run(files_sync_db.stream_management_repo(path=args.repo))
+            asyncio.run(files_sync_db.stream_management_repo(path=management_repo_dir))
         case "export":
+            management_repo_dir = settings.get_repo_path(
+                repo_type=RepoTypeEnum.MANAGEMENT,
+                name=args.repo,
+                staging=args.staging,
+                testing=args.testing,
+            )
             for base, outputpackagebase in asyncio.run(SyncDatabase(database=args.file).outputpackagebases()):
-                with open(args.repo / f"{base}.json", "wb") as output_file:
+                with open(management_repo_dir / f"{base}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case _:
             raise RuntimeError(f"Invalid subcommand {args.syncdb} provided to the 'syncdb' command!")
@@ -192,11 +228,11 @@ def repod_file() -> None:
 
     match args.subcommand:
         case "package":
-            repod_file_package(args=args)
+            repod_file_package(args=args, settings=settings)  # type: ignore[arg-type]
         case "management":
-            repod_file_management(args=args)
+            repod_file_management(args=args, settings=settings)  # type: ignore[arg-type]
         case "syncdb":
-            repod_file_syncdb(args=args)
+            repod_file_syncdb(args=args, settings=settings)  # type: ignore[arg-type]
         case "schema":
             repod_file_schema(args=args)
         case _:

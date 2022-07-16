@@ -89,8 +89,8 @@ class ArgParseFactory:
         )
         package_import_parser.add_argument(
             "repo",
-            type=cls.string_to_dir_path,
-            help=("directory in a management repository to write output to"),
+            type=Path,
+            help=("name of repository to import to"),
         )
         package_import_parser.add_argument(
             "-d",
@@ -104,6 +104,19 @@ class ArgParseFactory:
             "--with-signature",
             action="store_true",
             help="locate and use a signature file for each provided package file",
+        )
+        mutual_exclusive_package_import = package_import_parser.add_mutually_exclusive_group()
+        mutual_exclusive_package_import.add_argument(
+            "-S",
+            "--staging",
+            action="store_true",
+            help="import to staging repository",
+        )
+        mutual_exclusive_package_import.add_argument(
+            "-T",
+            "--testing",
+            action="store_true",
+            help="import to testing repository",
         )
 
         management = subcommands.add_parser(name="management", help="interact with management repositories")
@@ -120,8 +133,21 @@ class ArgParseFactory:
         )
         management_import_parser.add_argument(
             "repo",
-            type=cls.string_to_dir_path,
-            help=("directory in a management repository to write output to"),
+            type=Path,
+            help=("name of repository to import to"),
+        )
+        mutual_exclusive_management_import = management_import_parser.add_mutually_exclusive_group()
+        mutual_exclusive_management_import.add_argument(
+            "-S",
+            "--staging",
+            action="store_true",
+            help="import to staging repository",
+        )
+        mutual_exclusive_management_import.add_argument(
+            "-T",
+            "--testing",
+            action="store_true",
+            help="import to testing repository",
         )
 
         management_export_parser = management_subcommands.add_parser(
@@ -130,8 +156,8 @@ class ArgParseFactory:
         )
         management_export_parser.add_argument(
             "repo",
-            type=cls.string_to_dir_path,
-            help=("directory in a management repository to read JSON files from"),
+            type=Path,
+            help=("name of repository to export from"),
         )
         management_export_parser.add_argument(
             "file",
@@ -144,6 +170,19 @@ class ArgParseFactory:
             choices=["none", "bz2", "bzip2", "gz", "gzip", "lzma", "xz", "zst", "zstandard"],
             default=DEFAULT_DATABASE_COMPRESSION.value,
             help=f"database compression (defaults to {DEFAULT_DATABASE_COMPRESSION.value})",
+        )
+        mutual_exclusive_management_export = management_export_parser.add_mutually_exclusive_group()
+        mutual_exclusive_management_export.add_argument(
+            "-S",
+            "--staging",
+            action="store_true",
+            help="export from staging repository",
+        )
+        mutual_exclusive_management_export.add_argument(
+            "-T",
+            "--testing",
+            action="store_true",
+            help="export from testing repository",
         )
 
         syncdb = subcommands.add_parser(name="syncdb", help="interact with repository sync databases")
@@ -155,8 +194,8 @@ class ArgParseFactory:
         )
         syncdb_import_parser.add_argument(
             "repo",
-            type=cls.string_to_dir_path,
-            help=("directory in a management repository to import from"),
+            type=Path,
+            help=("name of repository to import from"),
         )
         syncdb_import_parser.add_argument(
             "file",
@@ -169,6 +208,19 @@ class ArgParseFactory:
             choices=["none", "bz2", "bzip2", "gz", "gzip", "lzma", "xz", "zst", "zstandard"],
             default=DEFAULT_DATABASE_COMPRESSION.value,
             help=f"database compression (defaults to {DEFAULT_DATABASE_COMPRESSION.value})",
+        )
+        mutual_exclusive_syncdb_import = syncdb_import_parser.add_mutually_exclusive_group()
+        mutual_exclusive_syncdb_import.add_argument(
+            "-S",
+            "--staging",
+            action="store_true",
+            help="import from staging repository",
+        )
+        mutual_exclusive_syncdb_import.add_argument(
+            "-T",
+            "--testing",
+            action="store_true",
+            help="import from testing repository",
         )
 
         syncdb_export_parser = syncdb_subcommands.add_parser(
@@ -182,8 +234,21 @@ class ArgParseFactory:
         )
         syncdb_export_parser.add_argument(
             "repo",
-            type=cls.string_to_dir_path,
-            help=("directory in a syncdb repository to write JSON files to"),
+            type=Path,
+            help=("name of repository to export to"),
+        )
+        mutual_exclusive_syncdb_export = syncdb_export_parser.add_mutually_exclusive_group()
+        mutual_exclusive_syncdb_export.add_argument(
+            "-S",
+            "--staging",
+            action="store_true",
+            help="import from staging repository",
+        )
+        mutual_exclusive_syncdb_export.add_argument(
+            "-T",
+            "--testing",
+            action="store_true",
+            help="import from testing repository",
         )
 
         schema = subcommands.add_parser(name="schema", help="JSON schema commands")
