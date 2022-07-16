@@ -7,7 +7,7 @@ from unittest.mock import Mock, call, patch
 
 from pytest import LogCaptureFixture, mark, raises
 
-from repod.common.enums import SettingsTypeEnum
+from repod.common.enums import RepoTypeEnum, SettingsTypeEnum
 from repod.config import settings
 
 
@@ -1070,3 +1070,69 @@ def test_create_and_validate_directory(
         else:
             with expectation:
                 settings.create_and_validate_directory(directory=directory)
+
+
+@mark.parametrize(
+    "repo_type, has_repo, name_exists, staging_exists, testing_exists, staging, testing, expectation",
+    [
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, False, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, False, True, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, False, True, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, True, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, False, False, False, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, False, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, False, True, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, True, False, True, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, True, True, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, True, True, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, False, False, False, False, False, False, raises(RuntimeError)),
+        (None, True, True, True, True, False, False, raises(RuntimeError)),
+    ],
+)
+def test_settings_get_repo_path(
+    usersettings: settings.UserSettings,
+    repo_type: RepoTypeEnum,
+    has_repo: bool,
+    name_exists: bool,
+    staging_exists: bool,
+    testing_exists: bool,
+    staging: bool,
+    testing: bool,
+    expectation: ContextManager[str],
+) -> None:
+    name = Path("foo")
+    if name_exists:
+        name = usersettings.repositories[0].name
+
+    if not staging_exists:
+        usersettings.repositories[0].staging = None
+
+    if not testing_exists:
+        usersettings.repositories[0].testing = None
+
+    if not has_repo:
+        usersettings.repositories = []
+
+    with expectation:
+        path = usersettings.get_repo_path(repo_type=repo_type, name=name, staging=staging, testing=testing)
+
+        match repo_type:
+            case RepoTypeEnum.MANAGEMENT:
+                if staging and not testing:
+                    assert path == usersettings.repositories[0]._staging_management_repo_dir
+                if testing and not staging:
+                    assert path == usersettings.repositories[0]._testing_management_repo_dir
+                if not staging and not testing:
+                    assert path == usersettings.repositories[0]._stable_management_repo_dir
+            case RepoTypeEnum.PACKAGE:
+                if staging and not testing:
+                    assert path == usersettings.repositories[0]._staging_repo_dir
+                if testing and not staging:
+                    assert path == usersettings.repositories[0]._testing_repo_dir
+                if not staging and not testing:
+                    assert path == usersettings.repositories[0]._stable_repo_dir

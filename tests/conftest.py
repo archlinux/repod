@@ -24,6 +24,7 @@ from repod.config.settings import (
     DEFAULT_NAME,
     ManagementRepo,
     PackageRepo,
+    UserSettings,
 )
 from repod.files import open_tarfile
 from repod.files.buildinfo import BuildInfo, BuildInfoV1, BuildInfoV2
@@ -1527,3 +1528,8 @@ def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
     package_repo._testing_source_repo_dir = source_repo_base / Path(f"{DEFAULT_NAME}-testing/{DEFAULT_ARCHITECTURE}")
 
     return package_repo
+
+
+@fixture(scope="function")
+def usersettings(packagerepo_in_tmp_path: PackageRepo) -> UserSettings:
+    return UserSettings(repositories=[packagerepo_in_tmp_path])

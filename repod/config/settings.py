@@ -17,7 +17,7 @@ from pydantic import (
 )
 from pydantic.env_settings import SettingsSourceCallable
 
-from repod.common.enums import CompressionTypeEnum, SettingsTypeEnum
+from repod.common.enums import CompressionTypeEnum, RepoTypeEnum, SettingsTypeEnum
 from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
     DEFAULT_ARCHITECTURE,
@@ -1128,6 +1128,68 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 path_list=staging_repo_dirs,
                 other_name="staging repository",
             )
+
+    def get_repo_path(self, repo_type: RepoTypeEnum, name: Path, staging: bool, testing: bool) -> Path:
+        """Return an absolute Path of a repository
+
+        Parameters
+        ----------
+        repo_type: RepoTypeEnum
+            A member of RepoTypeEnum to define which type of repository path to return
+        name: Path
+            The name of the repository
+        staging: bool
+            Whether to return a staging repository path
+        testing: bool
+            Whether to return a testing repository path
+
+        Raises
+        ------
+        RuntimeError
+            If both staging and testing are True.
+            If no repository matching the name can be found.
+
+        Returns
+        -------
+        Path
+            An absolute Path which may describe stable, staging or testing directory of the binary package repository or
+            management repository of a PackageRepo
+        """
+
+        if staging and testing:
+            raise RuntimeError("Can not provide path for both staging and testing!")
+
+        names: List[Path] = []
+        for repo in self.repositories:
+            names.append(repo.name)
+            if repo.name == name:
+                match repo_type, staging, testing:
+                    case RepoTypeEnum.MANAGEMENT, False, False:
+                        return repo._stable_management_repo_dir
+                    case RepoTypeEnum.MANAGEMENT, True, False:
+                        if not repo.staging:
+                            raise RuntimeError(f"The repository {name} does not have a staging repository!")
+                        return repo._staging_management_repo_dir
+                    case RepoTypeEnum.MANAGEMENT, False, True:
+                        if not repo.testing:
+                            raise RuntimeError(f"The repository {name} does not have a testing repository!")
+                        return repo._testing_management_repo_dir
+                    case RepoTypeEnum.PACKAGE, False, False:
+                        return repo._stable_repo_dir
+                    case RepoTypeEnum.PACKAGE, True, False:
+                        if not repo.staging:
+                            raise RuntimeError(f"The repository {name} does not have a staging repository!")
+                        return repo._staging_repo_dir
+                    case RepoTypeEnum.PACKAGE, False, True:
+                        if not repo.testing:
+                            raise RuntimeError(f"The repository {name} does not have a testing repository!")
+                        return repo._testing_repo_dir
+                    case _:
+                        raise RuntimeError(
+                            f"An unknown error occurred while trying to retrieve a repository path for {name}!"
+                        )
+
+        raise RuntimeError(f"Unable to find {name} in the available repositories ({names})")
 
 
 class UserSettings(Settings):
