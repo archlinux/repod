@@ -128,6 +128,21 @@ class PkgTypeEnum(Enum):
     DEBUG = "debug"
 
 
+class RepoTypeEnum(Enum):
+    """An Enum to distinguish different types of repositories
+
+    Attributes
+    ----------
+    MANAGEMENT: str
+        A management repository
+    PACKAGE: str
+        A package repository
+    """
+
+    MANAGEMENT = "management"
+    PACKAGE = "package"
+
+
 class SettingsTypeEnum(Enum):
     """An Enum to distinguish different Settings types
 
