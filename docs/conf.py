@@ -32,6 +32,7 @@ release = "0.1.0"
 # ones.
 extensions = [
     "sphinxarg.ext",
+    "sphinxcontrib.programoutput",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -55,6 +56,9 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-man_pages = [("repod/man/repod_file", "repod-file", "", ["David Runge"], 1)]
+man_pages = [
+    ("repod/man/repod_file", "repod-file", "", ["David Runge"], 1),
+    ("repod/man/repod_conf", "repod.conf", "", ["David Runge"], 5),
+]
 man_show_urls = True
 man_make_section_directory = True

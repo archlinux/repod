@@ -8,3 +8,5 @@ repod-file
 ----------
 
 .. include::  repod_file.rst
+
+.. include::  repod_conf.rst
