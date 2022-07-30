@@ -107,6 +107,12 @@ class ArgParseFactory:
         )
         mutual_exclusive_package_import = package_import_parser.add_mutually_exclusive_group()
         mutual_exclusive_package_import.add_argument(
+            "-D",
+            "--debug",
+            action="store_true",
+            help="import to debug repository",
+        )
+        mutual_exclusive_package_import.add_argument(
             "-S",
             "--staging",
             action="store_true",
@@ -137,6 +143,12 @@ class ArgParseFactory:
             help=("name of repository to import to"),
         )
         mutual_exclusive_management_import = management_import_parser.add_mutually_exclusive_group()
+        mutual_exclusive_management_import.add_argument(
+            "-D",
+            "--debug",
+            action="store_true",
+            help="import to debug repository",
+        )
         mutual_exclusive_management_import.add_argument(
             "-S",
             "--staging",
@@ -172,6 +184,12 @@ class ArgParseFactory:
             help=f"database compression (defaults to {DEFAULT_DATABASE_COMPRESSION.value})",
         )
         mutual_exclusive_management_export = management_export_parser.add_mutually_exclusive_group()
+        mutual_exclusive_management_export.add_argument(
+            "-D",
+            "--debug",
+            action="store_true",
+            help="export from debug repository",
+        )
         mutual_exclusive_management_export.add_argument(
             "-S",
             "--staging",
@@ -211,6 +229,12 @@ class ArgParseFactory:
         )
         mutual_exclusive_syncdb_import = syncdb_import_parser.add_mutually_exclusive_group()
         mutual_exclusive_syncdb_import.add_argument(
+            "-D",
+            "--debug",
+            action="store_true",
+            help="import from debug repository",
+        )
+        mutual_exclusive_syncdb_import.add_argument(
             "-S",
             "--staging",
             action="store_true",
@@ -238,6 +262,12 @@ class ArgParseFactory:
             help=("name of repository to export to"),
         )
         mutual_exclusive_syncdb_export = syncdb_export_parser.add_mutually_exclusive_group()
+        mutual_exclusive_syncdb_export.add_argument(
+            "-D",
+            "--debug",
+            action="store_true",
+            help="import from debug repository",
+        )
         mutual_exclusive_syncdb_export.add_argument(
             "-S",
             "--staging",
