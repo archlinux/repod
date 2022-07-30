@@ -201,17 +201,19 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         The attribute defines the CPU architecture for the package repository
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
+    debug: Optional[Path]
+        The optional name of a debug repository associated with a package repository
     package_pool: Optional[Path]
         An optional directory, that serves as an override to the application-wide package_pool.
         The attribute defines the location to store the binary packages and their signatures in
     source_pool: Optional[Path]
         An optional directory, that serves as an override to the application-wide source_pool.
         The attribute defines the location to store the source tarballs in
-    name: str
+    name: Path
         The required name of a package repository
-    staging: Optional[str]
+    staging: Optional[Path]
         The optional name of a staging repository associated with a package repository
-    testing: Optional[str]
+    testing: Optional[Path]
         The optional name of a testing repository associated with a package repository
     management_repo: Optional[ManagementRepo]
         An optional instance of ManagementRepo, that serves as an override to the application-wide management_repo
@@ -220,44 +222,75 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
 
     PrivateAttributes
     -----------------
+    _debug_management_repo_dir: Path
+        The absolute path to the directory in a management repository used for the PackageRepo's debug packages (unset
+        by default)
+    _debug_repo_dir: Path
+        The absolute path to the directory used for package files for the PackageRepo's debug packages (unset by
+        default)
+    _debug_source_repo_dir: Path
+        The absolute path to the directory used for source tarballs for the PackageRepo's debug packages (unset by
+        default)
+    _package_pool_dir: Path
+        The absolute path to the directory used as package pool directory for the PackageRepo (unset by default)
+    _source_pool_dir: Path
+        The absolute path to the directory used as source pool directory for the PackageRepo (unset by default)
     _stable_management_repo_dir: Path
         The absolute path to the directory in a management repository used for the PackageRepo's stable packages (unset
         by default)
+    _stable_repo_dir: Path
+        The absolute path to the directory used for package files for the PackageRepo's stable packages (unset by
+        default)
+    _stable_source_repo_dir: Path
+        The absolute path to the directory used for source tarballs for the PackageRepo's stable packages (unset by
+        default)
     _staging_management_repo_dir: Path
         The absolute path to the directory in a management repository used for the PackageRepo's staging packages (unset
         by default)
+    _staging_repo_dir: Path
+        The absolute path to the directory used for package files for the PackageRepo's staging packages (unset by
+        default)
+    _staging_source_repo_dir: Path
+        The absolute path to the directory used for source tarballs for the PackageRepo's staging packages (unset by
+        default)
     _testing_management_repo_dir: Path
         The absolute path to the directory in a management repository used for the PackageRepo's testing packages (unset
         by default)
-    _package_pool_base: Path
-        The absolute path to the directory used as base for package pool directories (unset by default)
-    _package_repo_base: Path
-        The absolute path to the directory used as base for package repository directories (unset by default)
-    _source_pool_base: Path
-        The absolute path to the directory used as base for source pool directories (unset by default)
-    _source_repo_base: Path
-        The absolute path to the directory used as base for source repository directories (unset by default)
+    _testing_repo_dir: Path
+        The absolute path to the directory used for package files for the PackageRepo's testing packages (unset by
+        default)
+    _testing_source_repo_dir: Path
+        The absolute path to the directory used for source tarballs for the PackageRepo's testing packages (unset by
+        default)
     """
 
-    _stable_management_repo_dir: Path = PrivateAttr()
-    _staging_management_repo_dir: Path = PrivateAttr()
-    _testing_management_repo_dir: Path = PrivateAttr()
+    _debug_management_repo_dir: Path = PrivateAttr()
+    _debug_repo_dir: Path = PrivateAttr()
+    _debug_source_repo_dir: Path = PrivateAttr()
+
     _package_pool_dir: Path = PrivateAttr()
     _source_pool_dir: Path = PrivateAttr()
+
+    _stable_management_repo_dir: Path = PrivateAttr()
     _stable_repo_dir: Path = PrivateAttr()
     _stable_source_repo_dir: Path = PrivateAttr()
+
+    _staging_management_repo_dir: Path = PrivateAttr()
     _staging_repo_dir: Path = PrivateAttr()
     _staging_source_repo_dir: Path = PrivateAttr()
+
+    _testing_management_repo_dir: Path = PrivateAttr()
     _testing_repo_dir: Path = PrivateAttr()
     _testing_source_repo_dir: Path = PrivateAttr()
 
     name: Path
+    debug: Optional[Path]
     staging: Optional[Path]
     testing: Optional[Path]
     management_repo: Optional[ManagementRepo]
 
-    @validator("name")
-    def validate_name(cls, name: Union[Path, str]) -> Path:
+    @validator("name", pre=True)
+    def validate_repo_name(cls, name: Union[Path, str]) -> Path:
         """A validator for the name attribute, which converts string input to a valid Path
 
         Parameters
@@ -302,9 +335,10 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
                 f"but must consist only of alphanumeric chars and any of '{allowed_chars}'."
             )
 
+        debug(f"Repository name after validation: {name}")
         return name
 
-    @validator("staging", "testing", pre=True)
+    @validator("debug", "staging", "testing")
     def validate_optional_staging_testing(cls, name: Optional[Path]) -> Optional[Path]:
         """A validator for the optional staging and testing attributes
 
@@ -319,14 +353,14 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
             A validated name string, else None
         """
 
-        if name is None:
-            return name
-        else:
-            return Path(PackageRepo.validate_name(name=name))
+        if name is not None:
+            name = Path(PackageRepo.validate_repo_name(name=name))
 
-    @root_validator
-    def validate_unique_staging_testing(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        """A root validator for the optional staging and testing attributes ensuring both are not the same string
+        return name
+
+    @root_validator(skip_on_failure=True)
+    def validate_unique_repository_dirs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """A root validator for the optional debug, staging and testing attributes ensuring all are not the same string
 
         Parameters
         ----------
@@ -336,7 +370,7 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         Raises
         ------
         ValueError
-            If staging and testing are the same string
+            If paths for debug, stable, staging or testing overlap with one another
 
         Returns
         -------
@@ -344,19 +378,58 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
             The unmodified dict with all values of the PackageRepo instance
         """
 
-        name, staging, testing = values.get("name"), values.get("staging"), values.get("testing")
-        if staging and testing and staging == testing:
-            raise ValueError(
-                f"The testing repository '{testing.name}' is the same as the staging repository '{staging.name}'"
+        stable_repo: Path = values.get("name")  # type: ignore[assignment]
+        debug_repo: Optional[Path] = values.get("debug")
+        staging_repo: Optional[Path] = values.get("staging")
+        testing_repo: Optional[Path] = values.get("testing")
+
+        debug(f"stable_repo: {stable_repo}")
+
+        if debug_repo:
+            raise_on_path_in_list_of_paths(
+                path=debug_repo,
+                path_name="debug repository",
+                path_list=[stable_repo],
+                other_name="stable repository",
             )
-        if name and staging and name == staging:
-            raise ValueError(
-                f"The staging repository '{staging.name}' is the same as the stable repository '{name.name}'"
+            if staging_repo:
+                raise_on_path_in_list_of_paths(
+                    path=debug_repo,
+                    path_name="debug repository",
+                    path_list=[staging_repo],
+                    other_name="staging repository",
+                )
+            if testing_repo:
+                raise_on_path_in_list_of_paths(
+                    path=debug_repo,
+                    path_name="debug repository",
+                    path_list=[testing_repo],
+                    other_name="testing repository",
+                )
+
+        if staging_repo:
+            raise_on_path_in_list_of_paths(
+                path=staging_repo,
+                path_name="staging repository",
+                path_list=[stable_repo],
+                other_name="stable repository",
             )
-        if name and testing and name == testing:
-            raise ValueError(
-                f"The testing repository '{testing.name}' is the same as the stable repository '{name.name}'"
+            if testing_repo:
+                raise_on_path_in_list_of_paths(
+                    path=staging_repo,
+                    path_name="staging repository",
+                    path_list=[testing_repo],
+                    other_name="testing repository",
+                )
+
+        if testing_repo:
+            raise_on_path_in_list_of_paths(
+                path=testing_repo,
+                path_name="testing repository",
+                path_list=[stable_repo],
+                other_name="stable repository",
             )
+
         return values
 
 
@@ -430,6 +503,7 @@ def raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: List[P
         If path is in path_list
     """
 
+    debug(f"Testing if {path} is located in or equals to any of {path_list}...")
     for test_path in path_list:
         raise_on_path_equals_other(path=path, path_name=path_name, other=test_path, other_name=other_name)
         raise_on_path_in_other(path=path, path_name=path_name, other=test_path, other_name=other_name)
@@ -500,7 +574,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         which does not define one itself.
         If unset, a default one is created during validation.
     repositories: List[PackageRepo]
-        A list of PackageRepos that each define a binary package repository (with optional staging and testing
+        A list of PackageRepos that each define a binary package repository (with optional debug, staging and testing
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
         If no repository is defined, a default one is created during validation.
     package_pool: Optional[Path]
@@ -717,6 +791,33 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 path=repo.name / repo.architecture,  # type: ignore[operator]
                 base_path=cls._source_repo_base,
             )
+            repo._stable_management_repo_dir = to_absolute_path(
+                path=(
+                    repo.management_repo.directory  # type: ignore[operator,union-attr]
+                    / repo.architecture
+                    / (repo.name.name if repo.name.is_absolute() else repo.name)
+                ),
+                base_path=cls._management_repo_base,
+            )
+
+            if repo.debug:
+                repo._debug_repo_dir = to_absolute_path(
+                    path=repo.debug / repo.architecture,  # type: ignore[operator]
+                    base_path=cls._package_repo_base,
+                )
+                repo._debug_source_repo_dir = to_absolute_path(
+                    path=repo.debug / repo.architecture,  # type: ignore[operator]
+                    base_path=cls._source_repo_base,
+                )
+                repo._debug_management_repo_dir = to_absolute_path(
+                    path=(
+                        repo.management_repo.directory  # type: ignore[operator,union-attr]
+                        / repo.architecture
+                        / (repo.debug.name if repo.debug.is_absolute() else repo.debug)
+                    ),
+                    base_path=cls._management_repo_base,
+                )
+
             if repo.staging:
                 repo._staging_repo_dir = to_absolute_path(
                     path=repo.staging / repo.architecture,  # type: ignore[operator]
@@ -734,6 +835,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                     ),
                     base_path=cls._management_repo_base,
                 )
+
             if repo.testing:
                 repo._testing_repo_dir = to_absolute_path(
                     path=repo.testing / repo.architecture,  # type: ignore[operator]
@@ -761,15 +863,6 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 base_path=cls._source_pool_base,
             )
 
-            repo._stable_management_repo_dir = to_absolute_path(
-                path=(
-                    repo.management_repo.directory  # type: ignore[operator,union-attr]
-                    / repo.architecture
-                    / (repo.name.name if repo.name.is_absolute() else repo.name)
-                ),
-                base_path=cls._management_repo_base,
-            )
-
         return repositories
 
     @classmethod
@@ -786,12 +879,20 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         for repo in repositories:
             debug(f"Creating directories of repo {repo.name}...")
+            create_and_validate_directory(directory=repo._stable_management_repo_dir)
             create_and_validate_directory(directory=repo._stable_repo_dir)
             create_and_validate_directory(directory=repo._stable_source_repo_dir)
+
+            if repo.debug:
+                create_and_validate_directory(directory=repo._debug_repo_dir)
+                create_and_validate_directory(directory=repo._debug_source_repo_dir)
+                create_and_validate_directory(directory=repo._debug_management_repo_dir)
+
             if repo.staging:
                 create_and_validate_directory(directory=repo._staging_repo_dir)
                 create_and_validate_directory(directory=repo._staging_source_repo_dir)
                 create_and_validate_directory(directory=repo._staging_management_repo_dir)
+
             if repo.testing:
                 create_and_validate_directory(directory=repo._testing_repo_dir)
                 create_and_validate_directory(directory=repo._testing_source_repo_dir)
@@ -800,10 +901,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             create_and_validate_directory(directory=repo._package_pool_dir)
             create_and_validate_directory(directory=repo._source_pool_dir)
 
-            create_and_validate_directory(directory=repo._stable_management_repo_dir)
-
     @classmethod
-    def ensure_non_overlapping_repositories(cls, repositories: List[PackageRepo]) -> None:
+    def ensure_non_overlapping_repositories(cls, repositories: List[PackageRepo]) -> None:  # noqa: C901
         """Ensure that all repositories do not have overlapping directories
 
         Ensure that
@@ -837,7 +936,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         debug(f"Default package repository base directory: {cls._package_repo_base}")
 
         stable_repo_dirs = [repo._stable_repo_dir for repo in repositories]
-        debug(f"Stable repository directories: {stable_repo_dirs}")
+        debug(f"Repository directories (stable): {stable_repo_dirs}")
         duplicate_dirs = [name for name in stable_repo_dirs if stable_repo_dirs.count(name) > 1]
         if duplicate_dirs:
             raise ValueError(
@@ -846,6 +945,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         stable_management_repo_dirs = [repo._stable_management_repo_dir for repo in repositories]
         debug(f"Management repository directories (stable): {stable_management_repo_dirs}")
+        debug_management_repo_dirs = [repo._debug_management_repo_dir for repo in repositories if repo.debug]
+        debug(f"Management repository directories (debug): {debug_management_repo_dirs}")
         staging_management_repo_dirs = [repo._staging_management_repo_dir for repo in repositories if repo.staging]
         debug(f"Management repository directories (staging): {staging_management_repo_dirs}")
         testing_management_repo_dirs = [repo._testing_management_repo_dir for repo in repositories if repo.testing]
@@ -854,6 +955,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         debug(f"Package pool directories: {package_pool_dirs}")
         source_pool_dirs = [repo._source_pool_dir for repo in repositories if repo.source_pool]
         debug(f"Source pool directories: {source_pool_dirs}")
+        debug_repo_dirs = [repo._debug_repo_dir for repo in repositories if repo.debug]
+        debug(f"Debug repository directories: {debug_repo_dirs}")
         staging_repo_dirs = [repo._staging_repo_dir for repo in repositories if repo.staging]
         debug(f"Staging repository directories: {staging_repo_dirs}")
         testing_repo_dirs = [repo._testing_repo_dir for repo in repositories if repo.testing]
@@ -863,7 +966,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         raise_on_path_in_list_of_paths(
             path=cls._source_repo_base,
             path_name="source repository base",
-            path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
+            path_list=stable_management_repo_dirs
+            + debug_management_repo_dirs
+            + staging_management_repo_dirs
+            + testing_management_repo_dirs,
             other_name="management repository",
         )
         raise_on_path_in_list_of_paths(
@@ -888,7 +994,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         raise_on_path_in_list_of_paths(
             path=cls._package_repo_base,
             path_name="package repository base",
-            path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
+            path_list=stable_management_repo_dirs
+            + debug_management_repo_dirs
+            + staging_management_repo_dirs
+            + testing_management_repo_dirs,
             other_name="management repository",
         )
         raise_on_path_in_list_of_paths(
@@ -910,7 +1019,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             other_name="source repository base",
         )
 
-        # stable management repository directories do not overlap with staging or testing management repository
+        # stable management repository directories do not overlap with debug, staging or testing management repository
         # directories, package pool directories, source pool directories, package repository base directories or source
         # repository base directories
         for stable_management_repo_dir in stable_management_repo_dirs:
@@ -937,6 +1046,12 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 path_name="stable management repository",
                 path_list=[cls._source_repo_base],
                 other_name="source repository base",
+            )
+            raise_on_path_in_list_of_paths(
+                path=stable_management_repo_dir,
+                path_name="stable management repository",
+                path_list=debug_management_repo_dirs,
+                other_name="debug management repository",
             )
             raise_on_path_in_list_of_paths(
                 path=stable_management_repo_dir,
@@ -1013,7 +1128,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=package_pool_dir,
                 path_name="package pool",
-                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
+                path_list=stable_management_repo_dirs
+                + debug_management_repo_dirs
+                + staging_management_repo_dirs
+                + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -1041,7 +1159,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=source_pool_dir,
                 path_name="source pool",
-                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
+                path_list=stable_management_repo_dirs
+                + debug_management_repo_dirs
+                + staging_management_repo_dirs
+                + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -1063,14 +1184,23 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 other_name="source repository base",
             )
 
-        # stable repository directories do not overlap with staging repository directories, testing repository
-        # directories or management repository directories
+        # stable repository directories do not overlap with debug repository directories, staging repository
+        # directories, testing repository directories or management repository directories
         for stable_repo_dir in stable_repo_dirs:
             raise_on_path_in_list_of_paths(
                 path=stable_repo_dir,
                 path_name="stable repository",
-                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
+                path_list=stable_management_repo_dirs
+                + debug_management_repo_dirs
+                + staging_management_repo_dirs
+                + testing_management_repo_dirs,
                 other_name="management repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=stable_repo_dir,
+                path_name="stable repository",
+                path_list=debug_repo_dirs,
+                other_name="debug repository",
             )
             raise_on_path_in_list_of_paths(
                 path=stable_repo_dir,
@@ -1085,13 +1215,47 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 other_name="testing repository",
             )
 
+        # debug repository directories do not overlap with management repository directories, stable repository
+        # directories, staging repository directories, or testing repository directories
+        for debug_repo_dir in debug_repo_dirs:
+            raise_on_path_in_list_of_paths(
+                path=debug_repo_dir,
+                path_name="debug repository",
+                path_list=stable_management_repo_dirs
+                + debug_management_repo_dirs
+                + staging_management_repo_dirs
+                + testing_management_repo_dirs,
+                other_name="management repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=debug_repo_dir,
+                path_name="debug repository",
+                path_list=stable_repo_dirs,
+                other_name="stable repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=debug_repo_dir,
+                path_name="debug repository",
+                path_list=staging_repo_dirs,
+                other_name="staging repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=debug_repo_dir,
+                path_name="debug repository",
+                path_list=testing_repo_dirs,
+                other_name="testing repository",
+            )
+
         # staging repository directories do not overlap with management repository directories, stable repository
-        # directories, or testing repository directories
+        # directories, debug repository directories, or testing repository directories
         for staging_repo_dir in staging_repo_dirs:
             raise_on_path_in_list_of_paths(
                 path=staging_repo_dir,
                 path_name="staging repository",
-                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
+                path_list=stable_management_repo_dirs
+                + debug_management_repo_dirs
+                + staging_management_repo_dirs
+                + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -1099,6 +1263,12 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 path_name="staging repository",
                 path_list=stable_repo_dirs,
                 other_name="stable repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=staging_repo_dir,
+                path_name="staging repository",
+                path_list=debug_repo_dirs,
+                other_name="debug repository",
             )
             raise_on_path_in_list_of_paths(
                 path=staging_repo_dir,
@@ -1108,12 +1278,15 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             )
 
         # testing repository directories do not overlap with management repository directories, stable repository
-        # directories, or staging repository directories
+        # directories, debug repository directories, or staging repository directories
         for testing_repo_dir in testing_repo_dirs:
             raise_on_path_in_list_of_paths(
                 path=testing_repo_dir,
                 path_name="testing repository",
-                path_list=stable_management_repo_dirs + staging_management_repo_dirs + testing_management_repo_dirs,
+                path_list=stable_management_repo_dirs
+                + debug_management_repo_dirs
+                + staging_management_repo_dirs
+                + testing_management_repo_dirs,
                 other_name="management repository",
             )
             raise_on_path_in_list_of_paths(
@@ -1125,11 +1298,17 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             raise_on_path_in_list_of_paths(
                 path=testing_repo_dir,
                 path_name="testing repository",
+                path_list=debug_repo_dirs,
+                other_name="debug repository",
+            )
+            raise_on_path_in_list_of_paths(
+                path=testing_repo_dir,
+                path_name="testing repository",
                 path_list=staging_repo_dirs,
                 other_name="staging repository",
             )
 
-    def get_repo_path(self, repo_type: RepoTypeEnum, name: Path, staging: bool, testing: bool) -> Path:
+    def get_repo_path(self, repo_type: RepoTypeEnum, name: Path, debug: bool, staging: bool, testing: bool) -> Path:
         """Return an absolute Path of a repository
 
         Parameters
@@ -1138,6 +1317,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             A member of RepoTypeEnum to define which type of repository path to return
         name: Path
             The name of the repository
+        debug: bool
+            Whether to return a debug repository path
         staging: bool
             Whether to return a staging repository path
         testing: bool
@@ -1146,7 +1327,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         Raises
         ------
         RuntimeError
-            If both staging and testing are True.
+            If more than one non-stable repository is targetted.
             If no repository matching the name can be found.
 
         Returns
@@ -1156,31 +1337,42 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             management repository of a PackageRepo
         """
 
-        if staging and testing:
-            raise RuntimeError("Can not provide path for both staging and testing!")
+        if (debug and staging) or (debug and testing) or (staging and testing):
+            raise RuntimeError(
+                "Only one non-stable repository path can be returned, but requested "
+                f"debug ({debug}), staging ({staging}) and testing ({testing})!"
+            )
 
         names: List[Path] = []
         for repo in self.repositories:
             names.append(repo.name)
             if repo.name == name:
-                match repo_type, staging, testing:
-                    case RepoTypeEnum.MANAGEMENT, False, False:
+                match repo_type, debug, staging, testing:
+                    case RepoTypeEnum.MANAGEMENT, False, False, False:
                         return repo._stable_management_repo_dir
-                    case RepoTypeEnum.MANAGEMENT, True, False:
+                    case RepoTypeEnum.MANAGEMENT, True, False, False:
+                        if not repo.debug:
+                            raise RuntimeError(f"The repository {name} does not have a debug repository!")
+                        return repo._debug_management_repo_dir
+                    case RepoTypeEnum.MANAGEMENT, False, True, False:
                         if not repo.staging:
                             raise RuntimeError(f"The repository {name} does not have a staging repository!")
                         return repo._staging_management_repo_dir
-                    case RepoTypeEnum.MANAGEMENT, False, True:
+                    case RepoTypeEnum.MANAGEMENT, False, False, True:
                         if not repo.testing:
                             raise RuntimeError(f"The repository {name} does not have a testing repository!")
                         return repo._testing_management_repo_dir
-                    case RepoTypeEnum.PACKAGE, False, False:
+                    case RepoTypeEnum.PACKAGE, False, False, False:
                         return repo._stable_repo_dir
-                    case RepoTypeEnum.PACKAGE, True, False:
+                    case RepoTypeEnum.PACKAGE, True, False, False:
+                        if not repo.debug:
+                            raise RuntimeError(f"The repository {name} does not have a debug repository!")
+                        return repo._debug_repo_dir
+                    case RepoTypeEnum.PACKAGE, False, True, False:
                         if not repo.staging:
                             raise RuntimeError(f"The repository {name} does not have a staging repository!")
                         return repo._staging_repo_dir
-                    case RepoTypeEnum.PACKAGE, False, True:
+                    case RepoTypeEnum.PACKAGE, False, False, True:
                         if not repo.testing:
                             raise RuntimeError(f"The repository {name} does not have a testing repository!")
                         return repo._testing_repo_dir

@@ -1511,21 +1511,29 @@ def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
         management_repo=ManagementRepo(directory=(management_repo_base / DEFAULT_NAME)),
         package_pool=(package_pool_base / DEFAULT_NAME),
         source_pool=(source_pool_base / DEFAULT_NAME),
+        debug=Path(f"{DEFAULT_NAME}-debug"),
         staging=Path(f"{DEFAULT_NAME}-staging"),
         testing=Path(f"{DEFAULT_NAME}-testing"),
     )
 
     package_repo._stable_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}"
-    package_repo._staging_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}-staging"
-    package_repo._testing_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}-testing"
-    package_repo._package_pool_dir = package_pool_base / DEFAULT_NAME
-    package_repo._source_pool_dir = source_pool_base / DEFAULT_NAME
     package_repo._stable_repo_dir = package_repo_base / f"{DEFAULT_NAME}/{DEFAULT_ARCHITECTURE}"
     package_repo._stable_source_repo_dir = source_repo_base / f"{DEFAULT_NAME}/{DEFAULT_ARCHITECTURE}"
+
+    package_repo._debug_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}-debug"
+    package_repo._debug_repo_dir = package_repo_base / Path(f"{DEFAULT_NAME}-debug/{DEFAULT_ARCHITECTURE}")
+    package_repo._debug_source_repo_dir = source_repo_base / Path(f"{DEFAULT_NAME}-debug/{DEFAULT_ARCHITECTURE}")
+
+    package_repo._staging_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}-staging"
     package_repo._staging_repo_dir = package_repo_base / Path(f"{DEFAULT_NAME}-staging/{DEFAULT_ARCHITECTURE}")
     package_repo._staging_source_repo_dir = source_repo_base / Path(f"{DEFAULT_NAME}-staging/{DEFAULT_ARCHITECTURE}")
+
+    package_repo._testing_management_repo_dir = management_repo_base / f"{DEFAULT_ARCHITECTURE}/{DEFAULT_NAME}-testing"
     package_repo._testing_repo_dir = package_repo_base / Path(f"{DEFAULT_NAME}-testing/{DEFAULT_ARCHITECTURE}")
     package_repo._testing_source_repo_dir = source_repo_base / Path(f"{DEFAULT_NAME}-testing/{DEFAULT_ARCHITECTURE}")
+
+    package_repo._package_pool_dir = package_pool_base / DEFAULT_NAME
+    package_repo._source_pool_dir = source_pool_base / DEFAULT_NAME
 
     return package_repo
 

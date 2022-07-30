@@ -41,59 +41,126 @@ def test_mangement_repo(
 
 
 @mark.parametrize(
-    "name, staging, testing, package_pool, source_pool, management_repo, url, expectation",
+    "name, debug_repo, staging_repo, testing_repo, package_pool, source_pool, management_repo, url, expectation",
     [
-        (Path("foo"), None, None, False, False, False, None, does_not_raise()),
-        (Path("foo"), Path("bar"), None, False, False, False, None, does_not_raise()),
-        (Path("foo"), Path("bar"), Path("baz"), False, False, False, None, does_not_raise()),
-        ("foo", None, None, False, False, False, None, does_not_raise()),
-        ("foo", "bar", None, False, False, False, None, does_not_raise()),
-        ("foo", "bar", "baz", False, False, False, None, does_not_raise()),
-        (Path("foo-bar123"), None, None, False, False, False, None, does_not_raise()),
-        (Path("foo-bar123"), Path("bar"), None, False, False, False, None, does_not_raise()),
-        (Path("foo-bar123"), Path("bar"), Path("baz"), False, False, False, None, does_not_raise()),
-        (Path("foo-bar123"), None, None, False, False, True, "https://foo.bar", does_not_raise()),
-        (Path("foo-bar123"), Path("bar"), None, False, False, True, "https://foo.bar", does_not_raise()),
-        (Path("foo-bar123"), Path("bar"), Path("baz"), False, False, True, "https://foo.bar", does_not_raise()),
-        (Path(" foo"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path(" bar"), None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path("bar "), Path(" baz"), False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path("foo"), None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), None, Path("foo"), False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path("bar"), Path("bar"), False, False, False, None, raises(ValueError)),
-        (Path("FOO"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("FOO"), Path("bar"), None, False, False, False, None, raises(ValueError)),
-        (Path("FOO"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
-        (Path("foo_BAR123"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo_BAR123"), Path("bar"), None, False, False, False, None, raises(ValueError)),
-        (Path("foo_BAR123"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
-        (Path(".foo"), None, None, False, False, False, None, raises(ValueError)),
-        (Path(".foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
-        (Path(".foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
-        (Path("-foo"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("-foo"), Path("bar"), None, False, False, False, None, raises(ValueError)),
-        (Path("-foo"), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
-        (Path("."), None, None, False, False, False, None, raises(ValueError)),
-        (Path("."), Path("bar"), None, False, False, False, None, raises(ValueError)),
-        (Path("."), Path("bar"), Path("baz"), False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, None, None, False, False, False, None, does_not_raise()),
+        (Path("foo"), Path("debug"), None, None, False, False, False, None, does_not_raise()),
+        (Path("foo"), Path("debug"), Path("staging"), None, False, False, False, None, does_not_raise()),
+        (Path("foo"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, does_not_raise()),
+        ("foo", None, None, None, False, False, False, None, does_not_raise()),
+        ("foo", "debug", None, None, False, False, False, None, does_not_raise()),
+        ("foo", "debug", "staging", None, False, False, False, None, does_not_raise()),
+        ("foo", "debug", "staging", "testing", False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), None, None, None, False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), Path("debug"), None, None, False, False, False, None, does_not_raise()),
+        (Path("foo-bar123"), Path("debug"), Path("staging"), None, False, False, False, None, does_not_raise()),
+        (
+            Path("foo-bar123"),
+            Path("debug"),
+            Path("staging"),
+            Path("testing"),
+            False,
+            False,
+            False,
+            None,
+            does_not_raise(),
+        ),
+        (Path("foo-bar123"), None, None, None, False, False, True, "https://foo.bar", does_not_raise()),
+        (Path("foo-bar123"), Path("debug"), None, None, False, False, True, "https://foo.bar", does_not_raise()),
+        (
+            Path("foo-bar123"),
+            Path("debug"),
+            Path("staging"),
+            None,
+            False,
+            False,
+            True,
+            "https://foo.bar",
+            does_not_raise(),
+        ),
+        (
+            Path("foo-bar123"),
+            Path("debug"),
+            Path("staging"),
+            Path("testing"),
+            False,
+            False,
+            True,
+            "https://foo.bar",
+            does_not_raise(),
+        ),
+        (Path(" foo"), None, None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path(" debug"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path("debug "), Path(" staging"), None, False, False, False, None, raises(ValueError)),
+        (
+            Path("foo"),
+            Path("debug "),
+            Path(" staging"),
+            Path(" testing"),
+            False,
+            False,
+            False,
+            None,
+            raises(ValueError),
+        ),
+        (Path("foo"), Path("foo"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, Path("foo"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, None, Path("foo"), False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path("debug"), Path("debug"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), Path("debug"), None, Path("debug"), False, False, False, None, raises(ValueError)),
+        (Path("FOO"), None, None, None, False, False, False, None, raises(ValueError)),
+        (Path("FOO"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("FOO"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
+        (Path("FOO"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), None, None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("foo_BAR123"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
+        (
+            Path("foo_BAR123"),
+            Path("debug"),
+            Path("staging"),
+            Path("testing"),
+            False,
+            False,
+            False,
+            None,
+            raises(ValueError),
+        ),
+        (Path(".foo"), None, None, None, False, False, False, None, raises(ValueError)),
+        (Path(".foo"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
+        (Path(".foo"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
+        (Path(".foo"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
+        (Path("-foo"), None, None, None, False, False, False, None, raises(ValueError)),
+        (Path("-foo"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("-foo"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
+        (Path("-foo"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
+        (Path("."), None, None, None, False, False, False, None, raises(ValueError)),
+        (Path("."), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
+        (Path("."), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
+        (Path("."), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
     ],
 )
 def test_package_repo(
     name: Path,
-    staging: Optional[Path],
-    testing: Optional[Path],
+    debug_repo: Optional[Path],
+    staging_repo: Optional[Path],
+    testing_repo: Optional[Path],
     package_pool: bool,
     source_pool: bool,
     management_repo: bool,
     url: Optional[str],
     expectation: ContextManager[str],
     empty_dir: Path,
+    caplog: LogCaptureFixture,
 ) -> None:
+    caplog.set_level(DEBUG)
+
     with expectation:
         assert settings.PackageRepo(
             name=name,
-            testing=testing,
-            staging=staging,
+            debug=debug_repo,
+            staging=staging_repo,
+            testing=testing_repo,
             package_pool=empty_dir if package_pool else None,
             source_pool=empty_dir if source_pool else None,
             management_repo=settings.ManagementRepo(
@@ -313,11 +380,16 @@ def test_usersettings(
         ", repo_has_management_repo"
         ", repo_has_package_pool"
         ", repo_has_source_pool"
-        ", repo_has_staging_testing"
+        ", repo_has_debug"
+        ", repo_has_staging"
+        ", repo_has_testing"
     ),
     [
-        (True, True, True, True, True, True),
-        (False, False, False, False, False, False),
+        (True, True, True, True, True, True, True, True),
+        (True, True, True, True, True, False, True, True),
+        (True, True, True, True, True, True, False, True),
+        (True, True, True, True, True, True, True, False),
+        (False, False, False, False, False, False, False, False),
     ],
 )
 def test_settings_consolidate_repositories_with_defaults(
@@ -326,7 +398,9 @@ def test_settings_consolidate_repositories_with_defaults(
     repo_has_management_repo: bool,
     repo_has_package_pool: bool,
     repo_has_source_pool: bool,
-    repo_has_staging_testing: bool,
+    repo_has_debug: bool,
+    repo_has_staging: bool,
+    repo_has_testing: bool,
     packagerepo_in_tmp_path: settings.PackageRepo,
     tmp_path: Path,
 ) -> None:
@@ -345,8 +419,11 @@ def test_settings_consolidate_repositories_with_defaults(
     if not repo_has_source_pool:
         packagerepo_in_tmp_path.source_pool = None
 
-    if not repo_has_staging_testing:
+    if not repo_has_debug:
+        packagerepo_in_tmp_path.debug = None
+    if not repo_has_staging:
         packagerepo_in_tmp_path.staging = None
+    if not repo_has_testing:
         packagerepo_in_tmp_path.testing = None
 
     with patch("repod.config.settings.Settings._package_repo_base", tmp_path / "_package_repo_base"):
@@ -396,30 +473,49 @@ def test_settings_consolidate_repositories_with_defaults(
     )
 
 
-@mark.parametrize("with_staging_testing", [(True), (False)])
+@mark.parametrize(
+    "debug_repo, staging_repo, testing_repo",
+    [
+        (True, True, True),
+        (False, True, True),
+        (False, False, True),
+        (False, True, False),
+        (True, True, False),
+        (False, False, False),
+    ],
+)
 def test_settings_create_repository_directories(
-    with_staging_testing: bool,
+    debug_repo: bool,
+    staging_repo: bool,
+    testing_repo: bool,
     packagerepo_in_tmp_path: settings.PackageRepo,
 ) -> None:
-    if not with_staging_testing:
+    if not debug_repo:
+        packagerepo_in_tmp_path.debug = None
+    if not staging_repo:
         packagerepo_in_tmp_path.staging = None
+    if not testing_repo:
         packagerepo_in_tmp_path.testing = None
 
     settings.Settings.create_repository_directories(repositories=[packagerepo_in_tmp_path])
     assert packagerepo_in_tmp_path._stable_repo_dir.exists()
     assert packagerepo_in_tmp_path._stable_source_repo_dir.exists()
-
-    if with_staging_testing:
-        assert packagerepo_in_tmp_path._staging_repo_dir.exists()
-        assert packagerepo_in_tmp_path._staging_source_repo_dir.exists()
-        assert packagerepo_in_tmp_path._testing_repo_dir.exists()
-        assert packagerepo_in_tmp_path._testing_source_repo_dir.exists()
-        assert packagerepo_in_tmp_path._staging_management_repo_dir.exists()
-        assert packagerepo_in_tmp_path._testing_management_repo_dir.exists()
-
     assert packagerepo_in_tmp_path._package_pool_dir.exists()
     assert packagerepo_in_tmp_path._source_pool_dir.exists()
     assert packagerepo_in_tmp_path._stable_management_repo_dir.exists()
+
+    if debug_repo:
+        assert packagerepo_in_tmp_path._debug_repo_dir.exists()
+        assert packagerepo_in_tmp_path._debug_source_repo_dir.exists()
+        assert packagerepo_in_tmp_path._debug_management_repo_dir.exists()
+    if staging_repo:
+        assert packagerepo_in_tmp_path._staging_repo_dir.exists()
+        assert packagerepo_in_tmp_path._staging_source_repo_dir.exists()
+        assert packagerepo_in_tmp_path._staging_management_repo_dir.exists()
+    if testing_repo:
+        assert packagerepo_in_tmp_path._testing_repo_dir.exists()
+        assert packagerepo_in_tmp_path._testing_source_repo_dir.exists()
+        assert packagerepo_in_tmp_path._testing_management_repo_dir.exists()
 
 
 @mark.parametrize(
@@ -1073,25 +1169,32 @@ def test_create_and_validate_directory(
 
 
 @mark.parametrize(
-    "repo_type, has_repo, name_exists, staging_exists, testing_exists, staging, testing, expectation",
+    (
+        "repo_type, has_repo, name_exists, debug_exists, staging_exists, testing_exists, "
+        "debug, staging, testing, expectation"
+    ),
     [
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, False, False, does_not_raise()),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, does_not_raise()),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, False, True, does_not_raise()),
-        (RepoTypeEnum.MANAGEMENT, True, True, False, True, True, False, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, False, False, True, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, True, False, True, True, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, True, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, False, False, False, False, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, False, False, does_not_raise()),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, does_not_raise()),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, False, True, does_not_raise()),
-        (RepoTypeEnum.PACKAGE, True, True, False, True, True, False, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, True, True, False, False, True, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, False, True, True, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, True, True, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, False, False, False, False, False, False, raises(RuntimeError)),
-        (None, True, True, True, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, False, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, True, False, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, True, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, False, True, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, False, True, True, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, False, True, False, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, False, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, True, True, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, False, False, True, False, False, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, False, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, True, True, False, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, True, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, False, True, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, True, False, True, True, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, True, True, False, True, False, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, False, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, True, True, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, False, False, True, False, False, False, False, False, raises(RuntimeError)),
+        (None, True, True, True, True, True, False, False, False, raises(RuntimeError)),
     ],
 )
 def test_settings_get_repo_path(
@@ -1099,8 +1202,10 @@ def test_settings_get_repo_path(
     repo_type: RepoTypeEnum,
     has_repo: bool,
     name_exists: bool,
+    debug_exists: bool,
     staging_exists: bool,
     testing_exists: bool,
+    debug: bool,
     staging: bool,
     testing: bool,
     expectation: ContextManager[str],
@@ -1108,6 +1213,9 @@ def test_settings_get_repo_path(
     name = Path("foo")
     if name_exists:
         name = usersettings.repositories[0].name
+
+    if not debug_exists:
+        usersettings.repositories[0].debug = None
 
     if not staging_exists:
         usersettings.repositories[0].staging = None
@@ -1119,20 +1227,22 @@ def test_settings_get_repo_path(
         usersettings.repositories = []
 
     with expectation:
-        path = usersettings.get_repo_path(repo_type=repo_type, name=name, staging=staging, testing=testing)
+        path = usersettings.get_repo_path(repo_type=repo_type, name=name, debug=debug, staging=staging, testing=testing)
 
-        match repo_type:
-            case RepoTypeEnum.MANAGEMENT:
-                if staging and not testing:
-                    assert path == usersettings.repositories[0]._staging_management_repo_dir
-                if testing and not staging:
-                    assert path == usersettings.repositories[0]._testing_management_repo_dir
-                if not staging and not testing:
-                    assert path == usersettings.repositories[0]._stable_management_repo_dir
-            case RepoTypeEnum.PACKAGE:
-                if staging and not testing:
-                    assert path == usersettings.repositories[0]._staging_repo_dir
-                if testing and not staging:
-                    assert path == usersettings.repositories[0]._testing_repo_dir
-                if not staging and not testing:
-                    assert path == usersettings.repositories[0]._stable_repo_dir
+        match repo_type, debug, staging, testing:
+            case RepoTypeEnum.MANAGEMENT, True, False, False:
+                assert path == usersettings.repositories[0]._debug_management_repo_dir
+            case RepoTypeEnum.MANAGEMENT, False, True, False:
+                assert path == usersettings.repositories[0]._staging_management_repo_dir
+            case RepoTypeEnum.MANAGEMENT, False, False, True:
+                assert path == usersettings.repositories[0]._testing_management_repo_dir
+            case RepoTypeEnum.MANAGEMENT, False, False, False:
+                assert path == usersettings.repositories[0]._stable_management_repo_dir
+            case RepoTypeEnum.PACKAGE, True, False, False:
+                assert path == usersettings.repositories[0]._debug_repo_dir
+            case RepoTypeEnum.PACKAGE, False, True, False:
+                assert path == usersettings.repositories[0]._staging_repo_dir
+            case RepoTypeEnum.PACKAGE, False, False, True:
+                assert path == usersettings.repositories[0]._testing_repo_dir
+            case RepoTypeEnum.PACKAGE, False, False, False:
+                assert path == usersettings.repositories[0]._stable_repo_dir
