@@ -47,27 +47,27 @@ from repod.cli import cli
             does_not_raise(),
         ),
         (
-            Namespace(package="import", dry_run=True, with_signature=False, staging=False, testing=False),
+            Namespace(package="import", dry_run=True, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(package="import", dry_run=False, with_signature=False, staging=False, testing=False),
+            Namespace(package="import", dry_run=False, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(package="import", dry_run=True, with_signature=False, staging=False, testing=False),
+            Namespace(package="import", dry_run=True, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(package="import", dry_run=False, with_signature=False, staging=False, testing=False),
+            Namespace(package="import", dry_run=False, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(package="import", dry_run=True, with_signature=True, staging=False, testing=False),
+            Namespace(package="import", dry_run=True, with_signature=True, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(package="import", dry_run=False, with_signature=True, staging=False, testing=False),
+            Namespace(package="import", dry_run=False, with_signature=True, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (Namespace(package="foo"), raises(RuntimeError)),
@@ -96,13 +96,37 @@ def test_repod_file_package(
 @mark.parametrize(
     "args, invalid_db, expectation",
     [
-        (Namespace(management="import", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(management="export", compression="none", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(management="export", compression="bz2", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(management="export", compression="gz", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(management="export", compression="xz", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(management="export", compression="zst", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(management="export", compression="none", staging=False, testing=False), True, raises(RuntimeError)),
+        (Namespace(management="import", debug=False, staging=False, testing=False), False, does_not_raise()),
+        (
+            Namespace(management="export", compression="none", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(management="export", compression="bz2", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(management="export", compression="gz", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(management="export", compression="xz", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(management="export", compression="zst", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(management="export", compression="none", debug=False, staging=False, testing=False),
+            True,
+            raises(RuntimeError),
+        ),
         (Namespace(management="foo"), False, raises(RuntimeError)),
     ],
 )
@@ -137,13 +161,37 @@ def test_repod_file_management(
 @mark.parametrize(
     "args, invalid_db, expectation",
     [
-        (Namespace(syncdb="import", compression="none", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(syncdb="import", compression="bz2", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(syncdb="import", compression="gz", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(syncdb="import", compression="xz", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(syncdb="import", compression="zst", staging=False, testing=False), False, does_not_raise()),
-        (Namespace(syncdb="import", compression="none", staging=False, testing=False), True, raises(RuntimeError)),
-        (Namespace(syncdb="export", staging=False, testing=False), False, does_not_raise()),
+        (
+            Namespace(syncdb="import", compression="none", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(syncdb="import", compression="bz2", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(syncdb="import", compression="gz", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(syncdb="import", compression="xz", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(syncdb="import", compression="zst", debug=False, staging=False, testing=False),
+            False,
+            does_not_raise(),
+        ),
+        (
+            Namespace(syncdb="import", compression="none", debug=False, staging=False, testing=False),
+            True,
+            raises(RuntimeError),
+        ),
+        (Namespace(syncdb="export", debug=False, staging=False, testing=False), False, does_not_raise()),
         (Namespace(syncdb="foo"), False, raises(RuntimeError)),
     ],
 )

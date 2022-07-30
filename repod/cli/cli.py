@@ -70,9 +70,11 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
                 management_repo_dir = settings.get_repo_path(
                     repo_type=RepoTypeEnum.MANAGEMENT,
                     name=args.repo,
+                    debug=args.debug,
                     staging=args.staging,
                     testing=args.testing,
                 )
+                # TODO: fail if PkgInfoV2 pkgtype != debug
                 with open(management_repo_dir / f"{pkgbase}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case _:
@@ -95,6 +97,7 @@ def repod_file_management(args: Namespace, settings: Union[SystemSettings, UserS
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
                 name=args.repo,
+                debug=args.debug,
                 staging=args.staging,
                 testing=args.testing,
             )
@@ -117,6 +120,7 @@ def repod_file_management(args: Namespace, settings: Union[SystemSettings, UserS
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
                 name=args.repo,
+                debug=args.debug,
                 staging=args.staging,
                 testing=args.testing,
             )
@@ -160,6 +164,7 @@ def repod_file_syncdb(args: Namespace, settings: Union[SystemSettings, UserSetti
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
                 name=args.repo,
+                debug=args.debug,
                 staging=args.staging,
                 testing=args.testing,
             )
@@ -174,6 +179,7 @@ def repod_file_syncdb(args: Namespace, settings: Union[SystemSettings, UserSetti
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
                 name=args.repo,
+                debug=args.debug,
                 staging=args.staging,
                 testing=args.testing,
             )
