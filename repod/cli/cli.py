@@ -10,9 +10,10 @@ from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
 
 from repod import export_schemas
 from repod.cli import argparse
-from repod.common.enums import CompressionTypeEnum, RepoTypeEnum
+from repod.common.enums import CompressionTypeEnum, PkgTypeEnum, RepoTypeEnum
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
+from repod.files.pkginfo import PkgInfoV2
 from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.package import RepoDbTypeEnum
 
@@ -28,6 +29,13 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
         The options used for the Package related actions
     settings: Union[SystemSettings, UserSettings]
         A Settings instance that is used for deriving repository directories from
+
+    Raises
+    ------
+    RuntimeError
+        If a debug repository is targetted, but any of the supplied packages is not a debug package (can only be
+        successfully checked if PkgInfoV2 is used in the package).
+        If an invalid subcommand is provided.
     """
 
     pretty = ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0
@@ -62,6 +70,23 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
                     )
                 )
 
+            if args.debug:
+                if any(
+                    [
+                        True
+                        for package in packages
+                        if isinstance(
+                            package.pkginfo,  # type: ignore[attr-defined]
+                            PkgInfoV2,
+                        )
+                        and package.pkginfo.pkgtype != PkgTypeEnum.DEBUG.value  # type: ignore[attr-defined]
+                    ]
+                ):
+                    raise RuntimeError(
+                        f"The debug repository of {args.repo} is targetted, "
+                        "but not all provided packages are debug packages!"
+                    )
+
             outputpackagebase = OutputPackageBase.from_package(packages=packages)
             if args.dry_run:
                 print(dumps(outputpackagebase.dict(), option=pretty).decode("utf-8"))
@@ -74,7 +99,6 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
                     staging=args.staging,
                     testing=args.testing,
                 )
-                # TODO: fail if PkgInfoV2 pkgtype != debug
                 with open(management_repo_dir / f"{pkgbase}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case _:
@@ -90,6 +114,11 @@ def repod_file_management(args: Namespace, settings: Union[SystemSettings, UserS
         The options used for the management repo related actions
     settings: Union[SystemSettings, UserSettings]
         A Settings instance that is used for deriving repository directories from
+
+    Raises
+    ------
+    RuntimeError
+        If an invalid subcommand is provided.
     """
 
     match args.management:
@@ -145,6 +174,11 @@ def repod_file_syncdb(args: Namespace, settings: Union[SystemSettings, UserSetti
         The options used for the repository sync database related actions
     settings: Union[SystemSettings, UserSettings]
         A Settings instance that is used for deriving repository directories from
+
+    Raises
+    ------
+    RuntimeError
+        If an invalid subcommand is provided.
     """
 
     match args.syncdb:
@@ -197,6 +231,11 @@ def repod_file_schema(args: Namespace) -> None:
     ----------
     args: Namespace
         The options used for the JSON schema related actions
+
+    Raises
+    ------
+    RuntimeError
+        If an invalid subcommand is provided.
     """
 
     match args.schema:

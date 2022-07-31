@@ -12,71 +12,127 @@ from repod.cli import cli
 
 
 @mark.parametrize(
-    "args, expectation",
+    "debug_pkg, args, expectation",
     [
         (
+            False,
             Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=True),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=True),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=True),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=True),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="import", dry_run=True, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="import", dry_run=False, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
+            False,
+            Namespace(package="import", dry_run=True, with_signature=False, debug=True, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            False,
+            Namespace(package="import", dry_run=False, with_signature=False, debug=True, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            True,
+            Namespace(package="import", dry_run=True, with_signature=False, debug=True, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            True,
+            Namespace(package="import", dry_run=False, with_signature=False, debug=True, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            False,
             Namespace(package="import", dry_run=True, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="import", dry_run=False, with_signature=False, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="import", dry_run=True, with_signature=True, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
+            False,
             Namespace(package="import", dry_run=False, with_signature=True, debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
-        (Namespace(package="foo"), raises(RuntimeError)),
+        (
+            False,
+            Namespace(package="import", dry_run=True, with_signature=True, debug=True, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            False,
+            Namespace(package="import", dry_run=False, with_signature=True, debug=True, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            True,
+            Namespace(package="import", dry_run=True, with_signature=True, debug=True, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            True,
+            Namespace(package="import", dry_run=False, with_signature=True, debug=True, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (False, Namespace(package="foo"), raises(RuntimeError)),
     ],
 )
 def test_repod_file_package(
     caplog: LogCaptureFixture,
     default_package_file: Tuple[Path, ...],
+    debug_package_file: Tuple[Path, ...],
     tmp_path: Path,
+    debug_pkg: bool,
     args: Namespace,
     expectation: ContextManager[str],
 ) -> None:
@@ -84,7 +140,7 @@ def test_repod_file_package(
 
     settings_mock = Mock()
     if args.package in ["inspect", "import"]:
-        args.file = [default_package_file[0]]
+        args.file = [debug_package_file[0] if debug_pkg else default_package_file[0]]
     if args.package == "import":
         settings_mock.get_repo_path = Mock(return_value=tmp_path)
         args.repo = Path("default")
