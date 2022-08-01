@@ -31,12 +31,20 @@ linter:
   script:
     - tox -e linter
 
+.bump_dependencies_to_latest: &bump_dependencies_to_latest
+  - |
+    if [[ $TEST_LATEST = true ]]; then
+      pacman --noconfirm -Syu --needed python-tomli
+      ./ci/bump_dependencies_to_latest.py
+    fi
+
 .test:
   stage: test
   before_script:
     - |
       read -r -a deps <<< "${TEST_PACKAGES}"
       pacman --noconfirm -Syu --needed "${deps[@]}"
+    - *bump_dependencies_to_latest
 
 coverage:
   extends: .test
@@ -58,6 +66,7 @@ coverage:
     - |
       read -r -a test_deps <<< "${TEST_PACKAGES}"
       pacman --noconfirm -Syu --needed "${test_deps[@]}"
+    - *bump_dependencies_to_latest
 
 integration:
   extends: .integration_test
