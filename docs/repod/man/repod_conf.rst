@@ -66,6 +66,14 @@ them. For any undefined option defaults are assumed (see
 * *package_pool*: A string setting a directory that serves as the package pool
   for any repository, which does not define it.
 
+* *package_verification*: An optional string setting the implementation of the
+  package signature verification for all repositories.
+  If a signature verification implementation is selected, packages that are
+  added to the repository must be signed.
+  Understood values are
+
+  .. program-output:: python -c "from repod.common.enums import PkgVerificationTypeEnum; print('\"' + '\", \"'.join(e.value for e in PkgVerificationTypeEnum) + '\"')"
+
 * *source_pool*: A string setting a directory that serves as the source tarball
   pool for any repository, which does not define it.
 
@@ -273,7 +281,21 @@ Example 4. One repository with non-standard directories
   [management_repo]
   directory = "/absolute/path/to/management_repo"
 
+Example 5. One repository with pacman-key based signature verification
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+.. code:: toml
+
+  package_verification = "pacman-key"
+
+  [[repositories]]
+  architecture = "x86_64"
+  name = "repo1"
+  debug = "repo-debug"
+  staging = "repo-staging"
+  testing = "repo-testing"
+
 SEE ALSO
 ^^^^^^^^
 
-``repod-file(1)``, ``pacman(8)``
+``repod-file(1)``, ``pacman(8)``, ``pacman-key(8)``
