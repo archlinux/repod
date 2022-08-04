@@ -111,6 +111,18 @@ class CompressionTypeEnum(Enum):
         return [".files", ".files.tar"] + [".files.tar." + name.value for name in cls if len(name.value) > 0]
 
 
+class PkgVerificationTypeEnum(Enum):
+    """An Enum to distinguish different package signature verification implementations
+
+    Attributes
+    ----------
+    PACMANKEY: str
+        An implementation based on pacman-key --verify
+    """
+
+    PACMANKEY = "pacman-key"
+
+
 class PkgTypeEnum(Enum):
     """An Enum to distinguish different package types
 
