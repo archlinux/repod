@@ -17,7 +17,12 @@ from pydantic import (
 )
 from pydantic.env_settings import SettingsSourceCallable
 
-from repod.common.enums import CompressionTypeEnum, RepoTypeEnum, SettingsTypeEnum
+from repod.common.enums import (
+    CompressionTypeEnum,
+    PkgVerificationTypeEnum,
+    RepoTypeEnum,
+    SettingsTypeEnum,
+)
 from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
     DEFAULT_ARCHITECTURE,
@@ -573,16 +578,19 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
         which does not define one itself.
         If unset, a default one is created during validation.
-    repositories: List[PackageRepo]
-        A list of PackageRepos that each define a binary package repository (with optional debug, staging and testing
-        locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
-        If no repository is defined, a default one is created during validation.
     package_pool: Optional[Path]
         An optional relative or absolute directory, that is used as PackagePool for each PackageRepo, which does not
         define one itself.
         If a relative path is provided, it is prepended with _package_pool_base during validation.
         If an absolute path is provided, it is used as is.
         If unset, it is set to _package_pool_base / DEFAULT_NAME during validation.
+    package_verification: Optional[PkgVerificationTypeEnum]
+        An optional member of PkgVerificationTypeEnum, which defines which verification scheme to apply for the detached
+        package signatures.
+    repositories: List[PackageRepo]
+        A list of PackageRepos that each define a binary package repository (with optional debug, staging and testing
+        locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
+        If no repository is defined, a default one is created during validation.
     source_pool: Optional[Path]
         An optional relative or absolute directory, that is used as SourcePool for each PackageRepo, which does not
         define one itself.
@@ -617,6 +625,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
     management_repo: Optional[ManagementRepo]
     repositories: List[PackageRepo] = []
+    package_verification: Optional[PkgVerificationTypeEnum]
 
     class Config:
         env_file_encoding = "utf-8"
