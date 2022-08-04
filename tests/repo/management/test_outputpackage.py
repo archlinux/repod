@@ -6,10 +6,12 @@ from typing import Any, ContextManager, Dict, List, Union
 from pytest import mark, raises
 
 from repod.errors import RepoManagementFileError, RepoManagementValidationError
+from repod.files.buildinfo import BuildInfo
 from repod.files.package import Package
 from repod.repo.management import outputpackage
 from repod.repo.package import syncdb
 from tests.conftest import (
+    BuildInfoV9999,
     OutputPackageBaseV9999,
     create_base64_pgpsig,
     create_default_filename,
@@ -261,3 +263,35 @@ def test_export_schemas(tmp_path: Path) -> None:
 
     with raises(RuntimeError):
         outputpackage.export_schemas(output=Path("/foobar"))
+
+
+@mark.parametrize(
+    "buildinfo_version, expectation",
+    [
+        (1, does_not_raise()),
+        (2, does_not_raise()),
+        (9999, raises(RuntimeError)),
+    ],
+)
+def test_outputbuildinfo_from_buildinfo(
+    buildinfo_version: int,
+    expectation: ContextManager[str],
+    valid_buildinfov1: BuildInfo,
+    valid_buildinfov2: BuildInfo,
+) -> None:
+    match buildinfo_version:
+        case 1:
+            buildinfo = valid_buildinfov1
+        case 2:
+            buildinfo = valid_buildinfov2
+        case 9999:
+            buildinfo = BuildInfoV9999()
+
+    with expectation:
+        outputbuildinfo = outputpackage.OutputBuildInfo.from_buildinfo(buildinfo=buildinfo)
+
+        match buildinfo_version:
+            case 1:
+                assert isinstance(outputbuildinfo, outputpackage.OutputBuildInfoV1)
+            case 2:
+                assert isinstance(outputbuildinfo, outputpackage.OutputBuildInfoV2)

@@ -32,7 +32,7 @@ from repod.files.common import ZstdTarFile
 from repod.files.mtree import MTree, MTreeEntryV1
 from repod.files.package import PackageV1
 from repod.files.pkginfo import PkgInfo, PkgInfoV1, PkgInfoV2
-from repod.repo.management import OutputPackageBase
+from repod.repo.management import OutputBuildInfo, OutputPackageBase
 from repod.repo.management.outputpackage import OutputPackageBaseV1, OutputPackageV1
 from repod.repo.package import Files, PackageDesc, RepoDbTypeEnum
 from repod.repo.package.syncdb import FilesV1, PackageDescV1, SyncDatabase
@@ -40,6 +40,10 @@ from repod.repo.package.syncdb import FilesV1, PackageDescV1, SyncDatabase
 
 class SchemaVersion9999(BaseModel):
     schema_version: int = 9999
+
+
+class BuildInfoV9999(BuildInfo, SchemaVersion9999):
+    pass
 
 
 class FilesV9999(Files, SchemaVersion9999):
@@ -977,7 +981,7 @@ def valid_buildinfov2(
         buildenv=[default_buildenv],
         buildtool="buildtool",
         buildtoolver=default_full_version,
-        format_=1,
+        format_=2,
         installed=["bar-1:1.0.1-1-any", "baz-1:1.0.1-1-any"],
         options=[default_option],
         packager=default_packager,
@@ -1228,6 +1232,7 @@ def outputpackagebasev1(
     outputpackagev1: OutputPackageV1,
     sha256sum: str,
     url: str,
+    valid_buildinfov1: BuildInfo,
 ) -> OutputPackageBaseV1:
     outputpackage2 = deepcopy(outputpackagev1)
     outputpackage2.filename = outputpackage2.filename.replace("foo", "bar")
@@ -1236,6 +1241,7 @@ def outputpackagebasev1(
 
     return OutputPackageBaseV1(
         base="foo",
+        buildinfo=OutputBuildInfo.from_buildinfo(valid_buildinfov1),
         packager=default_packager,
         packages=[
             outputpackagev1,

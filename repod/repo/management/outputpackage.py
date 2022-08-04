@@ -37,6 +37,21 @@ from repod.common.models import (
     Version,
 )
 from repod.files import package
+from repod.files.buildinfo import (
+    BuildDir,
+    BuildEnv,
+    BuildInfo,
+    BuildInfoV1,
+    BuildInfoV2,
+    BuildTool,
+    BuildToolVer,
+    FormatV1,
+    FormatV2,
+    Installed,
+    Options,
+    PkgBuildSha256Sum,
+    StartDir,
+)
 from repod.repo.package.syncdb import Files, FilesV1, PackageDesc, PackageDescV1
 
 OUTPUT_PACKAGE_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
@@ -83,6 +98,139 @@ OUTPUT_PACKAGE_BASE_VERSIONS: Dict[int, Dict[str, Union[int, Set[str]]]] = {
     },
 }
 DEFAULT_OUTPUT_PACKAGE_BASE_VERSION = 1
+
+
+class OutputBuildInfo(BaseModel):
+    """A class tracking BuildInfo information of packages that are added to instances of OutputPackageBase
+
+    This class is a base template class and should not be used directly.
+    Instead, instantiate one of its versioned child classes using the `from_buildinfo()` classmethod.
+    """
+
+    @classmethod
+    def from_buildinfo(cls, buildinfo: BuildInfo) -> OutputBuildInfo:
+        """Create and return an instance of one of OutputBuildInfo's versioned child classes
+
+        Parameters
+        ----------
+        buildinfo: BuildInfo
+            An instance of BuildInfo which will be used to create an instance of one of the versioned child classes of
+            OutputBuildInfo
+
+        Raises
+        ------
+        RuntimeError
+            If an unknown BuildInfo instance is encountered
+
+        Returns
+        -------
+        OutputBuildInfo
+            One of OutputBuildInfo's versioned child classes (e.g. OutputBuildInfoV1 or OutputBuildInfoV2)
+        """
+
+        if isinstance(buildinfo, BuildInfoV1):
+            return OutputBuildInfoV1(
+                builddir=buildinfo.builddir,
+                buildenv=buildinfo.buildenv,
+                format_=buildinfo.format_,
+                installed=buildinfo.installed,
+                options=buildinfo.options,
+                pkgbuild_sha256sum=buildinfo.pkgbuild_sha256sum,
+            )
+        elif isinstance(buildinfo, BuildInfoV2):
+            return OutputBuildInfoV2(
+                builddir=buildinfo.builddir,
+                buildenv=buildinfo.buildenv,
+                buildtool=buildinfo.buildtool,
+                buildtoolver=buildinfo.buildtoolver,
+                format_=buildinfo.format_,
+                installed=buildinfo.installed,
+                options=buildinfo.options,
+                pkgbuild_sha256sum=buildinfo.pkgbuild_sha256sum,
+                startdir=buildinfo.startdir,
+            )
+        else:
+            raise RuntimeError(
+                "An unknown input format has been encountered while transforming a package's BuildInfo information "
+                "into the respective output format!"
+            )
+
+
+class OutputBuildInfoV1(
+    BuildDir,
+    BuildEnv,
+    FormatV1,
+    Installed,
+    Options,
+    OutputBuildInfo,
+    PkgBuildSha256Sum,
+):
+    """OutputBuildInfo version 1
+
+    Attributes which are already covered by OutputPackageBase are ommitted.
+    Instances of this class relate to OutputBuildInfo the same way as BuildinfoV1 relates to BuildInfo.
+
+    Attributes
+    ----------
+    builddir: str
+        A string representing an absolute directory
+    buildenv: List[str]
+        A list of strings as described by makepkg.conf's BUILDENV option
+    format_: int
+        An integer describing a BuildInfo format version
+    installed: List[str]
+        A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
+        during the creation of a package
+    options: List[str]
+        A list of strings representing makepkg.conf OPTIONS used during the creation of a package
+    pkgbuild_sha256sum: str
+        A string representing a SHA-256 checksum for a PKGBUILD of a package
+    """
+
+    pass
+
+
+class OutputBuildInfoV2(
+    BuildDir,
+    BuildEnv,
+    BuildTool,
+    BuildToolVer,
+    FormatV2,
+    Installed,
+    Options,
+    OutputBuildInfo,
+    PkgBuildSha256Sum,
+    StartDir,
+):
+    """OutputBuildInfo version 2
+
+    Attributes which are already covered by OutputPackageBase are ommitted.
+    Instances of this class relate to OutputBuildInfo the same way as BuildinfoV2 relates to BuildInfo.
+
+    Attributes
+    ----------
+    builddir: str
+        A string representing an absolute directory
+    buildenv: List[str]
+        A list of strings as described by makepkg.conf's BUILDENV option
+    buildtool: str
+        The package name of the build tool used to create a package
+    buildtoolver: str
+        The version of the build tool used to create a package
+    format_: int
+        An integer describing a BuildInfo format version
+    installed: List[str]
+        A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
+        during the creation of a package
+    options: List[str]
+        A list of strings representing makepkg.conf OPTIONS used during the creation of a package
+    pkgbuild_sha256sum: str
+        A string representing a SHA-256 checksum for a PKGBUILD of a package
+    startdir: str
+        A string representing the absolute startdir directory of a package
+    """
+
+    pass
 
 
 class OutputPackage(BaseModel):
@@ -475,6 +623,7 @@ class OutputPackageBase(BaseModel):
             case 1:
                 return OutputPackageBaseV1(
                     base=packages[0].pkginfo.base,  # type: ignore[attr-defined]
+                    buildinfo=OutputBuildInfo.from_buildinfo(packages[0].buildinfo),  # type: ignore[attr-defined]
                     makedepends=packages[0].pkginfo.makedepends,  # type: ignore[attr-defined]
                     packager=packages[0].pkginfo.packager,  # type: ignore[attr-defined]
                     packages=[OutputPackage.from_package(package=pkg) for pkg in packages],
@@ -624,6 +773,9 @@ class OutputPackageBaseV1(
     base: str
         The attribute can be used to describe the (required) data below a %BASE% identifier in a 'desc' file, which
         identifies a package's pkgbase
+    buildinfo: Optional[OutputBuildInfo]
+        An optional OutputBuildInfo, which describes the build circumstances of the OutputPackageBase. The data is not
+        covered in a repository sync database and therefore optional.
     makedepends: Optional[List[str]]
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
@@ -639,6 +791,7 @@ class OutputPackageBaseV1(
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
 
+    buildinfo: Optional[OutputBuildInfo]
     packages: List[OutputPackage]
 
 
@@ -656,7 +809,7 @@ def export_schemas(output: Union[Path, str]) -> None:
         If output is not an existing directory
     """
 
-    classes = [OutputPackageV1, OutputPackageBaseV1]
+    classes = [OutputBuildInfoV1, OutputBuildInfoV2, OutputPackageV1, OutputPackageBaseV1]
 
     if isinstance(output, str):
         output = Path(output)

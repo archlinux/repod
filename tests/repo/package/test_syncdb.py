@@ -911,6 +911,8 @@ def test_package_desc_v1_get_output_package_base_v1(
     files = filesv1
     # remove all but the first package
     output_package_base.packages = output_package_base.packages[0:1]  # type: ignore[attr-defined]
+    # remove buildinfo data (when converting from sync databases we do not have the data available)
+    output_package_base.buildinfo = None  # type: ignore[attr-defined]
 
     if no_files:
         files = None
