@@ -69,6 +69,47 @@ FilesV1
 .. literalinclude:: ../schema/FilesV1.json
    :language: json
 
+.. _outputbuildinfo_schema:
+
+OutputBuildInfo
+^^^^^^^^^^^^^^^
+
+This is the schema for an optional subset of an :ref:`outputpackagebase_schema`
+representation in the :ref:`management repository`.
+It is a subset of the :ref:`buildinfo json schema` data, which is retrieved
+from parsing the contents of a package.
+
+.. note::
+
+  This data is *not* persisted in a :ref:`sync database` and can only be
+  retrieved per :ref:`package` from a package file!
+
+Below is a list of currently understood versions of the schema.
+
+.. _outputbuildinfov1_schema:
+
+OutputBuildV1
+"""""""""""""
+
+.. note::
+
+  This schema is directly related to that of :ref:`buildinfov1`!
+
+.. literalinclude:: ../schema/OutputBuildInfoV1.json
+   :language: json
+
+.. _outputbuildinfov2_schema:
+
+OutputBuildV2
+"""""""""""""
+
+.. note::
+
+  This schema is directly related to that of :ref:`buildinfov2`!
+
+.. literalinclude:: ../schema/OutputBuildInfoV2.json
+   :language: json
+
 .. _outputpackagebase_schema:
 
 OutputPackageBase
