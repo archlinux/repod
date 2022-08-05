@@ -12,6 +12,13 @@ For more detailed information have a look at the |git log|.
 [Unreleased]
 ------------
 
+Changed
+^^^^^^^
+
+* Extend `OutputPackageBaseV1` with optional `.BUILDINFO` data retrieved from
+  packages using the new `OutputBuildInfo` (and child classes). This adds a
+  relevant subset of `.BUILDINFO` files to the management repository.
+
 [0.1.0] - 2022-07-02
 --------------------
 
