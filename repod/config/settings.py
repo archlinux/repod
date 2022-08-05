@@ -19,6 +19,8 @@ from pydantic.env_settings import SettingsSourceCallable
 
 from repod.common.enums import (
     CompressionTypeEnum,
+    FilesVersionEnum,
+    PackageDescVersionEnum,
     PkgVerificationTypeEnum,
     RepoTypeEnum,
     SettingsTypeEnum,
@@ -145,6 +147,21 @@ class SourcePool(BaseModel):
     """
 
     source_pool: Optional[Path]
+
+
+class SyncDbSettings(BaseModel):
+    """Settings for repository sync databases
+
+    Attributes
+    ----------
+    desc_version: PackageDescVersionEnum
+        The desc version to export to (defaults to PackageDescVersionEnum.DEFAULT)
+    files_version: FilesVersionEnum
+        The files version to export to (defaults to FilesVersionEnum.DEFAULT)
+    """
+
+    desc_version: PackageDescVersionEnum = PackageDescVersionEnum.DEFAULT
+    files_version: FilesVersionEnum = FilesVersionEnum.DEFAULT
 
 
 class ManagementRepo(BaseModel):
@@ -626,6 +643,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     management_repo: Optional[ManagementRepo]
     repositories: List[PackageRepo] = []
     package_verification: Optional[PkgVerificationTypeEnum]
+    syncdb_settings: SyncDbSettings = SyncDbSettings()
 
     class Config:
         env_file_encoding = "utf-8"
