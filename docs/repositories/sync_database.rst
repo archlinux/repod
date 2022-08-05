@@ -111,8 +111,8 @@ Desc v1
   extend a package's functionality (one name per line below the identifier)
 * ``%PACKAGER%`` (**required**): The UID (name and e-mail address) of the
   packager who created a package (one line below the identifier)
-* ``%PGPSIG%`` (**required**): The base64 encoded PGP signature of a package
-  (one line below the identifier)
+* ``%PGPSIG%``: The base64 encoded PGP signature of a package (one line below
+  the identifier)
 * ``%PROVIDES%``: A list of package names that a package provides (one name per
   line below the identifier)
 * ``%REPLACES%``: A list of package names that a package replaces (one name per
