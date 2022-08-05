@@ -12,7 +12,12 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from pydantic import BaseModel, ValidationError
 
-from repod.common.enums import CompressionTypeEnum, FieldTypeEnum
+from repod.common.enums import (
+    CompressionTypeEnum,
+    FieldTypeEnum,
+    FilesVersionEnum,
+    PackageDescVersionEnum,
+)
 from repod.common.models import (
     Arch,
     Backup,
@@ -330,6 +335,8 @@ class SyncDatabase(BaseModel):
     database: Path
     database_type: Optional[RepoDbTypeEnum]
     compression_type: Optional[CompressionTypeEnum]
+    desc_version: PackageDescVersionEnum
+    files_version: FilesVersionEnum
 
     @classmethod
     async def outputpackagebase_to_tarfile(
@@ -337,6 +344,8 @@ class SyncDatabase(BaseModel):
         tarfile: TarFile,
         database_type: Optional[RepoDbTypeEnum],
         model: outputpackage.OutputPackageBase,
+        packagedesc_version: PackageDescVersionEnum,
+        files_version: FilesVersionEnum,
     ) -> None:
         """Stream descriptor files derived from an OutputPackageBase to a TarFile
 
@@ -350,9 +359,16 @@ class SyncDatabase(BaseModel):
             The type of database to stream to
         model: OutputPackageBase
             The OutputPackageBase instance to derive descriptor files from
+        packagedesc_version: PackageDescVersionEnum
+            The version of PackageDesc to use
+        files_version: FilesVersionEnum
+            The version of Files to use
         """
 
-        for (desc_model, files_model) in await model.get_packages_as_models():
+        for (desc_model, files_model) in await model.get_packages_as_models(
+            packagedesc_version=packagedesc_version,
+            files_version=files_version,
+        ):
             dirname = f"{desc_model.get_name()}-{model.get_version()}"
             directory = TarInfo(dirname)
             directory.type = DIRTYPE
@@ -403,6 +419,8 @@ class SyncDatabase(BaseModel):
                 tarfile=database_file,
                 database_type=self.database_type,
                 model=model,
+                packagedesc_version=self.desc_version,
+                files_version=self.files_version,
             )
 
     async def outputpackagebases(self) -> List[Tuple[str, outputpackage.OutputPackageBase]]:
@@ -497,6 +515,8 @@ class SyncDatabase(BaseModel):
                     tarfile=database_file,
                     database_type=self.database_type,
                     model=await outputpackage.OutputPackageBase.from_file(path=json_file),
+                    packagedesc_version=self.desc_version,
+                    files_version=self.files_version,
                 )
 
 

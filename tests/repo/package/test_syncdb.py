@@ -8,7 +8,11 @@ from unittest.mock import patch
 
 from pytest import LogCaptureFixture, mark, raises
 
-from repod.common.enums import CompressionTypeEnum
+from repod.common.enums import (
+    CompressionTypeEnum,
+    FilesVersionEnum,
+    PackageDescVersionEnum,
+)
 from repod.errors import (
     RepoManagementFileError,
     RepoManagementFileNotFoundError,
@@ -1125,6 +1129,8 @@ async def test_syncdatabase_outputpackagebase_to_tarfile(
             tarfile=tar_file,
             database_type=syncdb.RepoDbTypeEnum.DEFAULT,
             model=outputpackagebasev1,
+            packagedesc_version=PackageDescVersionEnum.DEFAULT,
+            files_version=FilesVersionEnum.DEFAULT,
         )
 
 
@@ -1141,6 +1147,8 @@ async def test_syncdatabase_add(
         database=default_sync_db_file[0],
         database_type=database_type,
         compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
+        desc_version=PackageDescVersionEnum.DEFAULT,
+        files_version=FilesVersionEnum.DEFAULT,
     ).add(model=outputpackagebasev1)
 
 
@@ -1157,6 +1165,8 @@ async def test_syncdatabase_stream_management_repo(
         database=default_sync_db_file[0],
         database_type=database_type,
         compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
+        desc_version=PackageDescVersionEnum.DEFAULT,
+        files_version=FilesVersionEnum.DEFAULT,
     ).stream_management_repo(path=outputpackagebasev1_json_files_in_dir)
 
 
@@ -1174,11 +1184,17 @@ async def test_syncdatabase_stream_management_repo_raises_on_empty_dir(
             database=default_sync_db_file[0],
             database_type=database_type,
             compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
+            desc_version=PackageDescVersionEnum.DEFAULT,
+            files_version=FilesVersionEnum.DEFAULT,
         ).stream_management_repo(path=tmp_path)
 
 
 @mark.asyncio
 async def test_syncdatabase_outputpackagebases(files_sync_db_file: Tuple[Path, Path]) -> None:
-    for (name, model) in await syncdb.SyncDatabase(database=files_sync_db_file[0]).outputpackagebases():
+    for (name, model) in await syncdb.SyncDatabase(
+        database=files_sync_db_file[0],
+        desc_version=PackageDescVersionEnum.DEFAULT,
+        files_version=FilesVersionEnum.DEFAULT,
+    ).outputpackagebases():
         assert isinstance(name, str)
         assert isinstance(model, OutputPackageBase)

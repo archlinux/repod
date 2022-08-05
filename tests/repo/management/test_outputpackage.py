@@ -1,10 +1,11 @@
 from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, ContextManager, Dict, List, Union
+from typing import Any, ContextManager, Dict, List, Optional, Union
 
 from pytest import mark, raises
 
+from repod.common.enums import FilesVersionEnum, PackageDescVersionEnum
 from repod.errors import RepoManagementFileError, RepoManagementValidationError
 from repod.files.buildinfo import BuildInfo
 from repod.files.package import Package
@@ -33,35 +34,53 @@ def test_outputpackage_from_package() -> None:
 
 
 @mark.parametrize(
-    "output_package_base_type, expectation",
+    "outputpackagebase_version, packagedesc_version, files_version, expectation",
     [
-        ("1", does_not_raise()),
-        ("base", raises(RuntimeError)),
-        ("9999", raises(RuntimeError)),
+        (1, PackageDescVersionEnum.ONE, FilesVersionEnum.ONE, does_not_raise()),
+        (1, PackageDescVersionEnum.TWO, FilesVersionEnum.ONE, does_not_raise()),
+        (None, PackageDescVersionEnum.ONE, FilesVersionEnum.ONE, raises(RuntimeError)),
+        (9999, PackageDescVersionEnum.ONE, FilesVersionEnum.ONE, raises(RuntimeError)),
     ],
 )
 @mark.asyncio
 async def test_output_package_base_v1_get_packages_as_models(
     packagedescv1: outputpackage.PackageDescV1,
+    packagedescv2: outputpackage.PackageDescV2,
     filesv1: syncdb.FilesV1,
     outputpackagebasev1: outputpackage.OutputPackageBase,
-    output_package_base_type: str,
+    outputpackagebase_version: Optional[int],
+    packagedesc_version: PackageDescVersionEnum,
+    files_version: FilesVersionEnum,
     expectation: ContextManager[str],
 ) -> None:
-    package_desc = packagedescv1
-    files = filesv1
-    output_package_base = outputpackagebasev1
-    # remove all but the first package
-    output_package_base.packages = output_package_base.packages[0:1]  # type: ignore[attr-defined]
+    packagedesc: syncdb.PackageDesc
+    match packagedesc_version:
+        case PackageDescVersionEnum.ONE:
+            packagedesc = packagedescv1
+        case PackageDescVersionEnum.TWO:
+            packagedesc = packagedescv2
 
-    match output_package_base_type:
-        case "base":
+    files: syncdb.Files
+    match files_version:
+        case FilesVersionEnum.ONE:
+            files = filesv1
+
+    outputpackagebase: outputpackage.OutputPackageBase
+    match outputpackagebase_version:
+        case None:
             output_package_base = outputpackage.OutputPackageBase()
-        case "9999":
+        case 1:
+            output_package_base = outputpackagebasev1
+            # remove all but the first package
+            output_package_base.packages = output_package_base.packages[0:1]  # type: ignore[attr-defined]
+        case 9999:
             output_package_base = OutputPackageBaseV9999()
 
     with expectation:
-        assert [(package_desc, files)] == await output_package_base.get_packages_as_models()
+        assert [(packagedesc, files)] == await output_package_base.get_packages_as_models(
+            packagedesc_version=packagedesc_version,
+            files_version=files_version,
+        )
 
 
 @mark.parametrize(

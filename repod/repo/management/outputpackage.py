@@ -9,6 +9,11 @@ from orjson import JSONDecodeError, loads
 from pydantic import BaseModel, ValidationError
 
 from repod import errors
+from repod.common.enums import (
+    FilesVersionEnum,
+    OutputPackageVersionEnum,
+    PackageDescVersionEnum,
+)
 from repod.common.models import (
     Arch,
     Backup,
@@ -52,7 +57,13 @@ from repod.files.buildinfo import (
     PkgBuildSha256Sum,
     StartDir,
 )
-from repod.repo.package.syncdb import Files, FilesV1, PackageDesc, PackageDescV1
+from repod.repo.package.syncdb import (
+    Files,
+    FilesV1,
+    PackageDesc,
+    PackageDescV1,
+    PackageDescV2,
+)
 
 OUTPUT_PACKAGE_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
     1: {
@@ -92,9 +103,6 @@ OUTPUT_PACKAGE_BASE_VERSIONS: Dict[int, Dict[str, Union[int, Set[str]]]] = {
             "packages",
             "version",
         },
-        "files_version": 1,
-        "output_package_version": 1,
-        "package_desc_version": 1,
     },
 }
 DEFAULT_OUTPUT_PACKAGE_BASE_VERSION = 1
@@ -457,17 +465,11 @@ class OutputPackageBase(BaseModel):
                 A subclass of OutputPackage that is the default for the given OutputPackageBase schema_version
             """
 
-            output_versions: List[Optional[int]] = []
-            output_versions.insert(
-                0,
-                OUTPUT_PACKAGE_BASE_VERSIONS[version]["output_package_version"],  # type: ignore[arg-type]
-            )
-            output_versions.insert(
-                1,
-                OUTPUT_PACKAGE_BASE_VERSIONS[version]["files_version"],  # type: ignore[arg-type]
-            )
-            match output_versions:
-                case [1, 1]:
+            outputpackage_version = OutputPackageVersionEnum.DEFAULT.value
+            files_version = FilesVersionEnum.DEFAULT.value
+
+            match (outputpackage_version, files_version):
+                case (1, 1):
                     files = package.get("files")
                     if files:
                         if files.get("schema_version"):
@@ -477,7 +479,10 @@ class OutputPackageBase(BaseModel):
                     return OutputPackageV1(**package)
                 # NOTE: the catch all can never be reached but is here to satisfy our tooling
                 case _:  # pragma: no cover
-                    raise RuntimeError(f"Invalid version ({version} provided for OUTPUT_PACKAGE_BASE_VERSIONS.")
+                    raise RuntimeError(
+                        f"Invalid version provided for OutputPackage ({outputpackage_version} "
+                        f"and/ or Files ({files_version})."
+                    )
 
         used_schema_version = data.get("schema_version")
         if isinstance(used_schema_version, int):
@@ -683,20 +688,29 @@ class OutputPackageBase(BaseModel):
                 "It is not possible to return the version attribute of the template class OutputPackageBase!"
             )
 
-    async def get_packages_as_models(self) -> List[Tuple[PackageDesc, Files]]:
+    async def get_packages_as_models(
+        self,
+        packagedesc_version: PackageDescVersionEnum = PackageDescVersionEnum.DEFAULT,
+        files_version: FilesVersionEnum = FilesVersionEnum.DEFAULT,
+    ) -> List[Tuple[PackageDesc, Files]]:
         """Return the list of packages as tuples of PackageDesc and Files models
-
-        Depending on the mapping in OUTPUT_PACKAGE_BASE_VERSIONS, which targets the schema_version of OutputPackageBase
-        subclasses, different subclasses of PackageDesc are returned.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
         The OutputPackageBase class does not do that!
 
+        Parameters
+        ----------
+        packagedesc_version: int
+            The PackageDesc version to use
+        files_version: int
+            The Files version to use
+
         Raises
         ------
         RuntimeError
-            If an unknown schema_version is encountered in the OutputPackageBase instance
             If this method is called on the template class OutputPackageBase (instead of on one of its subclasses)
+            If an unknown schema_version is encountered in the OutputPackageBase instance.
+            If unsupported packagedesc_version or files_version are encountered.
 
         Returns
         -------
@@ -704,57 +718,88 @@ class OutputPackageBase(BaseModel):
             A list of tuples with one PackageDesc and one Files each
         """
 
-        if hasattr(self, "schema_version"):
-            output_versions: List[Optional[int]] = []
-            schema_version = OUTPUT_PACKAGE_BASE_VERSIONS.get(self.schema_version)  # type: ignore[attr-defined]
-            if schema_version:
-                output_versions.insert(0, schema_version.get("package_desc_version"))  # type: ignore[arg-type]
-                output_versions.insert(1, schema_version.get("files_version"))  # type: ignore[arg-type]
-
-            match output_versions:
-                case [1, 1]:
-                    return [
-                        (
-                            PackageDescV1(
-                                arch=package.arch,
-                                backup=package.backup,
-                                base=self.base,  # type: ignore[attr-defined]
-                                builddate=package.builddate,
-                                checkdepends=package.checkdepends,
-                                conflicts=package.conflicts,
-                                csize=package.csize,
-                                depends=package.depends,
-                                desc=package.desc,
-                                filename=package.filename,
-                                groups=package.groups,
-                                isize=package.isize,
-                                license=package.license,
-                                makedepends=self.makedepends,  # type: ignore[attr-defined]
-                                md5sum=package.md5sum,
-                                name=package.name,
-                                optdepends=package.optdepends,
-                                packager=self.packager,  # type: ignore[attr-defined]
-                                pgpsig=package.pgpsig,
-                                provides=package.provides,
-                                replaces=package.replaces,
-                                sha256sum=package.sha256sum,
-                                url=package.url,
-                                version=self.version,  # type: ignore[attr-defined]
-                            ),
-                            FilesV1(files=package.files.files if package.files else []),
-                        )
-                        for package in self.packages  # type: ignore[attr-defined]
-                    ]
-                case _:
-                    raise RuntimeError(
-                        f"Unknown schema_version ({self.schema_version}) provided "  # type: ignore[attr-defined]
-                        "while attempting to retrieve packages and their files from an instance of "
-                        f"'{self.__class__.__name__}'!"
-                    )
-        else:
+        if not hasattr(self, "schema_version"):
             raise RuntimeError(
                 "Packages and their files can not be retrieved from the templatae class OutputPackageBase!"
             )
+
+        if self.schema_version not in OUTPUT_PACKAGE_BASE_VERSIONS.keys():  # type: ignore[attr-defined]
+            raise RuntimeError(
+                f"OutputPackageBase has invalid schema_version {self.schema_version}!"  # type: ignore[attr-defined]
+            )
+
+        match (packagedesc_version, files_version):
+            case (PackageDescVersionEnum.ONE, FilesVersionEnum.DEFAULT):
+                return [
+                    (
+                        PackageDescV1(
+                            arch=package.arch,
+                            backup=package.backup,
+                            base=self.base,  # type: ignore[attr-defined]
+                            builddate=package.builddate,
+                            checkdepends=package.checkdepends,
+                            conflicts=package.conflicts,
+                            csize=package.csize,
+                            depends=package.depends,
+                            desc=package.desc,
+                            filename=package.filename,
+                            groups=package.groups,
+                            isize=package.isize,
+                            license=package.license,
+                            makedepends=self.makedepends,  # type: ignore[attr-defined]
+                            md5sum=package.md5sum,
+                            name=package.name,
+                            optdepends=package.optdepends,
+                            packager=self.packager,  # type: ignore[attr-defined]
+                            pgpsig=package.pgpsig,
+                            provides=package.provides,
+                            replaces=package.replaces,
+                            sha256sum=package.sha256sum,
+                            url=package.url,
+                            version=self.version,  # type: ignore[attr-defined]
+                        ),
+                        FilesV1(files=package.files.files if package.files else []),
+                    )
+                    for package in self.packages  # type: ignore[attr-defined]
+                ]
+            case (PackageDescVersionEnum.TWO, FilesVersionEnum.DEFAULT):
+                return [
+                    (
+                        PackageDescV2(
+                            arch=package.arch,
+                            backup=package.backup,
+                            base=self.base,  # type: ignore[attr-defined]
+                            builddate=package.builddate,
+                            checkdepends=package.checkdepends,
+                            conflicts=package.conflicts,
+                            csize=package.csize,
+                            depends=package.depends,
+                            desc=package.desc,
+                            filename=package.filename,
+                            groups=package.groups,
+                            isize=package.isize,
+                            license=package.license,
+                            makedepends=self.makedepends,  # type: ignore[attr-defined]
+                            md5sum=package.md5sum,
+                            name=package.name,
+                            optdepends=package.optdepends,
+                            packager=self.packager,  # type: ignore[attr-defined]
+                            provides=package.provides,
+                            replaces=package.replaces,
+                            sha256sum=package.sha256sum,
+                            url=package.url,
+                            version=self.version,  # type: ignore[attr-defined]
+                        ),
+                        FilesV1(files=package.files.files if package.files else []),
+                    )
+                    for package in self.packages  # type: ignore[attr-defined]
+                ]
+            # NOTE: we can never reach this unless we patch PackageDescVersionEnum and/ or FilesVersionEnum
+            case _:  # pragma: no cover
+                raise RuntimeError(
+                    f"Invalid versions provided for Files ({files_version.value}) and/ or "
+                    f"PackageDesc ({packagedesc_version.value}) provided!"
+                )
 
 
 class OutputPackageBaseV1(

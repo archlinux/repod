@@ -150,7 +150,13 @@ def repod_file_management(args: Namespace, settings: Union[SystemSettings, UserS
                 staging=args.staging,
                 testing=args.testing,
             )
-            for base, outputpackagebase in asyncio.run(SyncDatabase(database=args.file).outputpackagebases()):
+            for base, outputpackagebase in asyncio.run(
+                SyncDatabase(
+                    database=args.file,
+                    desc_version=settings.syncdb_settings.desc_version,
+                    files_version=settings.syncdb_settings.files_version,
+                ).outputpackagebases()
+            ):
                 with open(management_repo_dir / f"{base}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case "export":
@@ -165,6 +171,8 @@ def repod_file_management(args: Namespace, settings: Union[SystemSettings, UserS
                 database=args.file,
                 database_type=RepoDbTypeEnum.DEFAULT,
                 compression_type=compression,
+                desc_version=settings.syncdb_settings.desc_version,
+                files_version=settings.syncdb_settings.files_version,
             )
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
@@ -179,6 +187,8 @@ def repod_file_management(args: Namespace, settings: Union[SystemSettings, UserS
                 database=Path("/".join(part.replace(".db", ".files") for part in args.file.parts)),
                 database_type=RepoDbTypeEnum.FILES,
                 compression_type=compression,
+                desc_version=settings.syncdb_settings.desc_version,
+                files_version=settings.syncdb_settings.files_version,
             )
             asyncio.run(files_sync_db.stream_management_repo(path=management_repo_dir))
         case _:
@@ -214,6 +224,8 @@ def repod_file_syncdb(args: Namespace, settings: Union[SystemSettings, UserSetti
                 database=args.file,
                 database_type=RepoDbTypeEnum.DEFAULT,
                 compression_type=compression,
+                desc_version=settings.syncdb_settings.desc_version,
+                files_version=settings.syncdb_settings.files_version,
             )
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
@@ -227,6 +239,8 @@ def repod_file_syncdb(args: Namespace, settings: Union[SystemSettings, UserSetti
                 database=Path("/".join(part.replace(".db", ".files") for part in args.file.parts)),
                 database_type=RepoDbTypeEnum.FILES,
                 compression_type=compression,
+                desc_version=settings.syncdb_settings.desc_version,
+                files_version=settings.syncdb_settings.files_version,
             )
             asyncio.run(files_sync_db.stream_management_repo(path=management_repo_dir))
         case "export":
@@ -237,7 +251,13 @@ def repod_file_syncdb(args: Namespace, settings: Union[SystemSettings, UserSetti
                 staging=args.staging,
                 testing=args.testing,
             )
-            for base, outputpackagebase in asyncio.run(SyncDatabase(database=args.file).outputpackagebases()):
+            for base, outputpackagebase in asyncio.run(
+                SyncDatabase(
+                    database=args.file,
+                    desc_version=settings.syncdb_settings.desc_version,
+                    files_version=settings.syncdb_settings.files_version,
+                ).outputpackagebases()
+            ):
                 with open(management_repo_dir / f"{base}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case _:

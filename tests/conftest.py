@@ -18,7 +18,12 @@ from pydantic import BaseModel
 from pytest import fixture
 
 from repod.common.defaults import ARCHITECTURES
-from repod.common.enums import CompressionTypeEnum, PkgTypeEnum
+from repod.common.enums import (
+    CompressionTypeEnum,
+    FilesVersionEnum,
+    PackageDescVersionEnum,
+    PkgTypeEnum,
+)
 from repod.config.settings import (
     DEFAULT_ARCHITECTURE,
     DEFAULT_DATABASE_COMPRESSION,
@@ -1290,7 +1295,6 @@ def packagedescv1(
 
 @fixture(scope="function")
 def packagedescv2(
-    base64_pgpsig: str,
     default_description: str,
     default_filename: str,
     default_full_version: str,
@@ -1362,6 +1366,8 @@ async def default_sync_db_file(
         database=sync_db_tarfile,
         database_type=RepoDbTypeEnum.DEFAULT,
         compression_type=compression,
+        desc_version=PackageDescVersionEnum.DEFAULT,
+        files_version=FilesVersionEnum.DEFAULT,
     )
     await sync_db.add(model=outputpackagebasev1)
 
@@ -1414,6 +1420,8 @@ async def files_sync_db_file(
             database=sync_db_tarfile,
             database_type=RepoDbTypeEnum.FILES,
             compression_type=compression,
+            desc_version=PackageDescVersionEnum.DEFAULT,
+            files_version=FilesVersionEnum.DEFAULT,
         )
         await sync_db.add(model=outputpackagebasev1)
 

@@ -9,7 +9,11 @@ from pytest import LogCaptureFixture, mark, raises
 
 from repod import commands
 from repod.cli import cli
-from repod.common.enums import PkgVerificationTypeEnum
+from repod.common.enums import (
+    FilesVersionEnum,
+    PackageDescVersionEnum,
+    PkgVerificationTypeEnum,
+)
 
 
 @mark.parametrize(
@@ -262,6 +266,10 @@ def test_repod_file_management(
 
     settings_mock = Mock()
     settings_mock.get_repo_path = Mock(return_value=tmp_path)
+    syncdb_settings_mock = Mock()
+    syncdb_settings_mock.desc_version = PackageDescVersionEnum.DEFAULT
+    syncdb_settings_mock.files_version = FilesVersionEnum.DEFAULT
+    settings_mock.syncdb_settings = syncdb_settings_mock
 
     if args.management == "import":
         args.file = default_sync_db_file[1]
@@ -327,6 +335,10 @@ def test_repod_file_syncdb(
 
     settings_mock = Mock()
     settings_mock.get_repo_path = Mock(return_value=tmp_path)
+    syncdb_settings_mock = Mock()
+    syncdb_settings_mock.desc_version = PackageDescVersionEnum.DEFAULT
+    syncdb_settings_mock.files_version = FilesVersionEnum.DEFAULT
+    settings_mock.syncdb_settings = syncdb_settings_mock
 
     if args.syncdb == "import":
         if invalid_db:
