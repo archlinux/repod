@@ -1114,7 +1114,7 @@ class PackageDescV1(
         The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
         identifies a package's packager
     pgpsig: str
-        The attribute can be used to describe the (required) data below a %PGPSIG% identifier in a 'desc' file, which
+        The attribute can be used to describe the (optional) data below a %PGPSIG% identifier in a 'desc' file, which
         identifies a package's PGP signature
     provides: Optional[List[str]]
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which

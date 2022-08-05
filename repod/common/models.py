@@ -291,7 +291,7 @@ class PgpSig(BaseModel):
     Attributes
     ----------
     pgpsig: str
-        The attribute can be used to describe the (required) data below a %PGPSIG% identifier in a 'desc' file, which
+        The attribute can be used to describe the (optional) data below a %PGPSIG% identifier in a 'desc' file, which
         identifies a package's PGP signature
     """
 
