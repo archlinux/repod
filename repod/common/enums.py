@@ -111,6 +111,54 @@ class CompressionTypeEnum(Enum):
         return [".files", ".files.tar"] + [".files.tar." + name.value for name in cls if len(name.value) > 0]
 
 
+class FilesVersionEnum(IntEnum):
+    """An IntEnum to distinguish different version of Files
+
+    Attributes
+    ----------
+    DEFAULT: int
+        The default Files version
+    ONE: int
+        The first Files version
+    """
+
+    DEFAULT = 1
+    ONE = 1
+
+
+class OutputPackageVersionEnum(IntEnum):
+    """An IntEnum to distinguish different version of OutputPackage
+
+    Attributes
+    ----------
+    DEFAULT: int
+        The default OutputPackage version
+    ONE: int
+        The first OutputPackage version
+    """
+
+    DEFAULT = 1
+    ONE = 1
+
+
+class PackageDescVersionEnum(IntEnum):
+    """An IntEnum to distinguish different version of PackageDesc
+
+    Attributes
+    ----------
+    DEFAULT: int
+        The default PackageDesc version
+    ONE: int
+        The first PackageDesc version
+    TWO: int
+        The second PackageDesc version
+    """
+
+    DEFAULT = 1
+    ONE = 1
+    TWO = 2
+
+
 class PkgVerificationTypeEnum(Enum):
     """An Enum to distinguish different package signature verification implementations
 
