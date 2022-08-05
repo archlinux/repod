@@ -122,7 +122,38 @@ PACKAGE_DESC_VERSIONS: Dict[int, Dict[str, Union[Set[str], int]]] = {
         },
         "output_package_version": 1,
         "output_package_base_version": 1,
-    }
+    },
+    2: {
+        "required": {
+            "arch",
+            "base",
+            "builddate",
+            "csize",
+            "desc",
+            "filename",
+            "isize",
+            "license",
+            "md5sum",
+            "name",
+            "packager",
+            "sha256sum",
+            "url",
+            "version",
+        },
+        "optional": {
+            "checkdepends",
+            "conflicts",
+            "depends",
+            "backup",
+            "groups",
+            "makedepends",
+            "optdepends",
+            "provides",
+            "replaces",
+        },
+        "output_package_version": 1,
+        "output_package_base_version": 1,
+    },
 }
 
 
@@ -553,6 +584,14 @@ class PackageDesc(BaseModel):
                 except ValidationError as e:
                     raise RepoManagementValidationError(
                         "A validation error occured while attempting to instantiate a PackageDescV1 using the data:\n"
+                        f"{data}\n{e}"
+                    )
+            case 2:
+                try:
+                    return PackageDescV2(**data)
+                except ValidationError as e:
+                    raise RepoManagementValidationError(
+                        "A validation error occured while attempting to instantiate a PackageDescV2 using the data:\n"
                         f"{data}\n{e}"
                     )
             case _:
@@ -1136,6 +1175,111 @@ class PackageDescV1(
     """
 
 
+class PackageDescV2(
+    PackageDesc,
+    Arch,
+    Backup,
+    Base,
+    BuildDate,
+    CheckDepends,
+    Conflicts,
+    CSize,
+    Depends,
+    Desc,
+    FileName,
+    Groups,
+    ISize,
+    License,
+    MakeDepends,
+    Md5Sum,
+    Name,
+    OptDepends,
+    Packager,
+    Provides,
+    Replaces,
+    SchemaVersionV1,
+    Sha256Sum,
+    Url,
+    Version,
+):
+    """A model describing all identifiers in a 'desc' file (version 1)
+
+    Attributes
+    ----------
+    arch: str
+        The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
+        identifies a package's architecture
+    backup: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
+        identifies which file(s) of a package pacman will create backups for
+    base: str
+        The attribute can be used to describe the (required) data below a %BASE% identifier in a 'desc' file, which
+        identifies a package's pkgbase
+    builddate: int
+        The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
+        which identifies a package's build date (represented in seconds since the epoch)
+    checkdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
+        which identifies a package's checkdepends
+    conflicts: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
+        identifies what other package(s) a package conflicts with
+    csize: int
+        The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
+        identifies a package's size
+    depends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
+        identifies what other package(s) a package depends on
+    desc: str
+        The attribute can be used to describe the (required) data below a %DESC% identifier in a 'desc' file, which
+        identifies a package's description
+    filename: str
+        The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
+        identifies a package's file name
+    groups: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
+        identifies a package's groups
+    isize: int
+        The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
+        identifies a package's installed size
+    license: List[str]
+        The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
+        identifies a package's license(s)
+    makedepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
+        which identifies a package's makedepends
+    md5sum: str
+        The attribute can be used to describe the (required) data below an %MD5SUM% identifier in a 'desc' file, which
+        identifies a package's md5 checksum
+    name: str
+        The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
+        identifies a package's name
+    optdepends: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
+        which identifies what other package(s) a package optionally depends on
+    packager: str
+        The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
+        identifies a package's packager
+    provides: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
+        identifies what other package(s) a package provides
+    replaces: Optional[List[str]]
+        The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
+        identifies what other package(s) a package replaces
+    schema_version: PositiveInt
+        A positive integer - 1 - identifying the schema version of the object
+    sha256sum: str
+        The attribute can be used to describe the (required) data below an %SHA256SUM% identifier in a 'desc' file,
+        which identifies a package's sha256 checksum
+    url: str
+        The attribute can be used to describe the (required) data below a %URL% identifier in a 'desc' file, which
+        identifies a package's URL
+    version: str
+        The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
+        identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
+    """
+
+
 def export_schemas(output: Union[Path, str]) -> None:
     """Export the JSON schema of selected pydantic models to an output directory
 
@@ -1150,7 +1294,7 @@ def export_schemas(output: Union[Path, str]) -> None:
         If output is not an existing directory
     """
 
-    classes = [FilesV1, PackageDescV1]
+    classes = [FilesV1, PackageDescV1, PackageDescV2]
 
     if isinstance(output, str):
         output = Path(output)
