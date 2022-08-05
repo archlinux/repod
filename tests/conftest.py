@@ -36,7 +36,12 @@ from repod.files.pkginfo import PkgInfo, PkgInfoV1, PkgInfoV2
 from repod.repo.management import OutputBuildInfo, OutputPackageBase
 from repod.repo.management.outputpackage import OutputPackageBaseV1, OutputPackageV1
 from repod.repo.package import Files, PackageDesc, RepoDbTypeEnum
-from repod.repo.package.syncdb import FilesV1, PackageDescV1, SyncDatabase
+from repod.repo.package.syncdb import (
+    FilesV1,
+    PackageDescV1,
+    PackageDescV2,
+    SyncDatabase,
+)
 
 
 class SchemaVersion9999(BaseModel):
@@ -1277,6 +1282,36 @@ def packagedescv1(
         name="foo",
         packager=default_packager,
         pgpsig=base64_pgpsig,
+        sha256sum=sha256sum,
+        url=url,
+        version=default_full_version,
+    )
+
+
+@fixture(scope="function")
+def packagedescv2(
+    base64_pgpsig: str,
+    default_description: str,
+    default_filename: str,
+    default_full_version: str,
+    default_license: str,
+    default_packager: str,
+    md5sum: str,
+    sha256sum: str,
+    url: str,
+) -> PackageDescV2:
+    return PackageDescV2(
+        arch="any",
+        base="foo",
+        builddate=1,
+        csize=1,
+        desc=default_description,
+        filename=default_filename,
+        isize=1,
+        license=[default_license],
+        md5sum=md5sum,
+        name="foo",
+        packager=default_packager,
         sha256sum=sha256sum,
         url=url,
         version=default_full_version,
