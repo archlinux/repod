@@ -174,6 +174,21 @@ PackageDescV1
 .. literalinclude:: ../schema/PackageDescV1.json
    :language: json
 
+.. _packagedescv2_schema:
+
+PackageDescV2
+"""""""""""""
+
+This version removes the ``pgpsig`` field to lower the size of the created
+:ref:`sync database` files.
+
+.. note::
+
+   This schema represents the definition of :ref:`desc_v2`.
+
+.. literalinclude:: ../schema/PackageDescV2.json
+   :language: json
+
 .. |version control repository| raw:: html
 
   <a target="blank" href="https://en.wikipedia.org/wiki/Repository_(version_control)">version control repository</a>
