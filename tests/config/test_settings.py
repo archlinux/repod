@@ -262,6 +262,7 @@ def test_systemsettings(
     has_managementrepo: bool,
     has_repositories: bool,
     caplog: LogCaptureFixture,
+    empty_file: Path,
 ) -> None:
     caplog.set_level(DEBUG)
 
@@ -281,30 +282,33 @@ def test_systemsettings(
                     with patch(
                         "repod.config.settings.SystemSettings._source_repo_base", Path("/default/source_repo_base")
                     ):
-                        conf = settings.SystemSettings(
-                            management_repo=(
-                                settings.ManagementRepo(directory=Path("/custom_management_repo"))
-                                if has_managementrepo
-                                else None
-                            ),
-                            repositories=[
-                                settings.PackageRepo(
-                                    architecture="any",
-                                    name="custom",
-                                    management_repo=settings.ManagementRepo(directory=Path("/custom_management_repo")),
-                                    package_pool=Path("/custom_package_pool"),
-                                    source_pool=Path("/custom_source_pool"),
-                                )
-                            ]
-                            if has_repositories
-                            else [],
-                        )
-                        assert isinstance(conf, settings.SystemSettings)
-                        assert len(conf.repositories) > 0
+                        with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
+                            conf = settings.SystemSettings(
+                                management_repo=(
+                                    settings.ManagementRepo(directory=Path("/custom_management_repo"))
+                                    if has_managementrepo
+                                    else None
+                                ),
+                                repositories=[
+                                    settings.PackageRepo(
+                                        architecture="any",
+                                        name="custom",
+                                        management_repo=settings.ManagementRepo(
+                                            directory=Path("/custom_management_repo")
+                                        ),
+                                        package_pool=Path("/custom_package_pool"),
+                                        source_pool=Path("/custom_source_pool"),
+                                    )
+                                ]
+                                if has_repositories
+                                else [],
+                            )
+                            assert isinstance(conf, settings.SystemSettings)
+                            assert len(conf.repositories) > 0
 
-                        create_repository_directories_mock.assert_called_once()
-                        ensure_non_overlapping_repositories_mock.assert_called_once()
-                        consolidate_repositories_with_defaults_mock.assert_called_once()
+                            create_repository_directories_mock.assert_called_once()
+                            ensure_non_overlapping_repositories_mock.assert_called_once()
+                            consolidate_repositories_with_defaults_mock.assert_called_once()
 
 
 @mark.parametrize(
@@ -328,6 +332,7 @@ def test_usersettings(
     has_managementrepo: bool,
     has_repositories: bool,
     caplog: LogCaptureFixture,
+    empty_file: Path,
 ) -> None:
     caplog.set_level(DEBUG)
 
@@ -347,30 +352,33 @@ def test_usersettings(
                     with patch(
                         "repod.config.settings.UserSettings._source_repo_base", Path("/default/source_repo_base")
                     ):
-                        conf = settings.UserSettings(
-                            management_repo=(
-                                settings.ManagementRepo(directory=Path("/custom_management_repo"))
-                                if has_managementrepo
-                                else None
-                            ),
-                            repositories=[
-                                settings.PackageRepo(
-                                    architecture="any",
-                                    name="custom",
-                                    management_repo=settings.ManagementRepo(directory=Path("/custom_management_repo")),
-                                    package_pool=Path("/custom_package_pool"),
-                                    source_pool=Path("/custom_source_pool"),
-                                )
-                            ]
-                            if has_repositories
-                            else [],
-                        )
-                        assert isinstance(conf, settings.UserSettings)
-                        assert len(conf.repositories) > 0
+                        with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
+                            conf = settings.UserSettings(
+                                management_repo=(
+                                    settings.ManagementRepo(directory=Path("/custom_management_repo"))
+                                    if has_managementrepo
+                                    else None
+                                ),
+                                repositories=[
+                                    settings.PackageRepo(
+                                        architecture="any",
+                                        name="custom",
+                                        management_repo=settings.ManagementRepo(
+                                            directory=Path("/custom_management_repo")
+                                        ),
+                                        package_pool=Path("/custom_package_pool"),
+                                        source_pool=Path("/custom_source_pool"),
+                                    )
+                                ]
+                                if has_repositories
+                                else [],
+                            )
+                            assert isinstance(conf, settings.UserSettings)
+                            assert len(conf.repositories) > 0
 
-                        create_repository_directories_mock.assert_called_once()
-                        ensure_non_overlapping_repositories_mock.assert_called_once()
-                        consolidate_repositories_with_defaults_mock.assert_called_once()
+                            create_repository_directories_mock.assert_called_once()
+                            ensure_non_overlapping_repositories_mock.assert_called_once()
+                            consolidate_repositories_with_defaults_mock.assert_called_once()
 
 
 @mark.parametrize(

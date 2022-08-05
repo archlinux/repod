@@ -10,6 +10,7 @@ from tarfile import open as tarfile_open
 from tempfile import NamedTemporaryFile, TemporaryDirectory, mkstemp
 from textwrap import dedent
 from typing import IO, Any, AsyncGenerator, Generator, List, Tuple
+from unittest.mock import patch
 
 import orjson
 import pytest_asyncio
@@ -1624,5 +1625,6 @@ def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
 
 
 @fixture(scope="function")
-def usersettings(packagerepo_in_tmp_path: PackageRepo) -> UserSettings:
-    return UserSettings(repositories=[packagerepo_in_tmp_path])
+def usersettings(packagerepo_in_tmp_path: PackageRepo, empty_file: Path) -> UserSettings:
+    with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
+        return UserSettings(repositories=[packagerepo_in_tmp_path])
