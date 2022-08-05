@@ -12,6 +12,12 @@ For more detailed information have a look at the |git log|.
 [Unreleased]
 ------------
 
+Added
+^^^^^
+
+* Package verification based on `pacman-key` may be configured by setting the
+  global configuration option `package_verification` to `pacman-key`.
+
 Changed
 ^^^^^^^
 
