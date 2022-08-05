@@ -10,12 +10,18 @@ from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
 
 from repod import export_schemas
 from repod.cli import argparse
-from repod.common.enums import CompressionTypeEnum, PkgTypeEnum, RepoTypeEnum
+from repod.common.enums import (
+    CompressionTypeEnum,
+    PkgTypeEnum,
+    PkgVerificationTypeEnum,
+    RepoTypeEnum,
+)
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
 from repod.files.pkginfo import PkgInfoV2
 from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.package import RepoDbTypeEnum
+from repod.verification import PacmanKeyVerifier
 
 ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
 
@@ -61,11 +67,25 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
         case "import":
             packages: List[Package] = []
             for package_path in args.file:
+                signature_path = Path(str(package_path) + ".sig") if args.with_signature else None
+                if settings.package_verification == PkgVerificationTypeEnum.PACMANKEY and args.with_signature:
+                    debug(f"Verifying package signature based on {settings.package_verification.value}...")
+                    verifier = PacmanKeyVerifier()
+                    if verifier.verify(
+                        package=package_path,
+                        signature=signature_path,  # type: ignore[arg-type]
+                    ):
+                        debug("Package signature successfully verified!")
+                    else:
+                        raise RuntimeError(
+                            f"Verification of package {package_path} with signature {signature_path} failed!"
+                        )
+
                 packages.append(
                     asyncio.run(
                         Package.from_file(
                             package=package_path,
-                            signature=Path(str(package_path) + ".sig") if args.with_signature else None,
+                            signature=signature_path,
                         )
                     )
                 )
