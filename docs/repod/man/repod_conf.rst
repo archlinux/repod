@@ -77,6 +77,27 @@ them. For any undefined option defaults are assumed (see
 * *source_pool*: A string setting a directory that serves as the source tarball
   pool for any repository, which does not define it.
 
+.. _repod.conf_syncdb_settings:
+
+SYNC DATABASE SETTINGS
+^^^^^^^^^^^^^^^^^^^^^^
+
+Sync database settings offer control over the way data for repository sync
+databases is exported. For any undefined option defaults are assumed (see
+:ref:`repod.conf_default_options`).
+
+* *desc_version*: An integer setting the desc version used when exporting the
+  management repository to a repository sync database.
+  Understood values are
+
+  .. program-output:: python -c "from repod.common.enums import PackageDescVersionEnum; print(', '.join(str(e.value) for e in PackageDescVersionEnum))"
+
+* *files_version*: An integer setting the files version used when exporting the
+  management repository to a repository sync database.
+  Understood values are
+
+  .. program-output:: python -c "from repod.common.enums import FilesVersionEnum; print(', '.join(str(e.value) for e in FilesVersionEnum))"
+
 .. _repod.conf_repository_options:
 
 REPOSITORY OPTIONS
@@ -155,6 +176,11 @@ evaluates to the following configuration:
 
   architecture = "any"
   database_compression = "gz"
+
+  [syncdb_settings]
+  desc_version = 1
+  files_version = 1
+
   [management_repo]
   directory = "default"
 
@@ -222,6 +248,14 @@ DEFAULT OPTIONS
 * The default repository *name* if no repository is defined:
 
   .. program-output:: python -c "from repod.config.defaults import DEFAULT_NAME; print('\"' + DEFAULT_NAME + '\"')"
+
+* The default *desc_version* for sync databases if none is defined:
+
+  .. program-output:: python -c "from repod.common.enums import PackageDescVersionEnum; print(PackageDescVersionEnum.DEFAULT.value)"
+
+* The default *files_version* for sync databases if none is defined:
+
+  .. program-output:: python -c "from repod.common.enums import FilesVersionEnum; print(FilesVersionEnum.DEFAULT.value)"
 
 EXAMPLES
 ^^^^^^^^
