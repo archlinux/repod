@@ -17,6 +17,11 @@ Added
 
 * Package verification based on `pacman-key` may be configured by setting the
   global configuration option `package_verification` to `pacman-key`.
+* A ``PackageDescV2`` which removes the ``%PGPSIG%`` identifier in the ``desc``
+  files rendered from it. The default is still ``PackageDescV1`` (which
+  provides the ``%PGPSIG%`` identifier), but users may already try the new
+  functionality using the ``syncdb_settings.desc_version`` option in
+  ``repod.conf`` (see ``man 5 repod.conf``).
 
 Changed
 ^^^^^^^
