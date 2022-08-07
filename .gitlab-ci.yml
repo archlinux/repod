@@ -104,6 +104,18 @@ system_integration:
   script:
     - pytest -vv tests/ -m 'integration'
 
+system_integration_core:
+  extends: .system_integration_test
+  cache:
+    paths:
+      - core/
+  script:
+    - pacman --noconfirm -Syu --needed rsync
+    - rsync --archive --copy-links --delete --human-readable --verbose --timeout=600 --contimeout=60 rsync://geo.mirror.pkgbuild.com/packages/core .
+    - find "${PWD}/core/os/x86_64/" -type f -name '*.pkg.tar.*' -not -name '*.sig' | xargs --max-args 1 --verbose repod-file package inspect >/dev/null
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $TEST_CORE
+
 .build:
   stage: build
   before_script:
