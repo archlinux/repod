@@ -209,7 +209,7 @@ def test_repod_file_package(
         args.file = [debug_package_file[0] if debug_pkg else default_package_file[0]]
     if args.package == "import":
         settings_mock.get_repo_path = Mock(return_value=tmp_path)
-        args.repo = Path("default")
+        args.name = Path("default")
 
     with patch("repod.cli.cli.PacmanKeyVerifier", Mock(return_value=Mock(verify=Mock(return_value=package_verifies)))):
         with expectation:
@@ -217,49 +217,38 @@ def test_repod_file_package(
 
 
 @mark.parametrize(
-    "args, invalid_db, expectation",
+    "args, expectation",
     [
-        (Namespace(management="import", debug=False, staging=False, testing=False), False, does_not_raise()),
+        (Namespace(repo="importdb", debug=False, staging=False, testing=False), does_not_raise()),
         (
-            Namespace(management="export", compression="none", debug=False, staging=False, testing=False),
-            False,
+            Namespace(repo="writedb", compression="none", debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(management="export", compression="bz2", debug=False, staging=False, testing=False),
-            False,
+            Namespace(repo="writedb", compression="bz2", debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(management="export", compression="gz", debug=False, staging=False, testing=False),
-            False,
+            Namespace(repo="writedb", compression="gz", debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(management="export", compression="xz", debug=False, staging=False, testing=False),
-            False,
+            Namespace(repo="writedb", compression="xz", debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
         (
-            Namespace(management="export", compression="zst", debug=False, staging=False, testing=False),
-            False,
+            Namespace(repo="writedb", compression="zst", debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
-        (
-            Namespace(management="export", compression="none", debug=False, staging=False, testing=False),
-            True,
-            raises(RuntimeError),
-        ),
-        (Namespace(management="foo"), False, raises(RuntimeError)),
+        (Namespace(repo="foo"), raises(RuntimeError)),
     ],
 )
-def test_repod_file_management(
+def test_repod_file_repo(
     caplog: LogCaptureFixture,
     outputpackagebasev1_json_files_in_dir: Path,
     default_sync_db_file: Tuple[Path, Path],
     tmp_path: Path,
     args: Namespace,
-    invalid_db: bool,
     expectation: ContextManager[str],
 ) -> None:
     caplog.set_level(DEBUG)
@@ -271,87 +260,14 @@ def test_repod_file_management(
     syncdb_settings_mock.files_version = FilesVersionEnum.DEFAULT
     settings_mock.syncdb_settings = syncdb_settings_mock
 
-    if args.management == "import":
+    if args.repo == "importdb":
         args.file = default_sync_db_file[1]
-        args.repo = tmp_path
-    if args.management == "export":
-        if invalid_db:
-            args.file = tmp_path / "foo"
-        else:
-            args.file = tmp_path / "test.db"
-        args.repo = outputpackagebasev1_json_files_in_dir
+        args.name = tmp_path
+    if args.repo == "writedb":
+        args.name = "default"
 
     with expectation:
-        cli.repod_file_management(args=args, settings=settings_mock)
-
-
-@mark.parametrize(
-    "args, invalid_db, expectation",
-    [
-        (
-            Namespace(syncdb="import", compression="none", debug=False, staging=False, testing=False),
-            False,
-            does_not_raise(),
-        ),
-        (
-            Namespace(syncdb="import", compression="bz2", debug=False, staging=False, testing=False),
-            False,
-            does_not_raise(),
-        ),
-        (
-            Namespace(syncdb="import", compression="gz", debug=False, staging=False, testing=False),
-            False,
-            does_not_raise(),
-        ),
-        (
-            Namespace(syncdb="import", compression="xz", debug=False, staging=False, testing=False),
-            False,
-            does_not_raise(),
-        ),
-        (
-            Namespace(syncdb="import", compression="zst", debug=False, staging=False, testing=False),
-            False,
-            does_not_raise(),
-        ),
-        (
-            Namespace(syncdb="import", compression="none", debug=False, staging=False, testing=False),
-            True,
-            raises(RuntimeError),
-        ),
-        (Namespace(syncdb="export", debug=False, staging=False, testing=False), False, does_not_raise()),
-        (Namespace(syncdb="foo"), False, raises(RuntimeError)),
-    ],
-)
-def test_repod_file_syncdb(
-    caplog: LogCaptureFixture,
-    outputpackagebasev1_json_files_in_dir: Path,
-    default_sync_db_file: Tuple[Path, Path],
-    tmp_path: Path,
-    args: Namespace,
-    invalid_db: bool,
-    expectation: ContextManager[str],
-) -> None:
-    caplog.set_level(DEBUG)
-
-    settings_mock = Mock()
-    settings_mock.get_repo_path = Mock(return_value=tmp_path)
-    syncdb_settings_mock = Mock()
-    syncdb_settings_mock.desc_version = PackageDescVersionEnum.DEFAULT
-    syncdb_settings_mock.files_version = FilesVersionEnum.DEFAULT
-    settings_mock.syncdb_settings = syncdb_settings_mock
-
-    if args.syncdb == "import":
-        if invalid_db:
-            args.file = tmp_path / "foo"
-        else:
-            args.file = tmp_path / "test.db"
-        args.repo = outputpackagebasev1_json_files_in_dir
-    if args.syncdb == "export":
-        args.file = default_sync_db_file[1]
-        args.repo = tmp_path
-
-    with expectation:
-        cli.repod_file_syncdb(args=args, settings=settings_mock)
+        cli.repod_file_repo(args=args, settings=settings_mock)
 
 
 @mark.parametrize(
@@ -381,23 +297,20 @@ def test_repod_file_schema(
         (Namespace(subcommand="package", config=None, system=False, verbose=True, debug=False), does_not_raise()),
         (Namespace(subcommand="package", config=None, system=False, verbose=False, debug=True), does_not_raise()),
         (Namespace(subcommand="package", config=None, system=False, verbose=True, debug=True), does_not_raise()),
-        (Namespace(subcommand="management", config=None, system=False, verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="syncdb", config=None, system=False, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="repo", config=None, system=False, verbose=False, debug=False), does_not_raise()),
         (Namespace(subcommand="schema", config=None, system=False, verbose=False, debug=False), does_not_raise()),
         (Namespace(subcommand="foo", config=None, system=False, verbose=False, debug=False), raises(RuntimeError)),
         (Namespace(subcommand="package", config=None, system=True, verbose=False, debug=False), does_not_raise()),
         (Namespace(subcommand="package", config=None, system=True, verbose=True, debug=False), does_not_raise()),
         (Namespace(subcommand="package", config=None, system=True, verbose=False, debug=True), does_not_raise()),
         (Namespace(subcommand="package", config=None, system=True, verbose=True, debug=True), does_not_raise()),
-        (Namespace(subcommand="management", config=None, system=True, verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="syncdb", config=None, system=True, verbose=False, debug=False), does_not_raise()),
+        (Namespace(subcommand="repo", config=None, system=True, verbose=False, debug=False), does_not_raise()),
         (Namespace(subcommand="schema", config=None, system=True, verbose=False, debug=False), does_not_raise()),
         (Namespace(subcommand="foo", config=None, system=True, verbose=False, debug=False), raises(RuntimeError)),
     ],
 )
 @patch("repod.cli.cli.repod_file_schema")
-@patch("repod.cli.cli.repod_file_syncdb")
-@patch("repod.cli.cli.repod_file_management")
+@patch("repod.cli.cli.repod_file_repo")
 @patch("repod.cli.cli.repod_file_package")
 @patch("repod.cli.argparse.ArgumentParser.parse_args")
 @patch("repod.cli.cli.SystemSettings")
@@ -407,8 +320,7 @@ def test_repod_file(
     systemsettings_mock: Mock,
     parse_args_mock: Mock,
     repod_file_package_mock: Mock,
-    repod_file_management_mock: Mock,
-    repod_file_syncdb_mock: Mock,
+    repod_file_repo_mock: Mock,
     repod_file_schema_mock: Mock,
     args: Namespace,
     expectation: ContextManager[str],
@@ -427,12 +339,8 @@ def test_repod_file(
                 repod_file_package_mock.assert_called_once_with(
                     args=args, settings=system_settings if args.system else user_settings
                 )
-            case "management":
-                repod_file_management_mock.assert_called_once_with(
-                    args=args, settings=system_settings if args.system else user_settings
-                )
-            case "syncdb":
-                repod_file_syncdb_mock.assert_called_once_with(
+            case "repo":
+                repod_file_repo_mock.assert_called_once_with(
                     args=args, settings=system_settings if args.system else user_settings
                 )
             case "schema":
@@ -477,8 +385,8 @@ def transform_databases(db: str, default_syncdb: Path, tmp_path: Path) -> None:
             "-d",
             "-c",
             f"{config_path}",
-            "management",
-            "import",
+            "repo",
+            "importdb",
             f"/var/lib/pacman/sync/{db}.files",
             f"{tmp_path}/data/repo/foo/",
         ],
@@ -491,10 +399,9 @@ def transform_databases(db: str, default_syncdb: Path, tmp_path: Path) -> None:
             "-d",
             "-c",
             f"{config_path}",
-            "management",
-            "export",
+            "repo",
+            "writedb",
             f"{tmp_path}/data/repo/foo/",
-            str(default_syncdb),
         ],
         debug=True,
         check=True,

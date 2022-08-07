@@ -88,7 +88,7 @@ class ArgParseFactory:
             help="package files",
         )
         package_import_parser.add_argument(
-            "repo",
+            "name",
             type=Path,
             help=("name of repository to import to"),
         )
@@ -125,160 +125,77 @@ class ArgParseFactory:
             help="import to testing repository",
         )
 
-        management = subcommands.add_parser(name="management", help="interact with management repositories")
-        management_subcommands = management.add_subparsers(dest="management")
+        repo_parser = subcommands.add_parser(name="repo", help="interact with repositories")
+        repo_subcommands = repo_parser.add_subparsers(dest="repo")
 
-        management_import_parser = management_subcommands.add_parser(
-            name="import",
-            help="import from repository sync database",
+        repo_importdb_parser = repo_subcommands.add_parser(
+            name="importdb",
+            help="import state from a repository sync database",
         )
-        management_import_parser.add_argument(
+        repo_importdb_parser.add_argument(
             "file",
             type=cls.string_to_file_path,
             help=("repository sync database"),
         )
-        management_import_parser.add_argument(
-            "repo",
+        repo_importdb_parser.add_argument(
+            "name",
             type=Path,
             help=("name of repository to import to"),
         )
-        mutual_exclusive_management_import = management_import_parser.add_mutually_exclusive_group()
-        mutual_exclusive_management_import.add_argument(
+        mutual_exclusive_repo_import = repo_importdb_parser.add_mutually_exclusive_group()
+        mutual_exclusive_repo_import.add_argument(
             "-D",
             "--debug",
             action="store_true",
             help="import to debug repository",
         )
-        mutual_exclusive_management_import.add_argument(
+        mutual_exclusive_repo_import.add_argument(
             "-S",
             "--staging",
             action="store_true",
             help="import to staging repository",
         )
-        mutual_exclusive_management_import.add_argument(
+        mutual_exclusive_repo_import.add_argument(
             "-T",
             "--testing",
             action="store_true",
             help="import to testing repository",
         )
 
-        management_export_parser = management_subcommands.add_parser(
-            name="export",
-            help="export to repository sync database",
+        repo_writedb_parser = repo_subcommands.add_parser(
+            name="writedb",
+            help="export state to repository sync database",
         )
-        management_export_parser.add_argument(
-            "repo",
+        repo_writedb_parser.add_argument(
+            "name",
             type=Path,
-            help=("name of repository to export from"),
+            help=("name of repository to write to"),
         )
-        management_export_parser.add_argument(
-            "file",
-            type=Path,
-            help=("repository sync database to write to"),
-        )
-        management_export_parser.add_argument(
+        repo_writedb_parser.add_argument(
             "-c",
             "--compression",
             choices=["none", "bz2", "bzip2", "gz", "gzip", "lzma", "xz", "zst", "zstandard"],
             default=DEFAULT_DATABASE_COMPRESSION.value,
             help=f"database compression (defaults to {DEFAULT_DATABASE_COMPRESSION.value})",
         )
-        mutual_exclusive_management_export = management_export_parser.add_mutually_exclusive_group()
-        mutual_exclusive_management_export.add_argument(
+        mutual_exclusive_repo_export = repo_writedb_parser.add_mutually_exclusive_group()
+        mutual_exclusive_repo_export.add_argument(
             "-D",
             "--debug",
             action="store_true",
             help="export from debug repository",
         )
-        mutual_exclusive_management_export.add_argument(
+        mutual_exclusive_repo_export.add_argument(
             "-S",
             "--staging",
             action="store_true",
             help="export from staging repository",
         )
-        mutual_exclusive_management_export.add_argument(
+        mutual_exclusive_repo_export.add_argument(
             "-T",
             "--testing",
             action="store_true",
             help="export from testing repository",
-        )
-
-        syncdb = subcommands.add_parser(name="syncdb", help="interact with repository sync databases")
-        syncdb_subcommands = syncdb.add_subparsers(dest="syncdb")
-
-        syncdb_import_parser = syncdb_subcommands.add_parser(
-            name="import",
-            help="import from management repository",
-        )
-        syncdb_import_parser.add_argument(
-            "repo",
-            type=Path,
-            help=("name of repository to import from"),
-        )
-        syncdb_import_parser.add_argument(
-            "file",
-            type=Path,
-            help=("repository sync database to write to"),
-        )
-        syncdb_import_parser.add_argument(
-            "-c",
-            "--compression",
-            choices=["none", "bz2", "bzip2", "gz", "gzip", "lzma", "xz", "zst", "zstandard"],
-            default=DEFAULT_DATABASE_COMPRESSION.value,
-            help=f"database compression (defaults to {DEFAULT_DATABASE_COMPRESSION.value})",
-        )
-        mutual_exclusive_syncdb_import = syncdb_import_parser.add_mutually_exclusive_group()
-        mutual_exclusive_syncdb_import.add_argument(
-            "-D",
-            "--debug",
-            action="store_true",
-            help="import from debug repository",
-        )
-        mutual_exclusive_syncdb_import.add_argument(
-            "-S",
-            "--staging",
-            action="store_true",
-            help="import from staging repository",
-        )
-        mutual_exclusive_syncdb_import.add_argument(
-            "-T",
-            "--testing",
-            action="store_true",
-            help="import from testing repository",
-        )
-
-        syncdb_export_parser = syncdb_subcommands.add_parser(
-            name="export",
-            help="export to management repository",
-        )
-        syncdb_export_parser.add_argument(
-            "file",
-            type=cls.string_to_file_path,
-            help=("repository sync database to read from"),
-        )
-        syncdb_export_parser.add_argument(
-            "repo",
-            type=Path,
-            help=("name of repository to export to"),
-        )
-        mutual_exclusive_syncdb_export = syncdb_export_parser.add_mutually_exclusive_group()
-        mutual_exclusive_syncdb_export.add_argument(
-            "-D",
-            "--debug",
-            action="store_true",
-            help="import from debug repository",
-        )
-        mutual_exclusive_syncdb_export.add_argument(
-            "-S",
-            "--staging",
-            action="store_true",
-            help="import from staging repository",
-        )
-        mutual_exclusive_syncdb_export.add_argument(
-            "-T",
-            "--testing",
-            action="store_true",
-            help="import from testing repository",
         )
 
         schema = subcommands.add_parser(name="schema", help="JSON schema commands")
