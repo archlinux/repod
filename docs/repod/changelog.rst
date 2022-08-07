@@ -34,6 +34,18 @@ Changed
 * Extend ``OutputPackageBaseV1`` with optional ``.BUILDINFO`` data retrieved
   from packages using the new ``OutputBuildInfo`` (and child classes). This
   adds a relevant subset of ``.BUILDINFO`` files to the management repository.
+* The ``repod-file`` subcommand ``management`` is renamed to ``repo`` and its
+  subsubcommands ``import`` and ``export`` are renamed to ``importdb`` and
+  ``writedb`` (respectively).
+  The ``repod-file repo writedb`` command only accepts the name of the target
+  repository and no target file anymore, as the repository sync database files
+  are written to the binary package directory of the target repository.
+
+Removed
+^^^^^^^
+
+* The ``repod-file`` subcommand ``syncdb`` is removed due to being the reverse
+  pendant to the ``management`` command.
 
 [0.1.0] - 2022-07-02
 --------------------
