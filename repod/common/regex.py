@@ -24,3 +24,5 @@ FILENAME = (
     rf"{PACKAGE_NAME}-({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}"
     rf"(.pkg.tar)({tar_compression_types_for_filename_regex()})"
 )
+PACKAGE_PATH = rf"{ABSOLUTE_PATH}/{FILENAME}"
+PACKAGE_SIGNATURE_PATH = rf"{ABSOLUTE_PATH}/{FILENAME}(.sig)"
