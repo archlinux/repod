@@ -188,6 +188,21 @@ class PkgTypeEnum(Enum):
     DEBUG = "debug"
 
 
+class RepoFileEnum(IntEnum):
+    """An Enum to distinguish different types of RepoFiles
+
+    Attributes
+    ----------
+    PACKAGE: int
+        A package file
+    PACKAGE_SIGNATURE: int
+        A package signature file
+    """
+
+    PACKAGE = 0
+    PACKAGE_SIGNATURE = 1
+
+
 class RepoTypeEnum(Enum):
     """An Enum to distinguish different types of repositories
 
