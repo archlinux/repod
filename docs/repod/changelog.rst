@@ -16,6 +16,7 @@ Added
 ^^^^^
 
 * Man page for ``repod.conf``.
+* Per repository debug repository handling in configuration layer and CLI.
 * Package verification based on ``pacman-key`` may be configured by setting the
   global configuration option ``package_verification`` to ``pacman-key``.
 * A ``PackageDescV2`` which removes the ``%PGPSIG%`` identifier in the ``desc``
