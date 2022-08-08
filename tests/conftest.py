@@ -1030,6 +1030,7 @@ def pkginfov1_stringio(
         license = {default_license}
         depend = foo
         depend = bar
+        optdepend = foobar: descriptions with an equal = sign
         """
 
     yield StringIO(initial_value="\n".join([line.strip() for line in dedent(file_data).split("\n") if line]))
@@ -1062,6 +1063,7 @@ def pkginfov2_stringio(
         license = {default_license}
         depend = foo
         depend = bar
+        optdepend = foobar: descriptions with an equal = sign
         """
 
     yield StringIO(initial_value="\n".join([line.strip() for line in dedent(file_data).split("\n") if line]))

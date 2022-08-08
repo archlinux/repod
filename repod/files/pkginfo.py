@@ -189,7 +189,7 @@ class PkgInfo(BaseModel):
                         assignment_key = PKGINFO_COMMENT_ASSIGNMENTS.get(key)
             else:
                 try:
-                    key, value = [x.strip() for x in line.strip().split(" = ", 2)]
+                    key, value = [x.strip() for x in line.strip().split(" = ", 1)]
                     assignment_key = PKGINFO_ASSIGNMENTS.get(key)
                 except ValueError as e:
                     raise RepoManagementFileError(

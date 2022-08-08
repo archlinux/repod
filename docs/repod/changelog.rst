@@ -41,6 +41,12 @@ Changed
   repository and no target file anymore, as the repository sync database files
   are written to the binary package directory of the target repository.
 
+Fixed
+^^^^^
+
+* ``.PKGINFO`` values with equal signs are now handled correctly (e.g., equal
+  signs in descriptions of ``optdepends`` entries).
+
 Removed
 ^^^^^^^
 
