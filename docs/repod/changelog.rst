@@ -15,8 +15,8 @@ For more detailed information have a look at the |git log|.
 Added
 ^^^^^
 
-* Package verification based on `pacman-key` may be configured by setting the
-  global configuration option `package_verification` to `pacman-key`.
+* Package verification based on ``pacman-key`` may be configured by setting the
+  global configuration option ``package_verification`` to ``pacman-key``.
 * A ``PackageDescV2`` which removes the ``%PGPSIG%`` identifier in the ``desc``
   files rendered from it. The default is still ``PackageDescV1`` (which
   provides the ``%PGPSIG%`` identifier), but users may already try the new
@@ -26,9 +26,9 @@ Added
 Changed
 ^^^^^^^
 
-* Extend `OutputPackageBaseV1` with optional `.BUILDINFO` data retrieved from
-  packages using the new `OutputBuildInfo` (and child classes). This adds a
-  relevant subset of `.BUILDINFO` files to the management repository.
+* Extend ``OutputPackageBaseV1`` with optional ``.BUILDINFO`` data retrieved
+  from packages using the new ``OutputBuildInfo`` (and child classes). This
+  adds a relevant subset of ``.BUILDINFO`` files to the management repository.
 
 [0.1.0] - 2022-07-02
 --------------------
