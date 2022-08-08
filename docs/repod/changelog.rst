@@ -15,6 +15,7 @@ For more detailed information have a look at the |git log|.
 Added
 ^^^^^
 
+* Man page for ``repod.conf``.
 * Package verification based on ``pacman-key`` may be configured by setting the
   global configuration option ``package_verification`` to ``pacman-key``.
 * A ``PackageDescV2`` which removes the ``%PGPSIG%`` identifier in the ``desc``
@@ -26,6 +27,9 @@ Added
 Changed
 ^^^^^^^
 
+* Configuration layer is now used in the CLI and required directories for
+  repositories and data are automatically created upon launching it. The
+  configuration layer distinguishes between system-wide and per-user locations.
 * Extend ``OutputPackageBaseV1`` with optional ``.BUILDINFO`` data retrieved
   from packages using the new ``OutputBuildInfo`` (and child classes). This
   adds a relevant subset of ``.BUILDINFO`` files to the management repository.
