@@ -1,3 +1,4 @@
+from repod.repo.package.repofile import RepoFile  # noqa: F401
 from repod.repo.package.syncdb import (  # noqa: F401
     Files,
     PackageDesc,
