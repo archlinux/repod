@@ -27,6 +27,7 @@ class ArgParseFactory:
             "-d",
             "--debug",
             action="store_true",
+            dest="debug_mode",
             help="debug output",
         )
         self.parser.add_argument(
@@ -39,6 +40,7 @@ class ArgParseFactory:
             "-v",
             "--verbose",
             action="store_true",
+            dest="verbose_mode",
             help="verbose output",
         )
 

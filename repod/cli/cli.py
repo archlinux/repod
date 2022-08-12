@@ -236,9 +236,9 @@ def repod_file() -> None:
 
     loglevel = WARNING
 
-    if args.verbose:
+    if args.verbose_mode:
         loglevel = INFO
-    if args.debug:
+    if args.debug_mode:
         loglevel = DEBUG
 
     logger = getLogger()

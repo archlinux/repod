@@ -289,24 +289,68 @@ def test_repod_file_schema(
 @mark.parametrize(
     "args, expectation",
     [
-        (Namespace(subcommand="package", config=None, system=False, verbose=False, debug=False), does_not_raise()),
         (
-            Namespace(subcommand="package", config=Path("/foo.conf"), system=False, verbose=False, debug=False),
+            Namespace(subcommand="package", config=None, system=False, verbose_mode=False, debug_mode=False),
             does_not_raise(),
         ),
-        (Namespace(subcommand="package", config=None, system=False, verbose=True, debug=False), does_not_raise()),
-        (Namespace(subcommand="package", config=None, system=False, verbose=False, debug=True), does_not_raise()),
-        (Namespace(subcommand="package", config=None, system=False, verbose=True, debug=True), does_not_raise()),
-        (Namespace(subcommand="repo", config=None, system=False, verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="schema", config=None, system=False, verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="foo", config=None, system=False, verbose=False, debug=False), raises(RuntimeError)),
-        (Namespace(subcommand="package", config=None, system=True, verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="package", config=None, system=True, verbose=True, debug=False), does_not_raise()),
-        (Namespace(subcommand="package", config=None, system=True, verbose=False, debug=True), does_not_raise()),
-        (Namespace(subcommand="package", config=None, system=True, verbose=True, debug=True), does_not_raise()),
-        (Namespace(subcommand="repo", config=None, system=True, verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="schema", config=None, system=True, verbose=False, debug=False), does_not_raise()),
-        (Namespace(subcommand="foo", config=None, system=True, verbose=False, debug=False), raises(RuntimeError)),
+        (
+            Namespace(
+                subcommand="package", config=Path("/foo.conf"), system=False, verbose_mode=False, debug_mode=False
+            ),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="package", config=None, system=False, verbose_mode=True, debug_mode=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="package", config=None, system=False, verbose_mode=False, debug_mode=True),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="package", config=None, system=False, verbose_mode=True, debug_mode=True),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="repo", config=None, system=False, verbose_mode=False, debug_mode=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="schema", config=None, system=False, verbose_mode=False, debug_mode=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="foo", config=None, system=False, verbose_mode=False, debug_mode=False),
+            raises(RuntimeError),
+        ),
+        (
+            Namespace(subcommand="package", config=None, system=True, verbose_mode=False, debug_mode=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="package", config=None, system=True, verbose_mode=True, debug_mode=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="package", config=None, system=True, verbose_mode=False, debug_mode=True),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="package", config=None, system=True, verbose_mode=True, debug_mode=True),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="repo", config=None, system=True, verbose_mode=False, debug_mode=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="schema", config=None, system=True, verbose_mode=False, debug_mode=False),
+            does_not_raise(),
+        ),
+        (
+            Namespace(subcommand="foo", config=None, system=True, verbose_mode=False, debug_mode=False),
+            raises(RuntimeError),
+        ),
     ],
 )
 @patch("repod.cli.cli.repod_file_schema")
