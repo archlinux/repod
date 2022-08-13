@@ -278,7 +278,7 @@ class Packager(BaseModel):
 
         email = packager.replace(">", "").split("<")[1]
         try:
-            validate_email(email)
+            validate_email(email, check_deliverability=False)
         except EmailNotValidError as e:
             raise ValueError(f"The packager email is not valid: {email}\n{e}")
 
