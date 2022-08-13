@@ -2,7 +2,8 @@ from argparse import ArgumentTypeError, Namespace
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, List, Optional, Tuple
+from tempfile import TemporaryDirectory
+from typing import ContextManager, Optional, Tuple
 from unittest.mock import Mock, patch
 
 from pytest import LogCaptureFixture, mark, raises
@@ -403,23 +404,22 @@ def test_repod_file_raise_on_argumenterror(parse_args_mock: Mock) -> None:
         cli.repod_file()
 
 
-def transform_databases(db: str, default_syncdb: Path, tmp_path: Path) -> None:
+def transform_databases(repo_name: str, base_path: Path) -> None:
     custom_config = f"""
     [[repositories]]
 
-    name = "{tmp_path}/data/repo/foo"
-    staging = "{tmp_path}/data/repo/foo-staging"
-    testing = "{tmp_path}/data/repo/foo-testing"
-    package_pool = "{tmp_path}/data/pool/package/foo"
-    source_pool = "{tmp_path}/data/pool/source/foo"
+    name = "{base_path}/data/repo/package/{repo_name}"
+    debug = "{base_path}/data/repo/package/{repo_name}-debug"
+    staging = "{base_path}/data/repo/package/{repo_name}-staging"
+    testing = "{base_path}/data/repo/package/{repo_name}-testing"
+    package_pool = "{base_path}/data/pool/package/{repo_name}"
+    source_pool = "{base_path}/data/pool/source/{repo_name}"
 
     [repositories.management_repo]
-    directory = "{tmp_path}/management/foo"
+    directory = "{base_path}/management/{repo_name}"
     """
 
-    conf_dir = tmp_path / "config"
-    conf_dir.mkdir()
-    config_path = conf_dir / "repod.conf"
+    config_path = base_path / "repod.conf"
     with open(config_path, "w") as file:
         file.write(custom_config)
 
@@ -431,8 +431,8 @@ def transform_databases(db: str, default_syncdb: Path, tmp_path: Path) -> None:
             f"{config_path}",
             "repo",
             "importdb",
-            f"/var/lib/pacman/sync/{db}.files",
-            f"{tmp_path}/data/repo/foo/",
+            f"/var/lib/pacman/sync/{repo_name}.files",
+            f"{base_path}/data/repo/package/{repo_name}/",
         ],
         debug=True,
         check=True,
@@ -445,62 +445,65 @@ def transform_databases(db: str, default_syncdb: Path, tmp_path: Path) -> None:
             f"{config_path}",
             "repo",
             "writedb",
-            f"{tmp_path}/data/repo/foo/",
+            f"{base_path}/data/repo/package/{repo_name}/",
         ],
         debug=True,
         check=True,
     )
 
 
-def list_databases(db_path: Path) -> None:
-    cache_path = db_path / "cache"
-    cache_path.mkdir(parents=True)
-    pacman_conf_path = cache_path / "pacman.conf"
-    pacman_conf_contents = """[options]
-    HoldPkg = pacman glibc
-    Architecture = auto
-    SigLevel = Required DatabaseOptional
-    LocalFileSigLevel = Optional
-    [tmp]
-    Include = /etc/pacman.d/mirrorlist
-    """
+def list_database(repo_name: str, base_path: Path) -> None:
+    syncdb_path = Path(f"{base_path}/data/repo/package/{repo_name}/any/")
+    with TemporaryDirectory(prefix="pacman_", dir=base_path) as dbpath:
+        (Path(dbpath) / "sync").symlink_to(syncdb_path)
+        cache_path = base_path / "cache"
+        cache_path.mkdir(parents=True)
+        pacman_conf_path = cache_path / "pacman.conf"
+        pacman_conf_contents = f"""[options]
+        HoldPkg = pacman glibc
+        Architecture = auto
+        SigLevel = Required DatabaseOptional
+        LocalFileSigLevel = Optional
+        [{repo_name}]
+        Include = /etc/pacman.d/mirrorlist
+        """
 
-    with open(pacman_conf_path, "w") as file:
-        print(pacman_conf_contents, file=file)
+        with open(pacman_conf_path, "w") as file:
+            print(pacman_conf_contents, file=file)
 
-    commands.run_command(
-        cmd=[
-            "pacman",
-            "--config",
-            str(pacman_conf_path),
-            "--cache",
-            str(cache_path),
-            "--logfile",
-            f"{cache_path}/pacman.log",
-            "--dbpath",
-            str(db_path),
-            "-Sl",
-            "tmp",
-        ],
-        debug=True,
-        check=True,
-    )
-    commands.run_command(
-        cmd=[
-            "pacman",
-            "--config",
-            str(pacman_conf_path),
-            "--cache",
-            str(cache_path),
-            "--logfile",
-            f"{cache_path}/pacman.log",
-            "--dbpath",
-            str(db_path),
-            "-Fl",
-        ],
-        debug=True,
-        check=True,
-    )
+        commands.run_command(
+            cmd=[
+                "pacman",
+                "--config",
+                str(pacman_conf_path),
+                "--cache",
+                str(cache_path),
+                "--logfile",
+                f"{cache_path}/pacman.log",
+                "--dbpath",
+                f"{dbpath}",
+                "-Sl",
+                f"{repo_name}",
+            ],
+            debug=True,
+            check=True,
+        )
+        commands.run_command(
+            cmd=[
+                "pacman",
+                "--config",
+                str(pacman_conf_path),
+                "--cache",
+                str(cache_path),
+                "--logfile",
+                f"{cache_path}/pacman.log",
+                "--dbpath",
+                f"{dbpath}",
+                "-Fl",
+            ],
+            debug=True,
+            check=True,
+        )
 
 
 @mark.integration
@@ -508,13 +511,10 @@ def list_databases(db_path: Path) -> None:
     not Path("/var/lib/pacman/sync/core.files").exists(),
     reason="/var/lib/pacman/sync/core.files does not exist",
 )
-def test_transform_core_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
-    transform_databases(
-        db="core",
-        default_syncdb=empty_syncdbs[0],
-        tmp_path=tmp_path,
-    )
-    list_databases(db_path=Path(empty_syncdbs[0].parent))
+def test_transform_core_databases(empty_dir: Path, tmp_path: Path) -> None:
+    name = "core"
+    transform_databases(repo_name=name, base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path)
 
 
 @mark.integration
@@ -522,13 +522,10 @@ def test_transform_core_databases(empty_dir: Path, empty_syncdbs: List[Path], tm
     not Path("/var/lib/pacman/sync/extra.files").exists(),
     reason="/var/lib/pacman/sync/extra.files does not exist",
 )
-def test_transform_extra_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
-    transform_databases(
-        db="extra",
-        default_syncdb=empty_syncdbs[0],
-        tmp_path=tmp_path,
-    )
-    list_databases(db_path=Path(empty_syncdbs[0].parent))
+def test_transform_extra_databases(empty_dir: Path, tmp_path: Path) -> None:
+    name = "extra"
+    transform_databases(repo_name=name, base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path)
 
 
 @mark.integration
@@ -536,13 +533,10 @@ def test_transform_extra_databases(empty_dir: Path, empty_syncdbs: List[Path], t
     not Path("/var/lib/pacman/sync/community.files").exists(),
     reason="/var/lib/pacman/sync/community.files does not exist",
 )
-def test_transform_community_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
-    transform_databases(
-        db="community",
-        default_syncdb=empty_syncdbs[0],
-        tmp_path=tmp_path,
-    )
-    list_databases(db_path=Path(empty_syncdbs[0].parent))
+def test_transform_community_databases(empty_dir: Path, tmp_path: Path) -> None:
+    name = "community"
+    transform_databases(repo_name="community", base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path)
 
 
 @mark.integration
@@ -550,10 +544,7 @@ def test_transform_community_databases(empty_dir: Path, empty_syncdbs: List[Path
     not Path("/var/lib/pacman/sync/multilib.files").exists(),
     reason="/var/lib/pacman/sync/multilib.files does not exist",
 )
-def test_transform_multilib_databases(empty_dir: Path, empty_syncdbs: List[Path], tmp_path: Path) -> None:
-    transform_databases(
-        db="multilib",
-        default_syncdb=empty_syncdbs[0],
-        tmp_path=tmp_path,
-    )
-    list_databases(db_path=Path(empty_syncdbs[0].parent))
+def test_transform_multilib_databases(empty_dir: Path, tmp_path: Path) -> None:
+    name = "multilib"
+    transform_databases(repo_name=name, base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path)
