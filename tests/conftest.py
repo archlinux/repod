@@ -7,7 +7,7 @@ from pathlib import Path
 from random import choice
 from string import ascii_lowercase, ascii_uppercase, digits
 from tarfile import open as tarfile_open
-from tempfile import NamedTemporaryFile, TemporaryDirectory, mkstemp
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from textwrap import dedent
 from typing import IO, Any, AsyncGenerator, Generator, List, Tuple
 from unittest.mock import patch
@@ -745,12 +745,12 @@ def valid_mtree(
 
 
 @fixture(scope="function")
-def valid_mtree_file(mtreeentryv1_stringio: StringIO) -> Generator[Path, None, None]:
-    with NamedTemporaryFile() as mtree_file:
+def valid_mtree_file(mtreeentryv1_stringio: StringIO, tmp_path: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="mtree_", dir=tmp_path, delete=False) as mtree_file:
         with gzip.open(filename=mtree_file.name, mode="wt") as gzip_mtree:
             gzip_mtree.write(mtreeentryv1_stringio.getvalue())
 
-        yield Path(mtree_file.name)
+    yield Path(mtree_file.name)
 
 
 @fixture(scope="function")
@@ -807,11 +807,11 @@ def temp_dir() -> Generator[Path, None, None]:
 
 @fixture(scope="function")
 def text_file(temp_dir: Path) -> Generator[Path, None, None]:
-    with NamedTemporaryFile(dir=temp_dir, suffix=".txt", delete=False) as temp_file:
+    with NamedTemporaryFile(prefix="pkg_content_", dir=temp_dir, suffix=".txt", delete=False) as temp_file:
         with open(temp_file.name, "w") as f:
             print("foo", file=f)
 
-        yield Path(temp_file.name)
+    yield Path(temp_file.name)
 
 
 @fixture(scope="function")
@@ -942,12 +942,12 @@ def valid_buildinfov1_file(buildinfov1_stringio: StringIO) -> Generator[Path, No
 
 
 @fixture(scope="function")
-def valid_buildinfov2_file(buildinfov2_stringio: StringIO) -> Generator[Path, None, None]:
-    with NamedTemporaryFile() as buildinfo_file:
+def valid_buildinfov2_file(buildinfov2_stringio: StringIO, tmp_path: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="buildinfov2_", dir=tmp_path, delete=False) as buildinfo_file:
         with open(buildinfo_file.name, mode="wt") as f:
             print(buildinfov2_stringio.getvalue(), file=f)
 
-        yield Path(buildinfo_file.name)
+    yield Path(buildinfo_file.name)
 
 
 @fixture(scope="session")
@@ -1110,21 +1110,21 @@ def valid_pkginfov1_file(pkginfov1_stringio: StringIO) -> Generator[Path, None, 
 
 
 @fixture(scope="function")
-def valid_pkginfov2_file(pkginfov2_stringio: StringIO) -> Generator[Path, None, None]:
-    with NamedTemporaryFile() as file:
+def valid_pkginfov2_file(pkginfov2_stringio: StringIO, tmp_path: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="pkginfov2_", dir=tmp_path, delete=False) as file:
         with open(file.name, mode="wt") as f:
             print(pkginfov2_stringio.getvalue(), file=f)
 
-        yield Path(file.name)
+    yield Path(file.name)
 
 
 @fixture(scope="function")
-def debug_pkginfov2_file(debug_pkginfov2_stringio: StringIO) -> Generator[Path, None, None]:
-    with NamedTemporaryFile() as file:
+def debug_pkginfov2_file(debug_pkginfov2_stringio: StringIO, tmp_path: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="pkginfov2_debug_", dir=tmp_path, delete=False) as file:
         with open(file.name, mode="wt") as f:
             print(debug_pkginfov2_stringio.getvalue(), file=f)
 
-        yield Path(file.name)
+    yield Path(file.name)
 
 
 @fixture(scope="session")
@@ -1571,8 +1571,8 @@ def empty_dir(tmp_path: Path) -> Path:
 
 @fixture(scope="function")
 def empty_file(tmp_path: Path) -> Path:
-    [foo, file_name] = mkstemp(dir=tmp_path)
-    return Path(file_name)
+    file = NamedTemporaryFile(prefix="empty_", dir=tmp_path, delete=False)
+    return Path(file.name)
 
 
 @fixture(scope="function")
@@ -1588,19 +1588,19 @@ def empty_syncdbs(tmp_path: Path) -> List[Path]:
 
 
 @fixture(scope="function")
-def broken_json_file(tmp_path: Path) -> Path:
-    [foo, json_file] = mkstemp(suffix=".json", dir=tmp_path)
-    with open(json_file, "w") as input_file:
-        input_file.write("garbage")
-    return Path(json_file)
+def broken_json_file(tmp_path: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="broken_", suffix=".json", dir=tmp_path, delete=False) as json_file:
+        json_file.write(b"garbage")
+        path = Path(json_file.name)
+    yield path
 
 
 @fixture(scope="function")
-def invalid_json_file(tmp_path: Path) -> Path:
-    [foo, json_file] = mkstemp(suffix=".json", dir=tmp_path)
-    with open(json_file, "w") as input_file:
-        input_file.write('{"foo": "bar"}')
-    return Path(json_file)
+def invalid_json_file(tmp_path: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="invalid_", suffix=".json", dir=tmp_path, delete=False) as json_file:
+        json_file.write(b'{"foo": "bar"}')
+        path = Path(json_file.name)
+    yield path
 
 
 @fixture(scope="function")
