@@ -212,10 +212,13 @@ class RepoTypeEnum(Enum):
         A management repository
     PACKAGE: str
         A package repository
+    POOL: str
+        A pool directory
     """
 
     MANAGEMENT = "management"
     PACKAGE = "package"
+    POOL = "pool"
 
 
 class SettingsTypeEnum(Enum):
