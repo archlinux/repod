@@ -1670,6 +1670,17 @@ def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
 
 
 @fixture(scope="function")
-def usersettings(packagerepo_in_tmp_path: PackageRepo, empty_file: Path) -> UserSettings:
+def usersettings(packagerepo_in_tmp_path: PackageRepo, empty_file: Path, tmp_path: Path) -> UserSettings:
+    tmp_dir_path = tmp_path / "usersettings"
     with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
-        return UserSettings(repositories=[packagerepo_in_tmp_path])
+        with patch("repod.config.settings.UserSettings._management_repo_base", tmp_dir_path / "management"):
+            with patch("repod.config.settings.UserSettings._package_pool_base", tmp_dir_path / "data/pool/package"):
+                with patch("repod.config.settings.UserSettings._package_repo_base", tmp_dir_path / "data/repo/package"):
+                    with patch(
+                        "repod.config.settings.UserSettings._source_pool_base", tmp_dir_path / "data/pool/source"
+                    ):
+                        with patch(
+                            "repod.config.settings.UserSettings._source_repo_base",
+                            tmp_dir_path / "data/repo/source",
+                        ):
+                            return UserSettings(repositories=[packagerepo_in_tmp_path])
