@@ -164,6 +164,56 @@ class ArgParseFactory:
             help="import to testing repository",
         )
 
+        repo_importpkg_parser = repo_subcommands.add_parser(
+            name="importpkg",
+            help="import packages of the same pkgbase to a repo",
+        )
+        repo_importpkg_parser.add_argument(
+            "file",
+            nargs="+",
+            type=cls.string_to_file_path,
+            help="package files",
+        )
+        repo_importpkg_parser.add_argument(
+            "name",
+            type=Path,
+            help=("name of repository to import to"),
+        )
+        repo_importpkg_parser.add_argument(
+            "-d",
+            "--dry-run",
+            action="store_true",
+            help="only show output, but do not write output to file",
+        )
+        repo_importpkg_parser.add_argument(
+            "-p", "--pretty", action="store_true", help="pretty print output (only applies to dry-run mode)"
+        )
+        repo_importpkg_parser.add_argument(
+            "-s",
+            "--with-signature",
+            action="store_true",
+            help="locate and use a signature file for each provided package file",
+        )
+        mutual_exclusive_repo_importpkg = repo_importpkg_parser.add_mutually_exclusive_group()
+        mutual_exclusive_repo_importpkg.add_argument(
+            "-D",
+            "--debug",
+            action="store_true",
+            help="import to debug repository",
+        )
+        mutual_exclusive_repo_importpkg.add_argument(
+            "-S",
+            "--staging",
+            action="store_true",
+            help="import to staging repository",
+        )
+        mutual_exclusive_repo_importpkg.add_argument(
+            "-T",
+            "--testing",
+            action="store_true",
+            help="import to testing repository",
+        )
+
         repo_writedb_parser = repo_subcommands.add_parser(
             name="writedb",
             help="export state to repository sync database",
