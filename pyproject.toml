@@ -72,6 +72,7 @@ Sphinx = "^5.0.0"
 sphinx-rtd-theme = "^1.0.0"
 sphinx-argparse = "^0.3.1"
 sphinxcontrib-programoutput = "^0.17"
+vulture = "^2.5"
 
 [tool.poetry.scripts]
 repod-file = "repod.cli:repod_file"
