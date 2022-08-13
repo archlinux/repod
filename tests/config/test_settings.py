@@ -1202,6 +1202,10 @@ def test_create_and_validate_directory(
         (RepoTypeEnum.PACKAGE, True, False, True, True, True, False, False, False, raises(RuntimeError)),
         (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, True, True, raises(RuntimeError)),
         (RepoTypeEnum.PACKAGE, False, False, True, False, False, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.POOL, True, True, False, False, False, False, False, False, does_not_raise()),
+        (RepoTypeEnum.POOL, True, True, False, False, False, True, False, False, does_not_raise()),
+        (RepoTypeEnum.POOL, True, True, False, False, False, False, True, False, does_not_raise()),
+        (RepoTypeEnum.POOL, True, True, False, False, False, False, False, True, does_not_raise()),
         (None, True, True, True, True, True, False, False, False, raises(RuntimeError)),
     ],
 )
@@ -1254,3 +1258,5 @@ def test_settings_get_repo_path(
                 assert path == usersettings.repositories[0]._testing_repo_dir
             case RepoTypeEnum.PACKAGE, False, False, False:
                 assert path == usersettings.repositories[0]._stable_repo_dir
+            case RepoTypeEnum.POOL, False, False, False:
+                assert path == usersettings.repositories[0]._package_pool_dir

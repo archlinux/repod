@@ -1403,6 +1403,13 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                         if not repo.testing:
                             raise RuntimeError(f"The repository {name} does not have a testing repository!")
                         return repo._testing_repo_dir
+                    case (
+                        (RepoTypeEnum.POOL, False, False, False)
+                        | (RepoTypeEnum.POOL, True, False, False)
+                        | (RepoTypeEnum.POOL, False, True, False)
+                        | (RepoTypeEnum.POOL, False, False, True)
+                    ):
+                        return repo._package_pool_dir
                     case _:
                         raise RuntimeError(
                             f"An unknown error occurred while trying to retrieve a repository path for {name}!"
