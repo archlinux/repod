@@ -15,6 +15,7 @@ from repod.common.enums import (
     PackageDescVersionEnum,
     PkgVerificationTypeEnum,
 )
+from repod.config import UserSettings
 
 
 @mark.parametrize(
@@ -241,11 +242,19 @@ def test_repod_file_package(
             Namespace(repo="writedb", compression="zst", debug=False, staging=False, testing=False),
             does_not_raise(),
         ),
+        (
+            Namespace(repo="importpkg", dry_run=True, with_signature=False, debug=False, staging=False, testing=False),
+            does_not_raise(),
+        ),
         (Namespace(repo="foo"), raises(RuntimeError)),
     ],
 )
+@patch("repod.cli.cli.repod_file_repo_importpkg")
 def test_repod_file_repo(
+    repod_file_repo_importpkg_mock: Mock,
     caplog: LogCaptureFixture,
+    default_package_file: Tuple[Path, ...],
+    debug_package_file: Tuple[Path, ...],
     outputpackagebasev1_json_files_in_dir: Path,
     default_sync_db_file: Tuple[Path, Path],
     tmp_path: Path,
@@ -269,6 +278,108 @@ def test_repod_file_repo(
 
     with expectation:
         cli.repod_file_repo(args=args, settings=settings_mock)
+        if args.repo == "importpkg":
+            repod_file_repo_importpkg_mock.assert_called_once()
+
+
+@mark.parametrize(
+    "package_verification, package_verifies, debug_pkg, args, expectation",
+    [
+        (
+            None,
+            True,
+            False,
+            Namespace(repo="importpkg", dry_run=True, with_signature=False, debug=False, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            None,
+            True,
+            False,
+            Namespace(repo="importpkg", dry_run=False, with_signature=False, debug=False, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            None,
+            True,
+            False,
+            Namespace(repo="importpkg", dry_run=True, with_signature=False, debug=True, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            None,
+            True,
+            True,
+            Namespace(repo="importpkg", dry_run=True, with_signature=False, debug=False, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            None,
+            True,
+            True,
+            Namespace(repo="importpkg", dry_run=True, with_signature=False, debug=True, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            None,
+            True,
+            False,
+            Namespace(repo="importpkg", dry_run=False, with_signature=False, debug=True, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            PkgVerificationTypeEnum.PACMANKEY,
+            True,
+            False,
+            Namespace(repo="importpkg", dry_run=True, with_signature=True, debug=False, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            PkgVerificationTypeEnum.PACMANKEY,
+            False,
+            False,
+            Namespace(repo="importpkg", dry_run=True, with_signature=True, debug=False, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+        (
+            None,
+            True,
+            False,
+            Namespace(repo="importpkg", dry_run=False, with_signature=True, debug=False, staging=False, testing=False),
+            does_not_raise(),
+        ),
+        (
+            None,
+            True,
+            False,
+            Namespace(repo="importpkg", dry_run=True, with_signature=True, debug=True, staging=False, testing=False),
+            raises(RuntimeError),
+        ),
+    ],
+)
+def test_repod_file_repo_importpkg(
+    caplog: LogCaptureFixture,
+    default_package_file: Tuple[Path, ...],
+    debug_package_file: Tuple[Path, ...],
+    outputpackagebasev1_json_files_in_dir: Path,
+    default_sync_db_file: Tuple[Path, Path],
+    tmp_path: Path,
+    usersettings: UserSettings,
+    package_verification: Optional[PkgVerificationTypeEnum],
+    package_verifies: bool,
+    debug_pkg: bool,
+    args: Namespace,
+    expectation: ContextManager[str],
+) -> None:
+    caplog.set_level(DEBUG)
+
+    usersettings.package_verification = package_verification
+    args.file = [debug_package_file[0] if debug_pkg else default_package_file[0]]
+    args.name = Path("default")
+
+    with patch("repod.cli.cli.PacmanKeyVerifier", Mock(return_value=Mock(verify=Mock(return_value=package_verifies)))):
+        with expectation:
+            cli.repod_file_repo_importpkg(args=args, settings=usersettings)
 
 
 @mark.parametrize(

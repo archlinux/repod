@@ -14,13 +14,14 @@ from repod.common.enums import (
     CompressionTypeEnum,
     PkgTypeEnum,
     PkgVerificationTypeEnum,
+    RepoFileEnum,
     RepoTypeEnum,
 )
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
 from repod.files.pkginfo import PkgInfoV2
 from repod.repo import OutputPackageBase, SyncDatabase
-from repod.repo.package import RepoDbTypeEnum
+from repod.repo.package import RepoDbTypeEnum, RepoFile
 from repod.verification import PacmanKeyVerifier
 
 ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
@@ -125,6 +126,130 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
             raise RuntimeError(f"Invalid subcommand {args.package} provided to the 'package' command!")
 
 
+def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
+    """Import a package (optionally with signature file) to a repository
+
+    Parameters
+    ----------
+    args: Namespace
+        The options used for repo related actions
+    settings: Union[SystemSettings, UserSettings]
+        A Settings instance that is used for deriving repository directories from
+
+    Raises
+    ------
+    RuntimeError
+        If an invalid subcommand is provided.
+    """
+
+    pretty = ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0
+
+    packages: List[Package] = []
+    for package_path in args.file:
+        signature_path = Path(str(package_path) + ".sig") if args.with_signature else None
+        if settings.package_verification == PkgVerificationTypeEnum.PACMANKEY and args.with_signature:
+            debug(f"Verifying package signature based on {settings.package_verification.value}...")
+            verifier = PacmanKeyVerifier()
+            if verifier.verify(
+                package=package_path,
+                signature=signature_path,  # type: ignore[arg-type]
+            ):
+                debug("Package signature successfully verified!")
+            else:
+                raise RuntimeError(f"Verification of package {package_path} with signature {signature_path} failed!")
+
+        packages.append(
+            asyncio.run(
+                Package.from_file(
+                    package=package_path,
+                    signature=signature_path,
+                )
+            )
+        )
+
+    if args.debug:
+        if any(
+            [
+                True
+                for package in packages
+                if isinstance(
+                    package.pkginfo,  # type: ignore[attr-defined]
+                    PkgInfoV2,
+                )
+                and package.pkginfo.pkgtype != PkgTypeEnum.DEBUG.value  # type: ignore[attr-defined]
+            ]
+        ):
+            raise RuntimeError(
+                f"The debug repository of {args.name} is targetted, "
+                "but not all provided packages are debug packages!"
+            )
+    else:
+        if any(
+            [
+                True
+                for package in packages
+                if isinstance(
+                    package.pkginfo,  # type: ignore[attr-defined]
+                    PkgInfoV2,
+                )
+                and package.pkginfo.pkgtype == PkgTypeEnum.DEBUG.value  # type: ignore[attr-defined]
+            ]
+        ):
+            raise RuntimeError(
+                f"A non-debug repository of {args.name} is targetted, "
+                "but not all provided packages are non-debug packages!"
+            )
+
+    outputpackagebase = OutputPackageBase.from_package(packages=packages)
+
+    if args.dry_run:
+        print(dumps(outputpackagebase.dict(), option=pretty).decode("utf-8"))
+        return
+
+    pkgbase = outputpackagebase.base  # type: ignore[attr-defined]
+    management_repo_dir = settings.get_repo_path(
+        repo_type=RepoTypeEnum.MANAGEMENT,
+        name=args.name,
+        debug=args.debug,
+        staging=args.staging,
+        testing=args.testing,
+    )
+    with open(management_repo_dir / f"{pkgbase}.json", "wb") as output_file:
+        output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
+
+    package_repo_dir = settings.get_repo_path(
+        repo_type=RepoTypeEnum.PACKAGE,
+        name=args.name,
+        debug=args.debug,
+        staging=args.staging,
+        testing=args.testing,
+    )
+    package_pool_dir = settings.get_repo_path(
+        repo_type=RepoTypeEnum.POOL,
+        name=args.name,
+        debug=args.debug,
+        staging=args.staging,
+        testing=args.testing,
+    )
+    for package_path in args.file:
+        package_file = RepoFile(
+            file_type=RepoFileEnum.PACKAGE,
+            file_path=package_pool_dir / package_path.name,
+            symlink_path=package_repo_dir / package_path.name,
+        )
+        package_file.copy_from(path=package_path)
+        package_file.link()
+        if args.with_signature:
+            signature_path = Path(str(package_path) + ".sig")
+            signature_file = RepoFile(
+                file_type=RepoFileEnum.PACKAGE_SIGNATURE,
+                file_path=package_pool_dir / signature_path.name,
+                symlink_path=package_repo_dir / signature_path.name,
+            )
+            signature_file.copy_from(path=signature_path)
+            signature_file.link()
+
+
 def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
     """Repository related actions from the repod-file script
 
@@ -159,6 +284,8 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
             ):
                 with open(management_repo_dir / f"{base}.json", "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
+        case "importpkg":
+            repod_file_repo_importpkg(args=args, settings=settings)
         case "writedb":
             compression = CompressionTypeEnum.from_string(input_=args.compression)
             package_repo_dir = settings.get_repo_path(
