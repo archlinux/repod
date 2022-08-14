@@ -24,6 +24,15 @@ Added
   provides the ``%PGPSIG%`` identifier), but users may already try the new
   functionality using the ``syncdb_settings.desc_version`` option in
   ``repod.conf`` (see ``man 5 repod.conf``).
+* The ``repod.repo.package.repofile`` module provides functionality for file
+  operations on repository files (e.g. package files or package signature
+  files). The ``RepoFile`` class allows moving, copying, symlinking and
+  removing of files.
+* The ``repod-file repo importpkg`` subcommand which supersedes ``repod-file
+  package import``, while also implementing the addition of package files (and
+  optionally their signatures) to a given repository's package pool directory
+  and creating the symlinks for them in the repository's package repository
+  directory.
 
 Changed
 ^^^^^^^
@@ -40,6 +49,12 @@ Changed
   The ``repod-file repo writedb`` command only accepts the name of the target
   repository and no target file anymore, as the repository sync database files
   are written to the binary package directory of the target repository.
+
+Removed
+^^^^^^^
+
+* The ``repod-file package import`` subcommand as it is superseded by
+  ``repod-file repo importpkg``.
 
 Fixed
 ^^^^^
