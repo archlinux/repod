@@ -64,6 +64,7 @@ Fixed
 
 * ``.PKGINFO`` values with equal signs are now handled correctly (e.g., equal
   signs in descriptions of ``optdepends`` entries).
+* The ``usersettings`` fixture no longer leaks test state into the user system.
 
 Removed
 ^^^^^^^
