@@ -2,6 +2,8 @@ from argparse import ArgumentTypeError, Namespace
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
+from random import sample
+from re import Match, fullmatch
 from tempfile import TemporaryDirectory
 from typing import ContextManager, Optional, Tuple
 from unittest.mock import Mock, patch
@@ -14,6 +16,7 @@ from repod.common.enums import (
     FilesVersionEnum,
     PackageDescVersionEnum,
     PkgVerificationTypeEnum,
+    tar_compression_types_for_filename_regex,
 )
 from repod.config import UserSettings
 
@@ -659,3 +662,69 @@ def test_transform_multilib_databases(empty_dir: Path, tmp_path: Path) -> None:
     name = "multilib"
     transform_databases(repo_name=name, base_path=tmp_path)
     list_database(repo_name=name, base_path=tmp_path)
+
+
+@mark.integration
+@mark.skipif(
+    not Path("/var/cache/pacman/pkg/").exists(),
+    reason="Package cache in /var/cache/pacman/pkg/ does not exist",
+)
+def test_import_into_default_repo(tmp_path: Path) -> None:
+    packages = sorted(
+        [
+            path
+            for path in list(Path("/var/cache/pacman/pkg/").iterdir())
+            if isinstance(fullmatch(rf"^.*\.pkg\.tar({tar_compression_types_for_filename_regex()})$", str(path)), Match)
+        ]
+    )
+    if len(packages) > 50:
+        packages = sample(packages, 50)
+
+    custom_config = f"""
+    [[repositories]]
+
+    name = "{tmp_path}/data/repo/package/default/"
+    debug = "{tmp_path}/data/repo/package/default-debug/"
+    staging = "{tmp_path}/data/repo/package/default-staging/"
+    testing = "{tmp_path}/data/repo/package/default-testing/"
+    package_pool = "{tmp_path}/data/pool/package/default/"
+    source_pool = "{tmp_path}/data/pool/source/default/"
+
+    [repositories.management_repo]
+    directory = "{tmp_path}/management/default/"
+    """
+
+    config_path = tmp_path / "repod.conf"
+    with open(config_path, "w") as file:
+        file.write(custom_config)
+
+    for package in packages:
+        commands.run_command(
+            cmd=[
+                "repod-file",
+                "-d",
+                "-c",
+                f"{config_path}",
+                "repo",
+                "importpkg",
+                "-s",
+                f"{package}",
+                f"{tmp_path}/data/repo/package/default/",
+            ],
+            debug=True,
+            check=True,
+        )
+
+    commands.run_command(
+        cmd=[
+            "repod-file",
+            "-d",
+            "-c",
+            f"{config_path}",
+            "repo",
+            "writedb",
+            f"{tmp_path}/data/repo/package/default/",
+        ],
+        debug=True,
+        check=True,
+    )
