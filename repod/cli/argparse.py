@@ -79,54 +79,6 @@ class ArgParseFactory:
             help="locate and use a signature file for each provided package file",
         )
 
-        package_import_parser = package_subcommands.add_parser(
-            name="import",
-            help="import package files of the same pkgbase to the management repo",
-        )
-        package_import_parser.add_argument(
-            "file",
-            nargs="+",
-            type=cls.string_to_file_path,
-            help="package files",
-        )
-        package_import_parser.add_argument(
-            "name",
-            type=Path,
-            help=("name of repository to import to"),
-        )
-        package_import_parser.add_argument(
-            "-d",
-            "--dry-run",
-            action="store_true",
-            help="only show output, but do not write output to file",
-        )
-        package_import_parser.add_argument("-p", "--pretty", action="store_true", help="pretty print output")
-        package_import_parser.add_argument(
-            "-s",
-            "--with-signature",
-            action="store_true",
-            help="locate and use a signature file for each provided package file",
-        )
-        mutual_exclusive_package_import = package_import_parser.add_mutually_exclusive_group()
-        mutual_exclusive_package_import.add_argument(
-            "-D",
-            "--debug",
-            action="store_true",
-            help="import to debug repository",
-        )
-        mutual_exclusive_package_import.add_argument(
-            "-S",
-            "--staging",
-            action="store_true",
-            help="import to staging repository",
-        )
-        mutual_exclusive_package_import.add_argument(
-            "-T",
-            "--testing",
-            action="store_true",
-            help="import to testing repository",
-        )
-
         repo_parser = subcommands.add_parser(name="repo", help="interact with repositories")
         repo_subcommands = repo_parser.add_subparsers(dest="repo")
 

@@ -64,64 +64,6 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
                     print(dumps(model.pkginfo.dict(), option=pretty).decode("utf-8"))  # type: ignore[attr-defined]
                 else:
                     print(dumps(model.dict(), option=pretty).decode("utf-8"))
-
-        case "import":
-            packages: List[Package] = []
-            for package_path in args.file:
-                signature_path = Path(str(package_path) + ".sig") if args.with_signature else None
-                if settings.package_verification == PkgVerificationTypeEnum.PACMANKEY and args.with_signature:
-                    debug(f"Verifying package signature based on {settings.package_verification.value}...")
-                    verifier = PacmanKeyVerifier()
-                    if verifier.verify(
-                        package=package_path,
-                        signature=signature_path,  # type: ignore[arg-type]
-                    ):
-                        debug("Package signature successfully verified!")
-                    else:
-                        raise RuntimeError(
-                            f"Verification of package {package_path} with signature {signature_path} failed!"
-                        )
-
-                packages.append(
-                    asyncio.run(
-                        Package.from_file(
-                            package=package_path,
-                            signature=signature_path,
-                        )
-                    )
-                )
-
-            if args.debug:
-                if any(
-                    [
-                        True
-                        for package in packages
-                        if isinstance(
-                            package.pkginfo,  # type: ignore[attr-defined]
-                            PkgInfoV2,
-                        )
-                        and package.pkginfo.pkgtype != PkgTypeEnum.DEBUG.value  # type: ignore[attr-defined]
-                    ]
-                ):
-                    raise RuntimeError(
-                        f"The debug repository of {args.name} is targetted, "
-                        "but not all provided packages are debug packages!"
-                    )
-
-            outputpackagebase = OutputPackageBase.from_package(packages=packages)
-            if args.dry_run:
-                print(dumps(outputpackagebase.dict(), option=pretty).decode("utf-8"))
-            else:
-                pkgbase = outputpackagebase.base  # type: ignore[attr-defined]
-                management_repo_dir = settings.get_repo_path(
-                    repo_type=RepoTypeEnum.MANAGEMENT,
-                    name=args.name,
-                    debug=args.debug,
-                    staging=args.staging,
-                    testing=args.testing,
-                )
-                with open(management_repo_dir / f"{pkgbase}.json", "wb") as output_file:
-                    output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
         case _:
             raise RuntimeError(f"Invalid subcommand {args.package} provided to the 'package' command!")
 
