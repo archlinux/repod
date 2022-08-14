@@ -49,6 +49,9 @@ Changed
   The ``repod-file repo writedb`` command only accepts the name of the target
   repository and no target file anymore, as the repository sync database files
   are written to the binary package directory of the target repository.
+* The email validation done for the ``Packager`` model does not by default
+  check for deliverability anymore. In the future this is supposed to become
+  configurable.
 
 Removed
 ^^^^^^^
