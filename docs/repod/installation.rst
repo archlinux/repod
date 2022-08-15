@@ -13,6 +13,15 @@ You can install the latest released version of repod by executing
 
   pip install repod
 
+.. note::
+
+  Installing a wheel distributable (e.g. via ``pip install``) does not create
+  required directories for system-mode (see :ref:`repod.conf`), nor does it
+  provide the man pages.
+  Users requiring system-mode and downstream packagers should therefore use the
+  provided |justfile| for installation on a system level. Refer to ``just -l``
+  to learn more about the provided targets.
+
 Requirements
 ------------
 
@@ -46,6 +55,10 @@ The repod project can be used from a git clone of the project, with the help of
 
 Afterwards it is possible to make use of existing :ref:`tooling` with the help
 of ``poetry run`` (e.g. ``poetry run repod-file --help``).
+
+.. |justfile| raw:: html
+
+  <a target="blank" href="https://just.systems/man/en/">justfile</a>
 
 .. |vercmp| raw:: html
 
