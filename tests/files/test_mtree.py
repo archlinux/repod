@@ -62,12 +62,12 @@ def test_md5(md5: Optional[str], expectation: ContextManager[str]) -> None:
 @mark.parametrize(
     "mode, expectation",
     [
-        ("".join(choice("0124567") for x in range(3)), does_not_raise()),
-        ("".join(choice("0124567") for x in range(4)), does_not_raise()),
-        ("".join(choice("0124567") for x in range(2)), raises(ValidationError)),
-        ("".join(choice("0124567") for x in range(5)), raises(ValidationError)),
-        ("".join(choice("389") for x in range(3)), raises(ValidationError)),
-        ("".join(choice("389") for x in range(4)), raises(ValidationError)),
+        ("".join(choice("01234567") for x in range(3)), does_not_raise()),
+        ("".join(choice("01234567") for x in range(4)), does_not_raise()),
+        ("".join(choice("01234567") for x in range(2)), raises(ValidationError)),
+        ("".join(choice("01234567") for x in range(5)), raises(ValidationError)),
+        ("".join(choice("89") for x in range(3)), raises(ValidationError)),
+        ("".join(choice("89") for x in range(4)), raises(ValidationError)),
     ],
 )
 def test_filemode(mode: str, expectation: ContextManager[str]) -> None:

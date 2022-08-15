@@ -66,7 +66,7 @@ class FileMode(BaseModel):
         A three or four digit long string, consisting only of valid file modes
     """
 
-    mode: constr(regex=r"^[0124567]{3,4}$")  # type: ignore[valid-type]  # noqa: F722
+    mode: constr(regex=r"^[01234567]{3,4}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class MTreeEntryName(BaseModel):
