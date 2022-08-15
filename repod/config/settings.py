@@ -11,13 +11,13 @@ from pydantic import (
     BaseModel,
     BaseSettings,
     PrivateAttr,
-    constr,
     root_validator,
     validator,
 )
 from pydantic.env_settings import SettingsSourceCallable
 
 from repod.common.enums import (
+    ArchitectureEnum,
     CompressionTypeEnum,
     FilesVersionEnum,
     PackageDescVersionEnum,
@@ -25,7 +25,6 @@ from repod.common.enums import (
     RepoTypeEnum,
     SettingsTypeEnum,
 )
-from repod.common.regex import ARCHITECTURE
 from repod.config.defaults import (
     DEFAULT_ARCHITECTURE,
     DEFAULT_DATABASE_COMPRESSION,
@@ -106,11 +105,11 @@ class Architecture(BaseModel):
 
     Attributes
     ----------
-    architecture: Path
-        A string describing a valid architecture for a repository
+    architecture: ArchitectureEnum
+        An ArchitectureEnum member describing a valid architecture for a repository
     """
 
-    architecture: Optional[constr(regex=f"^{ARCHITECTURE}$")]  # type: ignore[valid-type]  # noqa: F722
+    architecture: Optional[ArchitectureEnum]
 
 
 class DatabaseCompression(BaseModel):
@@ -218,9 +217,9 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
 
     Attributes
     ----------
-    architecture: Optional[str]
-        An optional string, that serves as an override to the application-wide architecture.
-        The attribute defines the CPU architecture for the package repository
+    architecture: Optional[ArchitectureEnum]
+        An optional ArchitectureEnum member, that serves as an override to the application-wide architecture. The
+        attribute defines the CPU architecture for the package repository
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
     debug: Optional[Path]
@@ -585,8 +584,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
     Attributes
     ----------
-    architecture: str
-        An optional Architecture string, that (if set) defines the CPU architecture for any package repository which
+    architecture: ArchitectureEnum
+        An optional ArchitectureEnum member, that (if set) defines the CPU architecture for any package repository which
         does not define one itself (defaults to DEFAULT_ARCHITECTURE).
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository
@@ -638,7 +637,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     _source_pool_base: Path = PrivateAttr()
     _source_repo_base: Path = PrivateAttr()
 
-    architecture: str = DEFAULT_ARCHITECTURE
+    architecture: ArchitectureEnum = DEFAULT_ARCHITECTURE
     database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
     management_repo: Optional[ManagementRepo]
     repositories: List[PackageRepo] = []
@@ -735,7 +734,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         debug("Consolidating and creating repository directories...")
 
         repositories = cls.consolidate_repositories_with_defaults(
-            architecture=values.get("architecture"),  # type: ignore[arg-type]
+            architecture=values.get("architecture"),
             database_compression=values.get("database_compression"),
             management_repo=values.get("management_repo"),  # type: ignore[arg-type]
             package_pool=to_absolute_path(
@@ -757,7 +756,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     @classmethod
     def consolidate_repositories_with_defaults(
         cls,
-        architecture: str,
+        architecture: ArchitectureEnum,
         database_compression: CompressionTypeEnum,
         management_repo: ManagementRepo,
         package_pool: Path,
@@ -772,7 +771,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         Parameters
         ----------
-        architecture: str
+        architecture: ArchitectureEnum
             The settings-wide default CPU architecture
         database_compression: CompressionTypeEnum
             The settings-wide default database compression
@@ -795,7 +794,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         for repo in repositories:
             if not repo.architecture and architecture:
-                debug(f"Using global architecture ({architecture}) for repo {repo.name}.")
+                debug(f"Using global architecture ({architecture.value}) for repo {repo.name}.")
                 repo.architecture = architecture
             if not repo.database_compression and database_compression:
                 debug(f"Using global database compression ({database_compression.value}) for repo {repo.name}.")
@@ -811,17 +810,17 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 repo.source_pool = source_pool
 
             repo._stable_repo_dir = to_absolute_path(
-                path=repo.name / repo.architecture,  # type: ignore[operator]
+                path=repo.name / repo.architecture.value,  # type: ignore[union-attr]
                 base_path=cls._package_repo_base,
             )
             repo._stable_source_repo_dir = to_absolute_path(
-                path=repo.name / repo.architecture,  # type: ignore[operator]
+                path=repo.name / repo.architecture.value,  # type: ignore[union-attr]
                 base_path=cls._source_repo_base,
             )
             repo._stable_management_repo_dir = to_absolute_path(
                 path=(
-                    repo.management_repo.directory  # type: ignore[operator,union-attr]
-                    / repo.architecture
+                    repo.management_repo.directory  # type: ignore[union-attr]
+                    / repo.architecture.value  # type: ignore[union-attr]
                     / (repo.name.name if repo.name.is_absolute() else repo.name)
                 ),
                 base_path=cls._management_repo_base,
@@ -829,17 +828,17 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
             if repo.debug:
                 repo._debug_repo_dir = to_absolute_path(
-                    path=repo.debug / repo.architecture,  # type: ignore[operator]
+                    path=repo.debug / repo.architecture.value,  # type: ignore[union-attr]
                     base_path=cls._package_repo_base,
                 )
                 repo._debug_source_repo_dir = to_absolute_path(
-                    path=repo.debug / repo.architecture,  # type: ignore[operator]
+                    path=repo.debug / repo.architecture.value,  # type: ignore[union-attr]
                     base_path=cls._source_repo_base,
                 )
                 repo._debug_management_repo_dir = to_absolute_path(
                     path=(
-                        repo.management_repo.directory  # type: ignore[operator,union-attr]
-                        / repo.architecture
+                        repo.management_repo.directory  # type: ignore[union-attr]
+                        / repo.architecture.value  # type: ignore[union-attr]
                         / (repo.debug.name if repo.debug.is_absolute() else repo.debug)
                     ),
                     base_path=cls._management_repo_base,
@@ -847,17 +846,17 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
             if repo.staging:
                 repo._staging_repo_dir = to_absolute_path(
-                    path=repo.staging / repo.architecture,  # type: ignore[operator]
+                    path=repo.staging / repo.architecture.value,  # type: ignore[union-attr]
                     base_path=cls._package_repo_base,
                 )
                 repo._staging_source_repo_dir = to_absolute_path(
-                    path=repo.staging / repo.architecture,  # type: ignore[operator]
+                    path=repo.staging / repo.architecture.value,  # type: ignore[union-attr]
                     base_path=cls._source_repo_base,
                 )
                 repo._staging_management_repo_dir = to_absolute_path(
                     path=(
-                        repo.management_repo.directory  # type: ignore[operator,union-attr]
-                        / repo.architecture
+                        repo.management_repo.directory  # type: ignore[union-attr]
+                        / repo.architecture.value  # type: ignore[union-attr]
                         / (repo.staging.name if repo.staging.is_absolute() else repo.staging)
                     ),
                     base_path=cls._management_repo_base,
@@ -865,17 +864,17 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
             if repo.testing:
                 repo._testing_repo_dir = to_absolute_path(
-                    path=repo.testing / repo.architecture,  # type: ignore[operator]
+                    path=repo.testing / repo.architecture.value,  # type: ignore[union-attr]
                     base_path=cls._package_repo_base,
                 )
                 repo._testing_source_repo_dir = to_absolute_path(
-                    path=repo.testing / repo.architecture,  # type: ignore[operator]
+                    path=repo.testing / repo.architecture.value,  # type: ignore[union-attr]
                     base_path=cls._source_repo_base,
                 )
                 repo._testing_management_repo_dir = to_absolute_path(
                     path=(
-                        repo.management_repo.directory  # type: ignore[operator,union-attr]
-                        / repo.architecture
+                        repo.management_repo.directory  # type: ignore[union-attr]
+                        / repo.architecture.value  # type: ignore[union-attr]
                         / (repo.testing.name if repo.testing.is_absolute() else repo.testing)
                     ),
                     base_path=cls._management_repo_base,
@@ -1423,8 +1422,8 @@ class UserSettings(Settings):
 
     Attributes
     ----------
-    architecture: str
-        An optional Architecture string, that (if set) defines the CPU architecture for any package repository which
+    architecture: ArchitectureEnum
+        An optional ArchitectureEnum member, that (if set) defines the CPU architecture for any package repository which
         does not define one itself (defaults to DEFAULT_ARCHITECTURE).
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository
@@ -1484,8 +1483,8 @@ class SystemSettings(Settings):
 
     Attributes
     ----------
-    architecture: str
-        An optional Architecture string, that (if set) defines the CPU architecture for any package repository which
+    architecture: ArchitectureEnum
+        An optional ArchitectureEnum member, that (if set) defines the CPU architecture for any package repository which
         does not define one itself (defaults to DEFAULT_ARCHITECTURE).
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository

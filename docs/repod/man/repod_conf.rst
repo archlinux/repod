@@ -49,7 +49,7 @@ them. For any undefined option defaults are assumed (see
   repository, which does not define it.
   Understood values are
 
-  .. program-output:: python -c "from repod.common.defaults import ARCHITECTURES; print('\"' + '\", \"'.join(ARCHITECTURES) + '\"')"
+  .. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
 
 * *database_compression*: A string setting the database compression used for
   any repository, which does not define it.
@@ -110,7 +110,7 @@ or defaults (see :ref:`repod.conf_default_options`) are assumed.
 * *architecture* (optional): A string setting the CPU architecture.
   Understood values are
 
-  .. program-output:: python -c "from repod.common.defaults import ARCHITECTURES; print('\"' + '\", \"'.join(ARCHITECTURES) + '\"')"
+  .. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
 
 * *database_compression* (optional): A string setting the database compression used for
   the repository.
@@ -238,7 +238,7 @@ DEFAULT OPTIONS
 * The default CPU architecture if neither global nor per-repository
   *architecture* is defined:
 
-  .. program-output:: python -c "from repod.config.defaults import DEFAULT_ARCHITECTURE; print('\"' + DEFAULT_ARCHITECTURE + '\"')"
+  .. program-output:: python -c "from repod.config.defaults import DEFAULT_ARCHITECTURE; print('\"' + DEFAULT_ARCHITECTURE.value + '\"')"
 
 * The default database compression if neither global nor per-repository
   *database_compression* is defined:

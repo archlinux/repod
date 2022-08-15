@@ -2,9 +2,9 @@ from pathlib import Path
 
 from xdg.BaseDirectory import xdg_config_home, xdg_state_home
 
-from repod.common.enums import CompressionTypeEnum, SettingsTypeEnum
+from repod.common.enums import ArchitectureEnum, CompressionTypeEnum, SettingsTypeEnum
 
-DEFAULT_ARCHITECTURE = "any"
+DEFAULT_ARCHITECTURE = ArchitectureEnum.ANY
 DEFAULT_DATABASE_COMPRESSION = CompressionTypeEnum.GZIP
 DEFAULT_NAME = "default"
 

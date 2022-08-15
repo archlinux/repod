@@ -1,12 +1,12 @@
-from repod.common.defaults import architectures_for_architecture_regex
 from repod.common.enums import (
+    ArchitectureEnum,
     pkg_types_for_pkgtype_regex,
     tar_compression_types_for_filename_regex,
 )
 
 RELATIVE_MTREE_PATH = r"[A-Za-z0-9.,:;/_()@\\&$?!+%~{}<>*\-\"\'\[\]]+"
 ABSOLUTE_MTREE_PATH = rf"/{RELATIVE_MTREE_PATH}"
-ARCHITECTURE = rf"({architectures_for_architecture_regex()})"
+ARCHITECTURE = rf"({ArchitectureEnum.as_or_regex()})"
 BASE64 = r"[0-9A-Za-z/+]+={0,2}"
 BUILDENVS = r"(!|)[\w\-.]+"
 EPOCH = r"[1-9]+[0-9]*:"

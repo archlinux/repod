@@ -17,8 +17,8 @@ import pytest_asyncio
 from pydantic import BaseModel
 from pytest import fixture
 
-from repod.common.defaults import ARCHITECTURES
 from repod.common.enums import (
+    ArchitectureEnum,
     CompressionTypeEnum,
     FilesVersionEnum,
     PackageDescVersionEnum,
@@ -70,7 +70,7 @@ class PackageDescV9999(PackageDesc, SchemaVersion9999):
 
 
 def create_default_arch() -> str:
-    return str(choice(ARCHITECTURES))
+    return str(choice([arch.value for arch in ArchitectureEnum]))
 
 
 @fixture(scope="session")
@@ -252,7 +252,7 @@ def invalid_absolute_dir(request: Any) -> str:
 
 @fixture(
     scope="session",
-    params=ARCHITECTURES,
+    params=[arch.value for arch in ArchitectureEnum],
 )
 def arch(request: Any) -> str:
     return str(request.param)
