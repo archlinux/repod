@@ -33,6 +33,7 @@ Added
   optionally their signatures) to a given repository's package pool directory
   and creating the symlinks for them in the repository's package repository
   directory.
+* A justfile for installing directories required for system mode and man pages.
 
 Changed
 ^^^^^^^
