@@ -32,3 +32,7 @@ def test_compressiontypeenum_as_db_file_suffixes() -> None:
 
 def test_compressiontypeenum_as_files_file_suffixes() -> None:
     assert enums.CompressionTypeEnum.as_files_file_suffixes()
+
+
+def test_architectureenum_as_or_regex() -> None:
+    assert enums.ArchitectureEnum.as_or_regex()

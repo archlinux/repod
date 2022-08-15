@@ -4,6 +4,69 @@ from enum import Enum, IntEnum
 from typing import List
 
 
+class ArchitectureEnum(Enum):
+    """An Enum to distinguish different CPU architectures
+
+    Attributes
+    ----------
+    AARCH64: "aarch64"
+        The aarch64 CPU architecture
+    ANY: "any"
+        Any CPU architecture
+    ARM: "arm"
+        The arm CPU architecture
+    ARMV6H: "armv6h"
+        The armv6h CPU architecture
+    ARMV7H: "armv7h"
+        The armv7h CPU architecture
+    I486: "i486"
+        The i486 CPU architecture
+    I686: "i686"
+        The i686 CPU architecture
+    PENTIUM4: "pentium4"
+        The pentium4 CPU architecture
+    RISCV32: "riscv32"
+        The risv32 CPU architecture
+    RISCV64: "riscv64"
+        The risv64 CPU architecture
+    X86_64: "x86_64"
+        The x86_64 CPU architecture
+    X86_64_V2: "x86_64_v2"
+        The x86_64_v2 CPU architecture
+    X86_64_V3: "x86_64_v3"
+        The x86_64_v3 CPU architecture
+    X86_64_V4: "x86_64_v4"
+        The x86_64_v4 CPU architecture
+    """
+
+    AARCH64 = "aarch64"
+    ANY = "any"
+    ARM = "arm"
+    ARMV6H = "armv6h"
+    ARMV7H = "armv7h"
+    I486 = "i486"
+    I686 = "i686"
+    PENTIUM4 = "pentium4"
+    RISCV32 = "riscv32"
+    RISCV64 = "riscv64"
+    X86_64 = "x86_64"
+    X86_64_V2 = "x86_64_v2"
+    X86_64_V3 = "x86_64_v3"
+    X86_64_V4 = "x86_64_v4"
+
+    @classmethod
+    def as_or_regex(cls) -> str:
+        """Return the members of ArchitectureEnum formatted as an "or" concatenated string
+
+        Returns
+        -------
+        str
+            The members of ArchitectureEnum formatted as an "or" concatenated string
+        """
+
+        return r"|".join(arch.value for arch in cls)
+
+
 class FieldTypeEnum(IntEnum):
     """An IntEnum to distinguish the different types of entries in a file
 
