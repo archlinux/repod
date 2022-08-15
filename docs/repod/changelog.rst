@@ -75,6 +75,7 @@ Fixed
   after a previous ``MD5`` checksum calculation the package file was not read
   in its entirety.
 * Fix file mode validation for ``.MTREE`` files.
+* Fix path validation for ``.MTREE`` files.
 
 Removed
 ^^^^^^^

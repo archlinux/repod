@@ -176,6 +176,21 @@ def test_mtreefile_get_link_path() -> None:
             ),
             Path("/foo bar"),
         ),
+        (
+            mtree.MTreeEntryV1(
+                mode="0644",
+                size="1000",
+                link=None,
+                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                name="/" + "".join(map(str, set(range(0x20, 0x7E)) - {ord("#"), ord(" "), ord("="), ord("\\")})),
+                type_="file",
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                time=200,
+                gid=0,
+                uid=0,
+            ),
+            Path("/" + "".join(map(str, set(range(0x20, 0x7E)) - {ord("#"), ord(" "), ord("="), ord("\\")}))),
+        ),
     ],
 )
 def test_mtreefilev1_get_file_path(mtreefilev1: mtree.MTreeEntryV1, return_value: Path) -> None:

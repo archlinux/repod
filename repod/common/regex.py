@@ -4,7 +4,12 @@ from repod.common.enums import (
     tar_compression_types_for_filename_regex,
 )
 
-RELATIVE_MTREE_PATH = r"[A-Za-z0-9.,:;/_()@\\&$?!+%~{}<>*\-\"\'\[\]]+"
+RELATIVE_MTREE_PATH = r"[A-Za-z0-9.,:;/_()@\\&$?!+%~{}<>*\-\"\'\[\]\`^|]+"
+"""
+RELATIVE_MTREE_PATH may include printable ASCII characters other than space, #, =. The backslash is included as it's a
+result of encoding special characters. See the mtree implementation in libarchive:
+https://github.com/libarchive/libarchive/blob/v3.6.1/libarchive/archive_write_set_format_mtree.c#L307
+"""
 ABSOLUTE_MTREE_PATH = rf"/{RELATIVE_MTREE_PATH}"
 ARCHITECTURE = rf"({ArchitectureEnum.as_or_regex()})"
 BASE64 = r"[0-9A-Za-z/+]+={0,2}"
