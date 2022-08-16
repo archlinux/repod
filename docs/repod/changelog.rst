@@ -34,6 +34,10 @@ Added
   and creating the symlinks for them in the repository's package repository
   directory.
 * A justfile for installing directories required for system mode and man pages.
+* The ``repod-file repo importdb``, ``repod-file repo importpkg`` and
+  ``repod-file repo writedb`` commands now accept a ``-a``/ ``--architecture``
+  flag to define the target repository architecture, if repositories of the
+  same name but differing CPU architectures exist.
 
 Changed
 ^^^^^^^
