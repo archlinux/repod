@@ -7,7 +7,7 @@ from unittest.mock import Mock, call, patch
 
 from pytest import LogCaptureFixture, mark, raises
 
-from repod.common.enums import RepoTypeEnum, SettingsTypeEnum
+from repod.common.enums import ArchitectureEnum, RepoTypeEnum, SettingsTypeEnum
 from repod.config import settings
 
 
@@ -1178,42 +1178,88 @@ def test_create_and_validate_directory(
 
 @mark.parametrize(
     (
-        "repo_type, has_repo, name_exists, debug_exists, staging_exists, testing_exists, "
-        "debug, staging, testing, expectation"
+        "repo_type, has_repo, has_namesake_repo, name_exists, architecture_exists, debug_exists, staging_exists, "
+        "testing_exists, debug, staging, testing, expectation"
     ),
     [
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, False, False, does_not_raise()),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, True, False, False, does_not_raise()),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, True, False, does_not_raise()),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, False, True, does_not_raise()),
-        (RepoTypeEnum.MANAGEMENT, True, True, False, True, True, True, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, False, True, False, True, False, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, False, False, False, True, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, False, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, True, True, True, True, True, False, True, True, raises(RuntimeError)),
-        (RepoTypeEnum.MANAGEMENT, False, False, True, False, False, False, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, False, False, does_not_raise()),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, True, True, False, False, does_not_raise()),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, True, False, does_not_raise()),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, False, True, does_not_raise()),
-        (RepoTypeEnum.PACKAGE, True, True, False, True, True, True, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, True, True, False, True, False, True, False, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, False, False, False, True, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, False, True, True, True, False, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, True, True, True, True, True, False, True, True, raises(RuntimeError)),
-        (RepoTypeEnum.PACKAGE, False, False, True, False, False, False, False, False, raises(RuntimeError)),
-        (RepoTypeEnum.POOL, True, True, False, False, False, False, False, False, does_not_raise()),
-        (RepoTypeEnum.POOL, True, True, False, False, False, True, False, False, does_not_raise()),
-        (RepoTypeEnum.POOL, True, True, False, False, False, False, True, False, does_not_raise()),
-        (RepoTypeEnum.POOL, True, True, False, False, False, False, False, True, does_not_raise()),
-        (None, True, True, True, True, True, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, False, False, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, True, False, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, False, True, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, False, False, True, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, False, False, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, True, False, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, False, True, False, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, False, False, True, does_not_raise()),
+        (RepoTypeEnum.MANAGEMENT, True, True, True, False, True, True, True, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, False, True, True, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, False, True, False, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, True, False, False, False, True, raises(RuntimeError)),
+        (
+            RepoTypeEnum.MANAGEMENT,
+            True,
+            False,
+            False,
+            True,
+            True,
+            True,
+            True,
+            False,
+            False,
+            False,
+            raises(RuntimeError),
+        ),
+        (RepoTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, False, True, True, raises(RuntimeError)),
+        (
+            RepoTypeEnum.MANAGEMENT,
+            False,
+            False,
+            False,
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            raises(RuntimeError),
+        ),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, False, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, True, True, True, False, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, True, False, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, False, True, does_not_raise()),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, False, True, True, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, False, True, False, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, True, False, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, False, False, True, True, True, True, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, True, True, raises(RuntimeError)),
+        (
+            RepoTypeEnum.PACKAGE,
+            False,
+            False,
+            False,
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            raises(RuntimeError),
+        ),
+        (RepoTypeEnum.POOL, True, False, True, True, False, False, False, False, False, False, does_not_raise()),
+        (RepoTypeEnum.POOL, True, False, True, True, False, False, False, True, False, False, does_not_raise()),
+        (RepoTypeEnum.POOL, True, False, True, True, False, False, False, False, True, False, does_not_raise()),
+        (RepoTypeEnum.POOL, True, False, True, True, False, False, False, False, False, True, does_not_raise()),
+        (None, True, False, True, True, True, True, True, False, False, False, raises(RuntimeError)),
     ],
 )
 def test_settings_get_repo_path(
     usersettings: settings.UserSettings,
     repo_type: RepoTypeEnum,
     has_repo: bool,
+    has_namesake_repo: bool,
     name_exists: bool,
+    architecture_exists: bool,
     debug_exists: bool,
     staging_exists: bool,
     testing_exists: bool,
@@ -1223,8 +1269,13 @@ def test_settings_get_repo_path(
     expectation: ContextManager[str],
 ) -> None:
     name = Path("foo")
+    architecture = None
+
     if name_exists:
         name = usersettings.repositories[0].name
+
+    if architecture_exists:
+        architecture = usersettings.repositories[0].architecture
 
     if not debug_exists:
         usersettings.repositories[0].debug = None
@@ -1237,9 +1288,16 @@ def test_settings_get_repo_path(
 
     if not has_repo:
         usersettings.repositories = []
+    else:
+        if has_namesake_repo:
+            namesake = deepcopy(usersettings.repositories[0])
+            namesake.architecture = ArchitectureEnum.ARM
+            usersettings.repositories.append(namesake)
 
     with expectation:
-        path = usersettings.get_repo_path(repo_type=repo_type, name=name, debug=debug, staging=staging, testing=testing)
+        path = usersettings.get_repo_path(
+            repo_type=repo_type, name=name, architecture=architecture, debug=debug, staging=staging, testing=testing
+        )
 
         match repo_type, debug, staging, testing:
             case RepoTypeEnum.MANAGEMENT, True, False, False:

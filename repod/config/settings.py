@@ -1334,7 +1334,15 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 other_name="staging repository",
             )
 
-    def get_repo_path(self, repo_type: RepoTypeEnum, name: Path, debug: bool, staging: bool, testing: bool) -> Path:
+    def get_repo_path(
+        self,
+        repo_type: RepoTypeEnum,
+        name: Path,
+        architecture: Optional[ArchitectureEnum],
+        debug: bool,
+        staging: bool,
+        testing: bool,
+    ) -> Path:
         """Return an absolute Path of a repository
 
         Parameters
@@ -1343,6 +1351,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             A member of RepoTypeEnum to define which type of repository path to return
         name: Path
             The name of the repository
+        architecture: Optional[ArchitectureEnum]
+            An optional member of ArchitectureEnum to define the CPU architecture of the repository
         debug: bool
             Whether to return a debug repository path
         staging: bool
@@ -1369,10 +1379,22 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 f"debug ({debug}), staging ({staging}) and testing ({testing})!"
             )
 
+        names_arches = [(repo.name, repo.architecture) for repo in self.repositories]
+        name_matches = [data for data in names_arches if data[0] == name]
+        if not architecture and len(name_matches) > 1:
+            raise RuntimeError(
+                f"An error occured while trying to request a repository directory: "
+                f"Specifying only a name ({name}) but no architecture while several repositories of the same name "
+                f"({[str(data[0]) + ' (' + data[1].value + ')' for data in name_matches]}) "  # type: ignore[union-attr]
+                "exist, would yield ambivalent results."
+            )
+
         names: List[Path] = []
         for repo in self.repositories:
             names.append(repo.name)
-            if repo.name == name:
+            if (architecture is not None and repo.name == name and repo.architecture == architecture) or (
+                architecture is None and repo.name == name
+            ):
                 match repo_type, debug, staging, testing:
                     case RepoTypeEnum.MANAGEMENT, False, False, False:
                         return repo._stable_management_repo_dir
@@ -1414,7 +1436,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                             f"An unknown error occurred while trying to retrieve a repository path for {name}!"
                         )
 
-        raise RuntimeError(f"Unable to find {name} in the available repositories ({names})")
+        raise RuntimeError(
+            f"Unable to find '{name}' {'(' + architecture.value + ')' if architecture else ''} in the available "
+            f"repositories ({[str(name_) for name_ in names]})"
+        )
 
 
 class UserSettings(Settings):

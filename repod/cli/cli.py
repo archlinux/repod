@@ -152,6 +152,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
     management_repo_dir = settings.get_repo_path(
         repo_type=RepoTypeEnum.MANAGEMENT,
         name=args.name,
+        architecture=args.architecture,
         debug=args.debug,
         staging=args.staging,
         testing=args.testing,
@@ -162,6 +163,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
     package_repo_dir = settings.get_repo_path(
         repo_type=RepoTypeEnum.PACKAGE,
         name=args.name,
+        architecture=args.architecture,
         debug=args.debug,
         staging=args.staging,
         testing=args.testing,
@@ -169,6 +171,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
     package_pool_dir = settings.get_repo_path(
         repo_type=RepoTypeEnum.POOL,
         name=args.name,
+        architecture=args.architecture,
         debug=args.debug,
         staging=args.staging,
         testing=args.testing,
@@ -213,6 +216,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
                 name=args.name,
+                architecture=args.architecture,
                 debug=args.debug,
                 staging=args.staging,
                 testing=args.testing,
@@ -233,6 +237,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
             package_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.PACKAGE,
                 name=args.name,
+                architecture=args.architecture,
                 debug=args.debug,
                 staging=args.staging,
                 testing=args.testing,
@@ -254,6 +259,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
             management_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.MANAGEMENT,
                 name=args.name,
+                architecture=args.architecture,
                 debug=args.debug,
                 staging=args.staging,
                 testing=args.testing,

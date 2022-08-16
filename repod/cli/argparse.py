@@ -2,6 +2,7 @@ import os
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 
+from repod.common.enums import ArchitectureEnum
 from repod.config.defaults import DEFAULT_DATABASE_COMPRESSION
 
 
@@ -96,6 +97,15 @@ class ArgParseFactory:
             type=Path,
             help=("name of repository to import to"),
         )
+        repo_importdb_parser.add_argument(
+            "-a",
+            "--architecture",
+            type=ArchitectureEnum,
+            help=(
+                "target a repository with a specific architecture "
+                "(if multiple of the same name but differing architecture exist)"
+            ),
+        )
         mutual_exclusive_repo_import = repo_importdb_parser.add_mutually_exclusive_group()
         mutual_exclusive_repo_import.add_argument(
             "-D",
@@ -130,6 +140,15 @@ class ArgParseFactory:
             "name",
             type=Path,
             help=("name of repository to import to"),
+        )
+        repo_importpkg_parser.add_argument(
+            "-a",
+            "--architecture",
+            type=ArchitectureEnum,
+            help=(
+                "target a repository with a specific architecture "
+                "(if multiple of the same name but differing architecture exist)"
+            ),
         )
         repo_importpkg_parser.add_argument(
             "-d",
@@ -174,6 +193,15 @@ class ArgParseFactory:
             "name",
             type=Path,
             help=("name of repository to write to"),
+        )
+        repo_writedb_parser.add_argument(
+            "-a",
+            "--architecture",
+            type=ArchitectureEnum,
+            help=(
+                "target a repository with a specific architecture "
+                "(if multiple of the same name but differing architecture exist)"
+            ),
         )
         repo_writedb_parser.add_argument(
             "-c",
