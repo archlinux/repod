@@ -78,8 +78,9 @@ class Package(BaseModel):
 
         debug(f"Creating checksums for package {package}...")
         with open(package, "rb") as package_file:
-            package_md5sum = md5(package_file.read()).hexdigest()
-            package_sha256sum = sha256(package_file.read()).hexdigest()
+            package_bytes = package_file.read()
+            package_md5sum = md5(package_bytes).hexdigest()
+            package_sha256sum = sha256(package_bytes).hexdigest()
 
         debug(f"Opening package file {package} for reading...")
         with open_tarfile(package) as tarfile:
