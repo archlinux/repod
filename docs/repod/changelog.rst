@@ -70,6 +70,10 @@ Fixed
 * ``.PKGINFO`` values with equal signs are now handled correctly (e.g., equal
   signs in descriptions of ``optdepends`` entries).
 * The ``usersettings`` fixture no longer leaks test state into the user system.
+* The calculation of ``SHA-256`` checksums for packages in
+  ``repod.file.package.Package.from_file`` were not done correctly, because
+  after a previous ``MD5`` checksum calculation the package file was not read
+  in its entirety.
 
 Removed
 ^^^^^^^
