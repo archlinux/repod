@@ -76,6 +76,10 @@ Fixed
   in its entirety.
 * Fix file mode validation for ``.MTREE`` files.
 * Fix path validation for ``.MTREE`` files.
+* The conversion of special characters in octal representation in the ``mtree``
+  files did not work for non-English unicode characters (e.g. cyrillic) and
+  attempting to import packages that contain file names with such characters
+  would fail.
 
 Removed
 ^^^^^^^
