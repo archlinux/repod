@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import re
+from logging import debug
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -172,8 +173,10 @@ class MTreeEntry(BaseModel):
             raise RuntimeError("It is not possible to retrieve a file path from the template class MTreeEntry!")
 
         output_name = self.name  # type: ignore[attr-defined]
-        for match_ in re.finditer(r"\\[0-9A-F]{3}", output_name):
-            output_name = output_name.replace(match_[0], chr(int(match_[0].replace("\\", ""), 8)))
+
+        if len(re.findall(r"\\[0-9A-F]{3}", output_name)) > 0:
+            output_name = output_name.encode("latin1").decode("unicode-escape").encode("latin1").decode("utf8")
+            debug(f"Converted MTree path {self.name} to {output_name}.")  # type: ignore[attr-defined]
 
         return Path(output_name)
 
@@ -208,8 +211,9 @@ class MTreeEntry(BaseModel):
         if output_name is None:
             return output_name
 
-        for match_ in re.finditer(r"\\[0-9A-F]{3}", output_name):
-            output_name = output_name.replace(match_[0], chr(int(match_[0].replace("\\", ""), 8)))
+        if len(re.findall(r"\\[0-9A-F]{3}", output_name)) > 0:
+            output_name = output_name.encode("latin1").decode("unicode-escape").encode("latin1").decode("utf8")
+            debug(f"Converted MTree path {self.name} to {output_name}.")  # type: ignore[attr-defined]
 
         output_path = Path(output_name)
 

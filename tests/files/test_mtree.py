@@ -1,5 +1,6 @@
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
+from logging import DEBUG
 from pathlib import Path
 from random import choice, randrange, sample
 from re import Match, fullmatch
@@ -8,7 +9,7 @@ from tempfile import TemporaryDirectory
 from typing import ContextManager, Optional
 
 from pydantic import ValidationError
-from pytest import mark, raises
+from pytest import LogCaptureFixture, mark, raises
 
 from repod.common.enums import tar_compression_types_for_filename_regex
 from repod.errors import RepoManagementValidationError
@@ -191,9 +192,27 @@ def test_mtreefile_get_link_path() -> None:
             ),
             Path("/" + "".join(map(str, set(range(0x20, 0x7E)) - {ord("#"), ord(" "), ord("="), ord("\\")}))),
         ),
+        (
+            mtree.MTreeEntryV1(
+                mode="0644",
+                size="1000",
+                link=None,
+                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                name="/\\320\\220\\321\\202\\320\\273\\320\\260\\321\\201\\320\\275\\321\\213\\320\\265.svgz",
+                type_="file",
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                time=200,
+                gid=0,
+                uid=0,
+            ),
+            Path("/Атласные.svgz"),
+        ),
     ],
 )
-def test_mtreefilev1_get_file_path(mtreefilev1: mtree.MTreeEntryV1, return_value: Path) -> None:
+def test_mtreefilev1_get_file_path(
+    mtreefilev1: mtree.MTreeEntryV1, return_value: Path, caplog: LogCaptureFixture
+) -> None:
+    caplog.set_level(DEBUG)
     assert mtreefilev1.get_file_path() == return_value
 
 
@@ -295,6 +314,38 @@ def test_mtreefilev1_get_file_path(mtreefilev1: mtree.MTreeEntryV1, return_value
                 uid=0,
             ),
             Path("/foo/bar/bar baz"),
+        ),
+        (
+            True,
+            mtree.MTreeEntryV1(
+                mode="0644",
+                size="1000",
+                link="../\\320\\220\\321\\202\\320\\273\\320\\260\\321\\201\\320\\275\\321\\213\\320\\265.svgz",
+                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                name="/foo/bar/baz",
+                type_="file",
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                time=200,
+                gid=0,
+                uid=0,
+            ),
+            Path("/foo/bar/Атласные.svgz"),
+        ),
+        (
+            False,
+            mtree.MTreeEntryV1(
+                mode="0644",
+                size="1000",
+                link="/foo",
+                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                name="/foo/bar/baz",
+                type_="file",
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                time=200,
+                gid=0,
+                uid=0,
+            ),
+            Path("/foo"),
         ),
         (
             False,
