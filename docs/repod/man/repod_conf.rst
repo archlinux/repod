@@ -1,12 +1,13 @@
 .. _repod.conf:
 
+==========
 repod.conf
-----------
+==========
 
 .. _repod.conf_synopsis:
 
 SYNOPSIS
-^^^^^^^^
+--------
 
 *$XDG_CONFIG_HOME/repod/repod.conf*
 
@@ -19,7 +20,7 @@ SYNOPSIS
 .. _repod.conf_description:
 
 DESCRIPTION
-^^^^^^^^^^^
+-----------
 
 A TOML based configuration file, which can be provided in a default
 configuration file location and/ or override configuration file locations.
@@ -39,7 +40,7 @@ If no configuration file is provided, defaults are assumed (see
 .. _repod.conf_global_options:
 
 GLOBAL OPTIONS
-^^^^^^^^^^^^^^
+--------------
 
 Global options provide the defaults for any repository that does not define
 them. For any undefined option defaults are assumed (see
@@ -80,7 +81,7 @@ them. For any undefined option defaults are assumed (see
 .. _repod.conf_syncdb_settings:
 
 SYNC DATABASE SETTINGS
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 Sync database settings offer control over the way data for repository sync
 databases is exported. For any undefined option defaults are assumed (see
@@ -101,7 +102,7 @@ databases is exported. For any undefined option defaults are assumed (see
 .. _repod.conf_repository_options:
 
 REPOSITORY OPTIONS
-^^^^^^^^^^^^^^^^^^
+------------------
 
 Repository options are used to configure a specific repository. If optional
 options are not defined, global options (see :ref:`repod.conf_global_options`)
@@ -165,7 +166,7 @@ or defaults (see :ref:`repod.conf_default_options`) are assumed.
 .. _repod.conf_defaults:
 
 DEFAULTS
-^^^^^^^^
+--------
 
 If no configuration is provided, a repository named "default", with management
 repository, but without staging or testing repository, using default
@@ -190,7 +191,7 @@ evaluates to the following configuration:
 .. _repod.conf_default_directories:
 
 DEFAULT DIRECTORIES
-"""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^
 
 * *$XDG_STATE_HOME/repod/management/* The default per-user location below which
   management repository directories are created (aka management repository base
@@ -233,7 +234,7 @@ DEFAULT DIRECTORIES
 .. _repod.conf_default_options:
 
 DEFAULT OPTIONS
-"""""""""""""""
+^^^^^^^^^^^^^^^
 
 * The default CPU architecture if neither global nor per-repository
   *architecture* is defined:
@@ -258,10 +259,10 @@ DEFAULT OPTIONS
   .. program-output:: python -c "from repod.common.enums import FilesVersionEnum; print(FilesVersionEnum.DEFAULT.value)"
 
 EXAMPLES
-^^^^^^^^
+--------
 
 Example 1. One repository with custom architecture
-""""""""""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: toml
 
@@ -272,7 +273,7 @@ Example 1. One repository with custom architecture
   testing = "repo-testing"
 
 Example 2. Two repositories with shared staging and testing
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: toml
 
@@ -289,7 +290,7 @@ Example 2. Two repositories with shared staging and testing
   testing = "repo-testing"
 
 Example 3. One repository with custom management repo
-"""""""""""""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: toml
 
@@ -303,7 +304,7 @@ Example 3. One repository with custom management repo
   url = "ssh://user@custom-upstream.tld/repository.git"
 
 Example 4. One repository with non-standard directories
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: toml
 
@@ -316,7 +317,7 @@ Example 4. One repository with non-standard directories
   directory = "/absolute/path/to/management_repo"
 
 Example 5. One repository with pacman-key based signature verification
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: toml
 
@@ -330,6 +331,6 @@ Example 5. One repository with pacman-key based signature verification
   testing = "repo-testing"
 
 SEE ALSO
-^^^^^^^^
+--------
 
 ``repod-file(1)``, ``pacman(8)``, ``pacman-key(8)``

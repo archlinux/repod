@@ -1,5 +1,6 @@
+==========
 repod-file
-----------
+==========
 
 .. argparse::
    :module: repod.cli.argparse
@@ -9,7 +10,7 @@ repod-file
 .. _inspect_package_files:
 
 Inspecting Package files
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 :ref:`package` files can be inspected to review the metadata contained in them.
 
@@ -37,7 +38,7 @@ To only display subsets of the data, refer to the following flags:
 .. _package_to_management_repo:
 
 Import Package metadata to management repository
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------------------
 
 The metadata retrieved from :ref:`package` files and their :ref:`package
 signature` can be transformed to their respective :ref:`management repository`
@@ -62,7 +63,7 @@ To pretty print the JSON output use the ``-p``/ ``--pretty`` flag.
 .. _syncdb_to_management_repo:
 
 Transform repository sync databases to management repository
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------------------------------
 
 :ref:`sync database` files can be transformed to representations used in the
 context of a :ref:`management repository`.
@@ -106,7 +107,7 @@ directory as well:
 .. _management_repo_to_syncdb:
 
 Transform management repositories to repository sync databases
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------------------------
 
 The JSON files contained in a :ref:`management repository` can be transformed
 into a :ref:`sync database` (both :ref:`default sync database` and :ref:`files
@@ -127,7 +128,7 @@ The above creates ``"$SYNC_DB_OUTPUT/core.db"`` as well as
 .. _json_schema_export:
 
 Export JSON schema
-^^^^^^^^^^^^^^^^^^
+------------------
 
 To export the |JSON schema|, which represents the validation logic of repod, use:
 

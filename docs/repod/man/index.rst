@@ -4,6 +4,8 @@
 Manuals
 =======
 
-.. include::  repod_file.rst
+.. toctree::
+   :glob:
+   :titlesonly:
 
-.. include::  repod_conf.rst
+   *
