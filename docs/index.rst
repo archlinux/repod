@@ -36,7 +36,6 @@ It is developed at https://gitlab.archlinux.org/archlinux/repod
 
    repod/installation.rst
    repod/configuration.rst
-   repod/tooling.rst
    repod/man/index.rst
    repod/changelog.rst
 

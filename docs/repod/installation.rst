@@ -53,7 +53,7 @@ The repod project can be used from a git clone of the project, with the help of
   cd repod
   poetry install
 
-Afterwards it is possible to make use of existing :ref:`tooling` with the help
+Afterwards it is possible to make use of existing :ref:`tooling <manuals>` with the help
 of ``poetry run`` (e.g. ``poetry run repod-file --help``).
 
 .. |justfile| raw:: html
