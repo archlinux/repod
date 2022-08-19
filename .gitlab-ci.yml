@@ -132,13 +132,16 @@ docs:
   extends: .build
   script:
     - tox -e docs
+  after_script:
+    - mv docs/_build/html public
+  artifacts:
+    paths:
+      - public
 
 pages:
-  extends: docs
   stage: pages
   script:
-    - !reference [docs, script]
-    - mv docs/_build/html public
+    - test
   artifacts:
     paths:
       - public
