@@ -1,3 +1,5 @@
+.. _repod-file:
+
 ==========
 repod-file
 ==========
@@ -7,63 +9,13 @@ repod-file
    :func: sphinx_repod_file
    :prog: repod-file
 
-.. _inspect_package_files:
-
-Inspecting Package files
-------------------------
-
-:ref:`package` files can be inspected to review the metadata contained in them.
-
-To get the entire metadata collected by repod, use:
-
-.. code:: sh
-
-  repod-file package inspect <package>
-
-.. note::
-
-  By default package signature files are not considered. To enforce the
-  locating and use of accompanying signature files, use the ``-s``/
-  ``--with-signature`` flag.
-
-The output of ``repod-file package inspect`` can be modified by using the
-``-p``/ ``--pretty`` option (for pretty printing the JSON output).
-
-To only display subsets of the data, refer to the following flags:
-
-* ``-B``/ ``--buildinfo`` (for :ref:`buildinfo`)
-* ``-M``/ ``--mtree`` (for :ref:`mtree`)
-* ``-P``/ ``--pkginfo`` (for :ref:`pkginfo`).
-
-.. _package_to_management_repo:
-
-Import Package metadata to management repository
-------------------------------------------------
-
-The metadata retrieved from :ref:`package` files and their :ref:`package
-signature` can be transformed to their respective :ref:`management repository`
-representation. For this to produce meaningful and complete output, all
-packages (and their signatures) of a given ``pkgbase`` (see |package
-splitting|) need to be consumed at once.
-
-.. code:: sh
-
-  repod-file package import <package> <repo>
-
-.. note::
-
-  By default package signature files are not considered. To enforce the
-  locating and use of accompanying signature files, use the ``-s``/
-  ``--with-signature`` flag.
-
-The output of the above command may be displayed using the ``-d``/
-``--dry-run`` flag (nothing is written to the output directory in this case).
-To pretty print the JSON output use the ``-p``/ ``--pretty`` flag.
+EXAMPLES
+--------
 
 .. _syncdb_to_management_repo:
 
-Transform repository sync databases to management repository
-------------------------------------------------------------
+TRANSFORM REPOSITORY SYNC DATABASES TO MANAGEMENT REPOSITORY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :ref:`sync database` files can be transformed to representations used in the
 context of a :ref:`management repository`.
@@ -106,15 +58,16 @@ directory as well:
 
 .. _management_repo_to_syncdb:
 
-Transform management repositories to repository sync databases
---------------------------------------------------------------
+TRANSFORM MANAGEMENT REPOSITORIES TO REPOSITORY SYNC DATABASES
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The JSON files contained in a :ref:`management repository` can be transformed
 into a :ref:`sync database` (both :ref:`default sync database` and :ref:`files
 sync database` files are created).
 
-After following the examples in :ref:`syncdb_to_management_repo` it is possible
-to use the created files and turn them back into :ref:`sync database` files.
+After following the examples :ref:`above <syncdb_to_management_repo>`, it is
+possible to use the created files and turn them back into :ref:`sync database`
+files.
 
 .. code:: sh
 
@@ -124,19 +77,6 @@ to use the created files and turn them back into :ref:`sync database` files.
 
 The above creates ``"$SYNC_DB_OUTPUT/core.db"`` as well as
 ``"$SYNC_DB_OUTPUT/core.files"``.
-
-.. _json_schema_export:
-
-Export JSON schema
-------------------
-
-To export the |JSON schema|, which represents the validation logic of repod, use:
-
-.. code:: sh
-
-  REPOD_SCHEMA="$(mktemp -d)"
-  echo "$REPOD_SCHEMA"
-  repod-file schema export "$REPOD_SCHEMA"
 
 .. |pacman| raw:: html
 
@@ -149,3 +89,8 @@ To export the |JSON schema|, which represents the validation logic of repod, use
 .. |package splitting| raw:: html
 
   <a target="blank" href="https://man.archlinux.org/man/PKGBUILD.5#PACKAGE_SPLITTING">package splitting</a>
+
+SEE ALSO
+--------
+
+:manpage:`repod.conf(5)`, :manpage:`BUILDINFO(5)`, :manpage:`mtree(5)`, :manpage:`pacman(8)`

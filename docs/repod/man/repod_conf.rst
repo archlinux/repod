@@ -333,4 +333,4 @@ Example 5. One repository with pacman-key based signature verification
 SEE ALSO
 --------
 
-``repod-file(1)``, ``pacman(8)``, ``pacman-key(8)``
+:manpage:`repod-file(1)`, :manpage:`pacman(8)`, :manpage:`pacman-key(8)`
