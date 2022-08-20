@@ -60,12 +60,6 @@ Changed
 * The database compression of repositories can now only be set in the
   configuration file.
 
-Removed
-^^^^^^^
-
-* The ``repod-file package import`` subcommand as it is superseded by
-  ``repod-file repo importpkg``.
-
 Fixed
 ^^^^^
 
@@ -91,6 +85,8 @@ Removed
 
 * The ``repod-file`` subcommand ``syncdb`` is removed due to being the reverse
   pendant to the ``management`` command.
+* The ``repod-file package import`` subcommand as it is superseded by
+  ``repod-file repo importpkg``.
 
 [0.1.0] - 2022-07-02
 --------------------
