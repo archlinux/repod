@@ -14,8 +14,8 @@ EXAMPLES
 
 .. _syncdb_to_management_repo:
 
-TRANSFORM REPOSITORY SYNC DATABASES TO MANAGEMENT REPOSITORY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TRANSFORM REPOSITORY SYNC DATABASE TO MANAGEMENT REPOSITORY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :ref:`sync database` files can be transformed to representations used in the
 context of a :ref:`management repository`.
@@ -31,14 +31,12 @@ For testing purposes, the system's |pacman| sync databases in
 ``/var/lib/pacman/sync/`` can be used (this assumes a system that makes use of
 pacman as package manager).
 
-To transform :ref:`default sync database` files and output them to a temporary
-directory, you can use the following:
+To import :ref:`default sync database` files and output them to the management
+repository directory of a configured repository, use:
 
 .. code:: sh
 
-  DEFAULT_JSON_OUTPUT="$(mktemp -d)"
-  echo "$DEFAULT_JSON_OUTPUT"
-  repod-file syncdb export /var/lib/pacman/sync/core.db "$DEFAULT_JSON_OUTPUT"
+  repod-file repo importdb /var/lib/pacman/sync/core.db default
 
 To be able to use :ref:`files sync database` files, make sure to update them
 first.
@@ -47,48 +45,39 @@ first.
 
   pacman -Fy
 
-Afterwards you are able to transform the files and output them to a temporary
-directory as well:
+Afterwards it is possible to import those files analogous to how it is done
+with :ref:`default sync database` files:
 
 .. code:: sh
 
-  FILES_JSON_OUTPUT="$(mktemp -d)"
-  echo "$FILES_JSON_OUTPUT"
-  repod-file syncdb export /var/lib/pacman/sync/core.files "$FILES_JSON_OUTPUT"
+  repod-file repo importdb /var/lib/pacman/sync/core.files default
+
+The above assumes the repository named *default* is present (e.g. when no
+configuration file for repod is present).
 
 .. _management_repo_to_syncdb:
 
-TRANSFORM MANAGEMENT REPOSITORIES TO REPOSITORY SYNC DATABASES
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TRANSFORM MANAGEMENT REPOSITORY TO REPOSITORY SYNC DATABASE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The JSON files contained in a :ref:`management repository` can be transformed
 into a :ref:`sync database` (both :ref:`default sync database` and :ref:`files
 sync database` files are created).
 
-After following the examples :ref:`above <syncdb_to_management_repo>`, it is
+After following the examples in :ref:`syncdb_to_management_repo`, it is
 possible to use the created files and turn them back into :ref:`sync database`
 files.
 
 .. code:: sh
 
-  SYNC_DB_OUTPUT="$(mktemp -d)"
-  echo "$SYNC_DB_OUTPUT"
-  repod-file management export "$FILES_JSON_OUTPUT" "$SYNC_DB_OUTPUT/core.db"
+  repod-file repo writedb default
 
-The above creates ``"$SYNC_DB_OUTPUT/core.db"`` as well as
-``"$SYNC_DB_OUTPUT/core.files"``.
+The above creates ``default.db`` as well as ``default.files`` in the binary
+repository location of the repository named *default*.
 
 .. |pacman| raw:: html
 
   <a target="blank" href="https://man.archlinux.org/man/pacman.8">pacman</a>
-
-.. |JSON schema| raw:: html
-
-  <a target="blank" href="https://en.wikipedia.org/wiki/JSON#Metadata_and_schema">JSON schema</a>
-
-.. |package splitting| raw:: html
-
-  <a target="blank" href="https://man.archlinux.org/man/PKGBUILD.5#PACKAGE_SPLITTING">package splitting</a>
 
 SEE ALSO
 --------
