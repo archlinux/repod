@@ -141,7 +141,7 @@ docs:
 pages:
   stage: pages
   script:
-    - test
+    - "true"
   artifacts:
     paths:
       - public
