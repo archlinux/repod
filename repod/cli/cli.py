@@ -265,6 +265,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
                 testing=args.testing,
             )
             asyncio.run(default_sync_db.stream_management_repo(path=management_repo_dir))
+            default_syncdb_symlink_path.unlink(missing_ok=True)
             default_syncdb_symlink_path.symlink_to(default_syncdb_path.relative_to(default_syncdb_symlink_path.parent))
 
             files_sync_db = SyncDatabase(
@@ -275,6 +276,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
                 files_version=settings.syncdb_settings.files_version,
             )
             asyncio.run(files_sync_db.stream_management_repo(path=management_repo_dir))
+            files_syncdb_symlink_path.unlink(missing_ok=True)
             files_syncdb_symlink_path.symlink_to(files_syncdb_path.relative_to(files_syncdb_symlink_path.parent))
         case _:
             raise RuntimeError(f"Invalid subcommand {args.repo} provided to the 'repo' command!")
