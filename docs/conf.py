@@ -57,6 +57,14 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+html_context = {
+    "display_gitlab": True,
+    "gitlab_host": "gitlab.archlinux.org",
+    "gitlab_user": "archlinux",
+    "gitlab_repo": "repod",
+    "gitlab_version": "main",
+    "conf_py_path": "/docs/",
+}
 # -- Options for manual page output ------------------------------------------
 
 man_pages = [
