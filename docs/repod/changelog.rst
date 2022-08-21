@@ -80,6 +80,9 @@ Fixed
   files did not work for non-English unicode characters (e.g. cyrillic) and
   attempting to import packages that contain file names with such characters
   would fail.
+* Some of the online documentation did not reflect the current state of the CLI
+  anymore, so all information for the ``repod-file`` has been consolidated with
+  its man page.
 
 Removed
 ^^^^^^^
