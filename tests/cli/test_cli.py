@@ -20,6 +20,7 @@ from repod.common.enums import (
     tar_compression_types_for_filename_regex,
 )
 from repod.config import UserSettings
+from repod.config.defaults import DEFAULT_DATABASE_COMPRESSION
 
 
 @mark.parametrize(
@@ -88,51 +89,6 @@ def test_repod_file_package(
             Namespace(
                 repo="writedb",
                 architecture=ArchitectureEnum.ANY,
-                compression="none",
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            Namespace(
-                repo="writedb",
-                architecture=ArchitectureEnum.ANY,
-                compression="bz2",
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            Namespace(
-                repo="writedb",
-                architecture=ArchitectureEnum.ANY,
-                compression="gz",
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            Namespace(
-                repo="writedb",
-                architecture=ArchitectureEnum.ANY,
-                compression="xz",
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            Namespace(
-                repo="writedb",
-                architecture=ArchitectureEnum.ANY,
-                compression="zst",
                 debug=False,
                 staging=False,
                 testing=False,
@@ -170,6 +126,7 @@ def test_repod_file_repo(
 
     settings_mock = Mock()
     settings_mock.get_repo_path = Mock(return_value=tmp_path)
+    settings_mock.get_repo_database_compression = Mock(return_value=DEFAULT_DATABASE_COMPRESSION)
     syncdb_settings_mock = Mock()
     syncdb_settings_mock.desc_version = PackageDescVersionEnum.DEFAULT
     syncdb_settings_mock.files_version = FilesVersionEnum.DEFAULT

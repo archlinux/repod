@@ -11,7 +11,6 @@ from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
 from repod import export_schemas
 from repod.cli import argparse
 from repod.common.enums import (
-    CompressionTypeEnum,
     PkgTypeEnum,
     PkgVerificationTypeEnum,
     RepoFileEnum,
@@ -233,7 +232,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
         case "importpkg":
             repod_file_repo_importpkg(args=args, settings=settings)
         case "writedb":
-            compression = CompressionTypeEnum.from_string(input_=args.compression)
+            compression = settings.get_repo_database_compression(name=args.name, architecture=args.architecture)
             package_repo_dir = settings.get_repo_path(
                 repo_type=RepoTypeEnum.PACKAGE,
                 name=args.name,
