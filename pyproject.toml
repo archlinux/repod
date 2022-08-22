@@ -10,6 +10,7 @@ packages = [
 include = [
   {path = 'tests/*', format = 'sdist'},
   {path = 'docs/*', format = 'sdist'},
+  {path = 'justfile', format = 'sdist'},
 ]
 readme = "README.md"
 homepage = "https://gitlab.archlinux.org/archlinux/repod"
