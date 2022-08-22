@@ -57,6 +57,8 @@ Changed
 * The email validation done for the ``Packager`` model does not by default
   check for deliverability anymore. In the future this is supposed to become
   configurable.
+* The database compression of repositories can now only be set in the
+  configuration file.
 
 Removed
 ^^^^^^^
