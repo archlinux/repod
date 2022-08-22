@@ -3,7 +3,6 @@ from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 
 from repod.common.enums import ArchitectureEnum
-from repod.config.defaults import DEFAULT_DATABASE_COMPRESSION
 
 
 class ArgParseFactory:
@@ -202,13 +201,6 @@ class ArgParseFactory:
                 "target a repository with a specific architecture "
                 "(if multiple of the same name but differing architecture exist)"
             ),
-        )
-        repo_writedb_parser.add_argument(
-            "-c",
-            "--compression",
-            choices=["none", "bz2", "bzip2", "gz", "gzip", "lzma", "xz", "zst", "zstandard"],
-            default=DEFAULT_DATABASE_COMPRESSION.value,
-            help=f"database compression (defaults to {DEFAULT_DATABASE_COMPRESSION.value})",
         )
         mutual_exclusive_repo_export = repo_writedb_parser.add_mutually_exclusive_group()
         mutual_exclusive_repo_export.add_argument(
