@@ -1334,6 +1334,58 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 other_name="staging repository",
             )
 
+    def get_repo_database_compression(
+        self,
+        name: Path,
+        architecture: Optional[ArchitectureEnum],
+    ) -> CompressionTypeEnum:
+        """Return the database compression type of a repository
+
+        Parameters
+        ----------
+        name: Path
+            The name of the repository
+        architecture: Optional[ArchitectureEnum]
+            An optional member of ArchitectureEnum to define the CPU architecture of the repository
+
+        Raises
+        ------
+        RuntimeError
+            If more than one non-stable repository is targetted.
+            If no repository matching the name can be found.
+
+        Returns
+        -------
+        CompressionTypeEnum
+            The database compression type of the repository identified by name and architecture
+        """
+
+        names_arches = [(repo.name, repo.architecture) for repo in self.repositories]
+        name_matches = [data for data in names_arches if data[0] == name]
+        if not architecture and len(name_matches) > 1:
+            raise RuntimeError(
+                f"An error occured while trying to request a repository directory: "
+                f"Specifying only a name ({name}) but no architecture while several repositories of the same name "
+                f"({[str(data[0]) + ' (' + data[1].value + ')' for data in name_matches]}) "  # type: ignore[union-attr]
+                "exist, would yield ambivalent results."
+            )
+
+        for repo in self.repositories:
+            if (architecture is not None and repo.name == name and repo.architecture == architecture) or (
+                architecture is None and repo.name == name
+            ):
+                return repo.database_compression
+
+        raise RuntimeError(
+            f"Unable to find '{name}' {'(' + architecture.value + ')' if architecture else ''} in the available "
+            "repositories ({})".format(
+                [
+                    str(repo.name) + " (" + repo.architecture.value + ")"  # type: ignore[union-attr]
+                    for repo in self.repositories
+                ]
+            )
+        )
+
     def get_repo_path(
         self,
         repo_type: RepoTypeEnum,
