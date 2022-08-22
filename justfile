@@ -9,8 +9,8 @@ check:
   python -m pytest -vv -k 'not (integration or regex)'
 
 install:
-  test -z {{destdir}} && python -m installer dist/*.whl
-  test -n {{destdir}} && python -m installer --destdir="{{destdir}}" dist/*.whl
+  # https://github.com/pypa/installer/issues/136
+  if [ -n "{{destdir}}" ]; then python -m installer --destdir="{{destdir}}" dist/*.whl; else python -m installer dist/*.whl; fi
   install -vDm 644 docs/_build/man/man1/*.1 -t "{{destdir}}/usr/share/man/man1/"
   install -vDm 644 docs/_build/man/man5/*.5 -t "{{destdir}}/usr/share/man/man5/"
   install -vdm 755 "{{destdir}}/etc/repod.conf.d/"
