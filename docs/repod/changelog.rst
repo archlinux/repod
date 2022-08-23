@@ -12,6 +12,12 @@ For more detailed information have a look at the |git log|.
 [Unreleased]
 ------------
 
+Fixed
+^^^^^
+
+* The ``justfile`` is now contained in the sdist tarball and fixed to install
+  using a destination directory (destdir).
+
 [0.2.0] - 2022-08-22
 --------------------
 
