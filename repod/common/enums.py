@@ -237,7 +237,7 @@ class PkgVerificationTypeEnum(Enum):
 class PkgTypeEnum(Enum):
     """An Enum to distinguish different package types
 
-    The member values represents the name of a possible repod.files.buildinfo.PkgType value
+    The member values represents the name of a possible repod.files.pkginfo.PkgType value
 
     Attributes
     ----------
@@ -245,10 +245,16 @@ class PkgTypeEnum(Enum):
         A default package
     DEBUG: str
         A debug package
+    SOURCE: str
+        A source package
+    SPLIT: str
+        A split package
     """
 
     PKG = "pkg"
     DEBUG = "debug"
+    SOURCE = "src"
+    SPLIT = "split"
 
 
 class RepoFileEnum(IntEnum):
