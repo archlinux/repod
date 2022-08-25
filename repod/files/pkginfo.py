@@ -7,7 +7,7 @@ from typing import Dict, List, Set, Tuple, Union
 
 from pydantic import BaseModel, constr
 
-from repod.common.enums import FieldTypeEnum
+from repod.common.enums import FieldTypeEnum, PkgTypeEnum
 from repod.common.models import (
     Arch,
     Backup,
@@ -31,7 +31,7 @@ from repod.common.models import (
     Url,
     Version,
 )
-from repod.common.regex import PKGTYPE, VERSION
+from repod.common.regex import VERSION
 from repod.errors import RepoManagementError, RepoManagementFileError
 
 PKGINFO_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
@@ -148,11 +148,11 @@ class PkgType(BaseModel):
 
     Attributes
     ----------
-    pkgtype: str
-        A string representing a valid package type (one of repod.common.enums.PkgTypeEnum)
+    pkgtype: PkgTypeEnum
+        A member of PkgTypeEnum representing a valid package type
     """
 
-    pkgtype: constr(regex=rf"^{PKGTYPE}$")  # type: ignore[valid-type]  # noqa: F722
+    pkgtype: PkgTypeEnum
 
 
 class PkgInfo(BaseModel):
@@ -374,8 +374,8 @@ class PkgInfoV2(
         A string representing the name of a package
     optdepends: Optional[List[str]]
         An optional list of strings representing package names a package requires optionally
-    pkgtype: str
-        A string representing a valid package type (one of repod.common.enums.PkgTypeEnum)
+    pkgtype: PkgTypeEnum
+        A member of PkgTypeEnum representing a valid package type
     provides: Optional[List[str]]
         An optional list of strings representing package names a package provides
     replaces: Optional[List[str]]

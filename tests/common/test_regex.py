@@ -127,16 +127,6 @@ def test_invalid_pkgrel(invalid_pkgrel: str) -> None:
 
 
 @mark.regex
-def test_pkgtype(pkgtype: str) -> None:
-    assert isinstance(fullmatch(regex.PKGTYPE, pkgtype), Match)
-
-
-@mark.regex
-def test_invalid_pkgtype(invalid_pkgtype: str) -> None:
-    assert not isinstance(fullmatch(regex.PKGTYPE, invalid_pkgtype), Match)
-
-
-@mark.regex
 def test_relative_path() -> None:
     assert isinstance(fullmatch(regex.RELATIVE_PATH, "foo"), Match)
 

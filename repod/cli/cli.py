@@ -117,7 +117,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
                     package.pkginfo,  # type: ignore[attr-defined]
                     PkgInfoV2,
                 )
-                and package.pkginfo.pkgtype != PkgTypeEnum.DEBUG.value  # type: ignore[attr-defined]
+                and package.pkginfo.pkgtype != PkgTypeEnum.DEBUG  # type: ignore[attr-defined]
             ]
         ):
             raise RuntimeError(
@@ -133,7 +133,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
                     package.pkginfo,  # type: ignore[attr-defined]
                     PkgInfoV2,
                 )
-                and package.pkginfo.pkgtype == PkgTypeEnum.DEBUG.value  # type: ignore[attr-defined]
+                and package.pkginfo.pkgtype == PkgTypeEnum.DEBUG  # type: ignore[attr-defined]
             ]
         ):
             raise RuntimeError(

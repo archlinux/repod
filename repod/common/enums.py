@@ -305,18 +305,6 @@ class SettingsTypeEnum(Enum):
     SYSTEM = "system"
 
 
-def pkg_types_for_pkgtype_regex() -> str:
-    """Return the members of PkgTypeEnum formatted for use in the PKGTYPE regular expression
-
-    Returns
-    -------
-    str
-        The members of PkgTypeEnum formatted as an "or" concatenated string, which matches the values of all members.
-    """
-
-    return r"|".join([type_.value for type_ in PkgTypeEnum])
-
-
 def tar_compression_types_for_filename_regex() -> str:
     """Return the members of CompressionTypeEnum formatted for use in the FILENAME regular expression
 
