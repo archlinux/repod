@@ -215,18 +215,34 @@ def test_read_toml_configuration_settings_user(
                 toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
 
 
+@mark.parametrize(
+    "override_location_exists, custom_config_provided",
+    [
+        (True, False),
+        (False, False),
+        (True, True),
+        (False, True),
+    ],
+)
 @patch("tomli.load", return_value={})
 def test_read_toml_configuration_settings_system(
     toml_load_mock: Mock,
     empty_toml_file: Path,
     empty_toml_files_in_dir: Path,
     tmp_path: Path,
+    override_location_exists: bool,
+    custom_config_provided: bool,
 ) -> None:
+    if override_location_exists:
+        override_dir = empty_toml_files_in_dir
+    else:
+        override_dir = tmp_path / "foo"
+
     with patch("repod.config.settings.SETTINGS_LOCATION", {SettingsTypeEnum.SYSTEM: empty_toml_file}):
         settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
         with patch(
             "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
-            {SettingsTypeEnum.SYSTEM: empty_toml_files_in_dir},
+            {SettingsTypeEnum.SYSTEM: override_dir},
         ):
             settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
             toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
@@ -235,7 +251,7 @@ def test_read_toml_configuration_settings_system(
         settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
         with patch(
             "repod.config.settings.SETTINGS_OVERRIDE_LOCATION",
-            {SettingsTypeEnum.SYSTEM: empty_toml_files_in_dir},
+            {SettingsTypeEnum.SYSTEM: override_dir},
         ):
             settings.read_toml_configuration_settings(Mock(spec=settings.SystemSettings))
             toml_load_mock.has_calls(call([empty_toml_file] + sorted(empty_toml_files_in_dir.glob("*.toml"))))
