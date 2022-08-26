@@ -1,14 +1,16 @@
 from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
+from logging import DEBUG
 from pathlib import Path
 from typing import Any, ContextManager, Dict, List, Optional, Union
 
-from pytest import mark, raises
+from pytest import LogCaptureFixture, mark, raises
 
 from repod.common.enums import FilesVersionEnum, PackageDescVersionEnum
 from repod.errors import RepoManagementFileError, RepoManagementValidationError
 from repod.files.buildinfo import BuildInfo
 from repod.files.package import Package
+from repod.files.pkginfo import PkgType
 from repod.repo.management import outputpackage
 from repod.repo.package import syncdb
 from tests.conftest import (
@@ -234,10 +236,15 @@ def test_outputpackagebase_from_packagev1_raise_on_version_mismatch(packagev1: P
         outputpackage.OutputPackageBase.from_package(packages=[packagev1, package_b])
 
 
-def test_outputpackagebase_from_packagev1_raise_on_pkgtype_mismatch(packagev1_pkginfov2: Package) -> None:
+def test_outputpackagebase_from_packagev1_raise_on_pkgtype_mismatch(
+    packagev1_pkginfov2: Package,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
     package_b = deepcopy(packagev1_pkginfov2)
     package_b.pkginfo.name = "different"  # type: ignore[attr-defined]
-    package_b.pkginfo.pkgtype = "debug"  # type: ignore[attr-defined]
+    package_b.pkginfo.xdata = [PkgType(pkgtype="debug")]  # type: ignore[attr-defined]
     with raises(ValueError):
         outputpackage.OutputPackageBase.from_package(packages=[packagev1_pkginfov2, package_b])
 

@@ -83,6 +83,7 @@ class FieldTypeEnum(IntEnum):
     STRING = 0
     INT = 1
     STRING_LIST = 2
+    KEY_VALUE_LIST = 3
 
 
 class CompressionTypeEnum(Enum):

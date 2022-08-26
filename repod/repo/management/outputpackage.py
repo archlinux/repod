@@ -591,17 +591,25 @@ class OutputPackageBase(BaseModel):
                 f"provided: {', '.join(versions)}"
             )
 
-        pkgtypes = set(
-            [
-                str(pkg.top_level_dict().get("pkgtype"))
-                for pkg in packages
-                if pkg.top_level_dict().get("pkgtype") is not None
-            ]
-        )
-        if len(pkgtypes) > 1:
+        all_xdata: List[List[Dict[str, Any]]] = [
+            pkg.top_level_dict().get("xdata")  # type: ignore[misc]
+            for pkg in packages
+            if pkg.top_level_dict().get("xdata")
+        ]
+        debug(f"all xdata: {all_xdata}")
+        xdata: List[Dict[str, str]] = []
+        xdata = [item for sublist in all_xdata for item in sublist]
+        debug(f"collected xdata: {xdata}")
+        pkgtypes: List[str] = []
+        pkgtypes = [data.get("pkgtype").value for data in xdata if data.get("pkgtype")]  # type: ignore[union-attr]
+        debug(f"collected pkgtypes: {pkgtypes}")
+
+        debug(f"pkgtypes: {pkgtypes}")
+        if len(set(pkgtypes)) > 1:
             raise ValueError(
                 "An error occurred while trying to create an OutputPackageBase from Packages: "
-                f"Only one pkgtype can be present in the list of used Packages, but several ({', '.join(pkgtypes)}) "
+                "Only one pkgtype can be present in the list of used Packages, but several "
+                f"({', '.join(set(pkgtypes))}) "
                 "are provided!"
             )
 

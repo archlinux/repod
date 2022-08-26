@@ -37,7 +37,7 @@ from repod.files.buildinfo import BuildInfo, BuildInfoV1, BuildInfoV2
 from repod.files.common import ZstdTarFile
 from repod.files.mtree import MTree, MTreeEntryV1
 from repod.files.package import PackageV1
-from repod.files.pkginfo import PkgInfo, PkgInfoV1, PkgInfoV2
+from repod.files.pkginfo import PkgInfo, PkgInfoV1, PkgInfoV2, PkgType
 from repod.repo.management import OutputBuildInfo, OutputPackageBase
 from repod.repo.management.outputpackage import OutputPackageBaseV1, OutputPackageV1
 from repod.repo.package import Files, PackageDesc, RepoDbTypeEnum
@@ -1052,7 +1052,8 @@ def pkginfov2_stringio(
         # using fakeroot version {default_version}
         pkgname = {default_package_name}
         pkgbase = {default_package_name}
-        pkgtype = {default_pkgtype}
+        xdata = pkgtype={default_pkgtype}
+        xdata = url=bar
         pkgver = {default_full_version}
         pkgdesc = {default_description}
         url = {url}
@@ -1084,7 +1085,8 @@ def debug_pkginfov2_stringio(
         # using fakeroot version {default_version}
         pkgname = {default_package_name}-debug
         pkgbase = {default_package_name}
-        pkgtype = debug
+        xdata = pkgtype=debug
+        xdata = url=bar
         pkgver = {default_full_version}
         pkgdesc = {default_description}
         url = {url}
@@ -1191,11 +1193,11 @@ def valid_pkginfov2(
         makepkg_version=default_version,
         name="foo",
         optdepends=None,
-        pkgtype=default_pkgtype,
         provides=None,
         replaces=None,
         url=url,
         version=default_full_version,
+        xdata=[PkgType(pkgtype=default_pkgtype)],
     )
 
 

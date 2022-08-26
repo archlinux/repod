@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from logging import debug
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple, Union
 
 from pydantic import BaseModel, constr
 
@@ -55,6 +55,7 @@ PKGINFO_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "optdepend": ("optdepends", FieldTypeEnum.STRING_LIST),
     "makedepend": ("makedepends", FieldTypeEnum.STRING_LIST),
     "checkdepend": ("checkdepends", FieldTypeEnum.STRING_LIST),
+    "xdata": ("xdata", FieldTypeEnum.KEY_VALUE_LIST),
 }
 PKGINFO_COMMENT_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "makepkg": ("makepkg_version", FieldTypeEnum.STRING),
@@ -100,7 +101,6 @@ PKGINFO_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
             "makepkg_version",
             "name",
             "packager",
-            "pkgtype",
             "url",
             "version",
         },
@@ -114,9 +114,115 @@ PKGINFO_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
             "optdepends",
             "provides",
             "replaces",
+            "xdata",
         },
     },
 }
+
+
+def parse_pairs(line: str, separator: str = " = ") -> Tuple[str, str, FieldTypeEnum]:
+    """Parse key-value pairs from a line of text
+
+    The line of text represents the data contained in a .PKGINFO file.
+    All known key-value pairs are understood and also identifiers added in comment sections are extracted.
+    Keys are resolved based on PKGINFO_ASSIGMENTS or PKGINFO_COMMENT_ASSIGNMENTS.
+
+    Parameters
+    ----------
+    line: str
+        A line of text to be parsed
+    separator: str
+        A separator string by which to split the line of text
+
+    Raises
+    ------
+    RepoManagementFileError
+        If the extracted key can not be found in PKGINFO_ASSIGMENTS,
+        or if an invalid line of text is provided.
+
+    Returns
+    -------
+    Tuple[str, str, FieldTypeEnum]
+        A tuple of two strings and a member of FieldTypeEnum, which represent key, value and field type extracted from
+        the line of text
+    """
+
+    debug(f"Parsing: {line}")
+    if line.startswith("#"):
+        for keyword in PKGINFO_COMMENT_ASSIGNMENTS.keys():
+            if keyword in line:
+                debug(f"Detected valid keyword {keyword}")
+                key = PKGINFO_COMMENT_ASSIGNMENTS[keyword][0]
+                value = line.strip().split()[-1]
+                field_type = PKGINFO_COMMENT_ASSIGNMENTS[keyword][1]
+    else:
+        try:
+            extracted_key, value = [x.strip() for x in line.strip().split(separator, 1)]
+            assignment_key = PKGINFO_ASSIGNMENTS.get(extracted_key)
+            if assignment_key is None:
+                raise RepoManagementFileError(
+                    f"An error occured parsing the .PKGINFO line '{line}'! "
+                    f"The key {extracted_key} can not be found in the type assignments for .PKGINFO keywords."
+                )
+            key = assignment_key[0]
+            field_type = assignment_key[1]
+        except ValueError as e:
+            raise RepoManagementFileError(f"An error occurred while trying to parse the .PKGINFO line {line}\n{e}")
+
+    return key, value, field_type
+
+
+def pairs_to_entries(key: str, value: str, field_type: FieldTypeEnum, entries: Dict[str, Any]) -> None:
+    """Append key value-pairs to a dict
+
+    Values are cast based on their provided field types.
+    Nested values for xdata are understood and are initialized as their target types (e.g. PkgType).
+
+    Parameters
+    ----------
+    key: str
+        The resolved key
+    value: str
+        The extracted value
+    field_type: FieldTypeEnum
+        A member of FieldTypeEnum based upon which value is cast to a specific type
+    entries: Dict[str, Any]
+        The dict to which the key-value pairs are added
+
+    Raises
+    ------
+    RuntimeError
+        If an invalid key/ field type combination is encountered
+    """
+
+    debug(f"Attempting to add key {key} and value {value} of field type {field_type} to {entries}")
+    match key, field_type:
+        case "pkgtype", FieldTypeEnum.STRING:
+            if entries.get("xdata") is None:
+                entries["xdata"] = []
+
+            entries["xdata"].append(PkgType(pkgtype=value))
+        case _, FieldTypeEnum.INT:
+            entries[key] = int(value)
+        case _, FieldTypeEnum.STRING:
+            entries[key] = str(value)
+        case _, FieldTypeEnum.STRING_LIST:
+            entry = entries.get(key)
+            if entry is not None and isinstance(entry, list):
+                entry.append(str(value))
+            else:
+                entries[key] = [str(value)]
+        case _, FieldTypeEnum.KEY_VALUE_LIST:
+            key_, value_, field_type_ = parse_pairs(line=value, separator="=")
+            pairs_to_entries(key=key_, value=value_, field_type=field_type_, entries=entries)
+
+        # NOTE: the catch all can never be reached but is here to satisfy our tooling
+        case _, _:  # pragma: no cover
+            raise RuntimeError(
+                "An invalid field type has been encountered while attempting to read a .PKGINFO file.\n"
+                "This most likely means a new field type has been introduced, but the .PKGINFO parser has "
+                "not been extended to make use of it!"
+            )
 
 
 class FakerootVersion(BaseModel):
@@ -155,6 +261,18 @@ class PkgType(BaseModel):
     pkgtype: PkgTypeEnum
 
 
+class XData(BaseModel):
+    """An optional list of extra data
+
+    Attributes
+    ----------
+    xdata: List[PkgType]
+        An list of extra data
+    """
+
+    xdata: List[PkgType] = []
+
+
 class PkgInfo(BaseModel):
     """The representation of a .PKGINFO file
 
@@ -177,44 +295,11 @@ class PkgInfo(BaseModel):
         """
 
         pkg_info_version = 0
-        entries: Dict[str, Union[int, str, List[str]]] = {}
+        entries: Dict[str, Union[int, str, List[Union[str, Dict[str, Any]]]]] = {}
 
         for line in data:
-            debug(f"Parsing .PKGINFO line: {line}")
-            if line.startswith("#"):
-                for keyword in PKGINFO_COMMENT_ASSIGNMENTS.keys():
-                    if keyword in line:
-                        key = keyword
-                        value = line.strip().split()[-1]
-                        assignment_key = PKGINFO_COMMENT_ASSIGNMENTS.get(key)
-            else:
-                try:
-                    key, value = [x.strip() for x in line.strip().split(" = ", 1)]
-                    assignment_key = PKGINFO_ASSIGNMENTS.get(key)
-                except ValueError as e:
-                    raise RepoManagementFileError(
-                        f"An error occurred while trying to parse the .PKGINFO line {line}\n{e}"
-                    )
-
-            if isinstance(assignment_key, tuple):
-                match assignment_key[1]:
-                    case FieldTypeEnum.INT:
-                        entries[assignment_key[0]] = int(value)
-                    case FieldTypeEnum.STRING:
-                        entries[assignment_key[0]] = str(value)
-                    case FieldTypeEnum.STRING_LIST:
-                        entry = entries.get(assignment_key[0])
-                        if entry is not None and isinstance(entry, list):
-                            entry.append(str(value))
-                        else:
-                            entries[assignment_key[0]] = [str(value)]
-                    # NOTE: the catch all can never be reached but is here to satisfy our tooling
-                    case _:  # pragma: no cover
-                        raise RuntimeError(
-                            "An invalid field type has been encountered while attempting to read a .PKGINFO file.\n"
-                            "This most likely means a new field type has been introduced, but the .PKGINFO parser has "
-                            "not been extended to make use of it!"
-                        )
+            key, value, field_type = parse_pairs(line=line)
+            pairs_to_entries(key=key, value=value, field_type=field_type, entries=entries)
 
         for version in range(len(PKGINFO_VERSIONS), 0, -1):
             debug(f"Testing data against .PKGINFO version {version}.")
@@ -329,12 +414,12 @@ class PkgInfoV2(
     Name,
     OptDepends,
     PkgInfo,
-    PkgType,
     Provides,
     Replaces,
     SchemaVersionV2,
     Url,
     Version,
+    XData,
 ):
     """A PkgInfo version 2
 
@@ -374,8 +459,6 @@ class PkgInfoV2(
         A string representing the name of a package
     optdepends: Optional[List[str]]
         An optional list of strings representing package names a package requires optionally
-    pkgtype: PkgTypeEnum
-        A member of PkgTypeEnum representing a valid package type
     provides: Optional[List[str]]
         An optional list of strings representing package names a package provides
     replaces: Optional[List[str]]
@@ -384,6 +467,8 @@ class PkgInfoV2(
         A string representing the upstream URL of a package
     version: str
         A string representing the full version (optional epoch, version and pkgrel) of a package
+    xdata: Optional[List[PkgType]]
+        An optional list of extra data
     """
 
     pass

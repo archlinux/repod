@@ -18,7 +18,7 @@ from repod.common.enums import (
 )
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
-from repod.files.pkginfo import PkgInfoV2
+from repod.files.pkginfo import PkgInfoV2, PkgType
 from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.package import RepoDbTypeEnum, RepoFile
 from repod.verification import PacmanKeyVerifier
@@ -117,7 +117,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
                     package.pkginfo,  # type: ignore[attr-defined]
                     PkgInfoV2,
                 )
-                and package.pkginfo.pkgtype != PkgTypeEnum.DEBUG  # type: ignore[attr-defined]
+                and PkgType(pkgtype=PkgTypeEnum.DEBUG) not in package.pkginfo.xdata  # type: ignore[attr-defined]
             ]
         ):
             raise RuntimeError(
@@ -133,7 +133,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
                     package.pkginfo,  # type: ignore[attr-defined]
                     PkgInfoV2,
                 )
-                and package.pkginfo.pkgtype == PkgTypeEnum.DEBUG  # type: ignore[attr-defined]
+                and PkgType(pkgtype=PkgTypeEnum.DEBUG) in package.pkginfo.xdata  # type: ignore[attr-defined]
             ]
         ):
             raise RuntimeError(
