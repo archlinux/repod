@@ -12,6 +12,14 @@ For more detailed information have a look at the |git log|.
 [Unreleased]
 ------------
 
+Fixed
+^^^^^
+
+* The implementation of ``PkgInfoV2`` was based on an early patch series
+  towards pacman that had been superseded since. Instead of a top-level
+  ``pkgtype`` attribute, ``PkgInfoV2`` now tracks an optional set of extended/
+  extra data (``xdata``), which is in line with the implementation in pacman.
+
 [0.2.1] - 2022-08-23
 --------------------
 
