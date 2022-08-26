@@ -139,7 +139,7 @@ PkgInfoV1
 PkgInfoV2
 """""""""
 
-In this version the ``pkgtype`` field has been added.
+In this version the optional ``xdata`` attribute has been introduced.
 
 .. literalinclude:: ../schema/PkgInfoV2.json
    :language: json
