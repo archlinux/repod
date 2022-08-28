@@ -1,4 +1,4 @@
-from argparse import ArgumentTypeError, Namespace
+from argparse import ArgumentParser, ArgumentTypeError, Namespace
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
@@ -24,66 +24,58 @@ from repod.config.defaults import DEFAULT_DATABASE_COMPRESSION
 
 
 @mark.parametrize(
-    "args, expectation",
+    "message, argparser",
     [
-        (
-            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=False),
-            does_not_raise(),
-        ),
-        (
-            Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=False),
-            does_not_raise(),
-        ),
-        (
-            Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=False),
-            does_not_raise(),
-        ),
-        (
-            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=False),
-            does_not_raise(),
-        ),
-        (
-            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=True),
-            does_not_raise(),
-        ),
-        (
-            Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=True),
-            does_not_raise(),
-        ),
-        (
-            Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=True),
-            does_not_raise(),
-        ),
-        (
-            Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=True),
-            does_not_raise(),
-        ),
-        (Namespace(package="foo"), raises(RuntimeError)),
+        ("foo", None),
+        ("foo", ArgumentParser()),
     ],
 )
+@patch("repod.cli.cli.exit")
+def test_exit_on_error(exit_mock: Mock, message: str, argparser: Optional[ArgumentParser]) -> None:
+    cli.exit_on_error(message=message, argparser=argparser)
+    exit_mock.assert_called_once_with(1)
+
+
+@mark.parametrize(
+    "args, calls_exit_on_error",
+    [
+        (Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=False), False),
+        (Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=False), False),
+        (Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=False), False),
+        (Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=False), False),
+        (Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=False, with_signature=True), False),
+        (Namespace(package="inspect", buildinfo=True, mtree=False, pkginfo=False, with_signature=True), False),
+        (Namespace(package="inspect", buildinfo=False, mtree=True, pkginfo=False, with_signature=True), False),
+        (Namespace(package="inspect", buildinfo=False, mtree=False, pkginfo=True, with_signature=True), False),
+        (Namespace(package="foo"), True),
+    ],
+)
+@patch("repod.cli.cli.exit_on_error")
 def test_repod_file_package(
+    exit_on_error_mock: Mock,
     caplog: LogCaptureFixture,
     default_package_file: Tuple[Path, ...],
     debug_package_file: Tuple[Path, ...],
     tmp_path: Path,
     args: Namespace,
-    expectation: ContextManager[str],
+    calls_exit_on_error: bool,
 ) -> None:
     caplog.set_level(DEBUG)
 
     settings_mock = Mock()
     args.file = [default_package_file[0]]
 
-    with expectation:
-        cli.repod_file_package(args=args, settings=settings_mock)
+    cli.repod_file_package(args=args, settings=settings_mock)
+    if calls_exit_on_error:
+        exit_on_error_mock.assert_called_once()
 
 
 @mark.parametrize(
-    "args, expectation",
+    "args, calls_exit_on_error",
     [
         (
             Namespace(repo="importdb", architecture=ArchitectureEnum.ANY, debug=False, staging=False, testing=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(
@@ -93,7 +85,7 @@ def test_repod_file_package(
                 staging=False,
                 testing=False,
             ),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(
@@ -105,13 +97,15 @@ def test_repod_file_package(
                 staging=False,
                 testing=False,
             ),
-            does_not_raise(),
+            False,
         ),
-        (Namespace(repo="foo"), raises(RuntimeError)),
+        (Namespace(repo="foo"), True),
     ],
 )
 @patch("repod.cli.cli.repod_file_repo_importpkg")
+@patch("repod.cli.cli.exit_on_error")
 def test_repod_file_repo(
+    exit_on_error_mock: Mock,
     repod_file_repo_importpkg_mock: Mock,
     caplog: LogCaptureFixture,
     default_package_file: Tuple[Path, ...],
@@ -120,7 +114,7 @@ def test_repod_file_repo(
     default_sync_db_file: Tuple[Path, Path],
     tmp_path: Path,
     args: Namespace,
-    expectation: ContextManager[str],
+    calls_exit_on_error: bool,
 ) -> None:
     caplog.set_level(DEBUG)
 
@@ -138,10 +132,11 @@ def test_repod_file_repo(
     if args.repo == "writedb":
         args.name = "default"
 
-    with expectation:
-        cli.repod_file_repo(args=args, settings=settings_mock)
-        if args.repo == "importpkg":
-            repod_file_repo_importpkg_mock.assert_called_once()
+    cli.repod_file_repo(args=args, settings=settings_mock)
+    if args.repo == "importpkg":
+        repod_file_repo_importpkg_mock.assert_called_once()
+    if calls_exit_on_error:
+        exit_on_error_mock.assert_called_once()
 
 
 @mark.parametrize(
@@ -325,85 +320,88 @@ def test_repod_file_repo_importpkg(
 
 
 @mark.parametrize(
-    "args, expectation",
-    [(Namespace(schema="export"), does_not_raise()), (Namespace(schema="foo"), raises(RuntimeError))],
+    "args, calls_exit_on_error",
+    [(Namespace(schema="export"), False), (Namespace(schema="foo"), True)],
 )
+@patch("repod.cli.cli.exit_on_error")
 def test_repod_file_schema(
-    args: Namespace,
-    expectation: ContextManager[str],
+    exit_on_error_mock: Mock,
     tmp_path: Path,
+    args: Namespace,
+    calls_exit_on_error: bool,
 ) -> None:
     if args.schema == "export":
         args.dir = tmp_path
 
-    with expectation:
-        cli.repod_file_schema(args=args)
+    cli.repod_file_schema(args=args)
+    if calls_exit_on_error:
+        exit_on_error_mock.assert_called_once()
 
 
 @mark.parametrize(
-    "args, expectation",
+    "args, calls_exit_on_error",
     [
         (
             Namespace(subcommand="package", config=None, system=False, verbose_mode=False, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(
                 subcommand="package", config=Path("/foo.conf"), system=False, verbose_mode=False, debug_mode=False
             ),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="package", config=None, system=False, verbose_mode=True, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="package", config=None, system=False, verbose_mode=False, debug_mode=True),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="package", config=None, system=False, verbose_mode=True, debug_mode=True),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="repo", config=None, system=False, verbose_mode=False, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="schema", config=None, system=False, verbose_mode=False, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="foo", config=None, system=False, verbose_mode=False, debug_mode=False),
-            raises(RuntimeError),
+            True,
         ),
         (
             Namespace(subcommand="package", config=None, system=True, verbose_mode=False, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="package", config=None, system=True, verbose_mode=True, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="package", config=None, system=True, verbose_mode=False, debug_mode=True),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="package", config=None, system=True, verbose_mode=True, debug_mode=True),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="repo", config=None, system=True, verbose_mode=False, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="schema", config=None, system=True, verbose_mode=False, debug_mode=False),
-            does_not_raise(),
+            False,
         ),
         (
             Namespace(subcommand="foo", config=None, system=True, verbose_mode=False, debug_mode=False),
-            raises(RuntimeError),
+            True,
         ),
     ],
 )
@@ -413,7 +411,9 @@ def test_repod_file_schema(
 @patch("repod.cli.argparse.ArgumentParser.parse_args")
 @patch("repod.cli.cli.SystemSettings")
 @patch("repod.cli.cli.UserSettings")
+@patch("repod.cli.cli.exit_on_error")
 def test_repod_file(
+    exit_on_error_mock: Mock,
     usersettings_mock: Mock,
     systemsettings_mock: Mock,
     parse_args_mock: Mock,
@@ -421,7 +421,7 @@ def test_repod_file(
     repod_file_repo_mock: Mock,
     repod_file_schema_mock: Mock,
     args: Namespace,
-    expectation: ContextManager[str],
+    calls_exit_on_error: bool,
 ) -> None:
     user_settings = Mock()
     usersettings_mock.return_value = user_settings
@@ -430,24 +430,26 @@ def test_repod_file(
 
     parse_args_mock.return_value = args
 
-    with expectation:
-        cli.repod_file()
-        match args.subcommand:
-            case "package":
-                repod_file_package_mock.assert_called_once_with(
-                    args=args, settings=system_settings if args.system else user_settings
-                )
-            case "repo":
-                repod_file_repo_mock.assert_called_once_with(
-                    args=args, settings=system_settings if args.system else user_settings
-                )
-            case "schema":
-                repod_file_schema_mock.assert_called_once_with(args=args)
-        match args.system:
-            case True:
-                systemsettings_mock.assert_called_once()
-            case False:
-                usersettings_mock.assert_called_once()
+    cli.repod_file()
+    match args.subcommand:
+        case "package":
+            repod_file_package_mock.assert_called_once_with(
+                args=args, settings=system_settings if args.system else user_settings
+            )
+        case "repo":
+            repod_file_repo_mock.assert_called_once_with(
+                args=args, settings=system_settings if args.system else user_settings
+            )
+        case "schema":
+            repod_file_schema_mock.assert_called_once_with(args=args)
+    match args.system:
+        case True:
+            systemsettings_mock.assert_called_once()
+        case False:
+            usersettings_mock.assert_called_once()
+
+    if calls_exit_on_error:
+        exit_on_error_mock.assert_called_once()
 
 
 @patch("repod.cli.argparse.ArgumentParser.parse_args")

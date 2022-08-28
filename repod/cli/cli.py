@@ -1,9 +1,9 @@
 import asyncio
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 from logging import DEBUG, INFO, WARNING, StreamHandler, debug, getLogger
 from pathlib import Path
-from sys import stdout
-from typing import List, Union
+from sys import exit, stderr, stdout
+from typing import List, Optional, Union
 from unittest.mock import patch
 
 from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
@@ -24,6 +24,23 @@ from repod.repo.package import RepoDbTypeEnum, RepoFile
 from repod.verification import PacmanKeyVerifier
 
 ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
+
+
+def exit_on_error(message: str, argparser: Optional[ArgumentParser] = None) -> None:
+    """Print a message to stderr, optionally print argparse help and exit with return code 1
+
+    Parameters
+    ----------
+    message: str
+        A message to print to stderr
+    argparser: Optional[ArgumentParser]
+        An optional Argumentparser on which to call print_help()
+    """
+
+    print(message, file=stderr)
+    if argparser:
+        argparser.print_help()
+    exit(1)
 
 
 def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
@@ -64,7 +81,10 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
                 else:
                     print(dumps(model.dict(), option=pretty).decode("utf-8"))
         case _:
-            raise RuntimeError(f"Invalid subcommand {args.package} provided to the 'package' command!")
+            exit_on_error(
+                message="No subcommand provided to the 'package' command!\n",
+                argparser=argparse.ArgParseFactory.repod_file(),
+            )
 
 
 def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
@@ -278,7 +298,10 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
             files_syncdb_symlink_path.unlink(missing_ok=True)
             files_syncdb_symlink_path.symlink_to(files_syncdb_path.relative_to(files_syncdb_symlink_path.parent))
         case _:
-            raise RuntimeError(f"Invalid subcommand {args.repo} provided to the 'repo' command!")
+            exit_on_error(
+                message="No subcommand provided to the 'repo' command!\n",
+                argparser=argparse.ArgParseFactory.repod_file(),
+            )
 
 
 def repod_file_schema(args: Namespace) -> None:
@@ -299,7 +322,10 @@ def repod_file_schema(args: Namespace) -> None:
         case "export":
             export_schemas(output=args.dir)
         case _:
-            raise RuntimeError(f"Invalid subcommand {args.schema} provided to the 'schema' command!")
+            exit_on_error(
+                message="No subcommand provided to the 'schema' command!\n",
+                argparser=argparse.ArgParseFactory.repod_file(),
+            )
 
 
 def repod_file() -> None:
@@ -336,4 +362,7 @@ def repod_file() -> None:
         case "schema":
             repod_file_schema(args=args)
         case _:
-            raise RuntimeError("Invalid subcommand provided!")
+            exit_on_error(
+                message="No subcommand specified!\n",
+                argparser=argparse.ArgParseFactory.repod_file(),
+            )
