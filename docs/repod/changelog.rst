@@ -20,6 +20,12 @@ Fixed
   ``pkgtype`` attribute, ``PkgInfoV2`` now tracks an optional set of extended/
   extra data (``xdata``), which is in line with the implementation in pacman.
 
+Changed
+^^^^^^^
+
+* Return help strings instead of raising ``RuntimeError`` if no commands are
+  provided to ``repod-file`` or any of its subcommands.
+
 [0.2.1] - 2022-08-23
 --------------------
 
