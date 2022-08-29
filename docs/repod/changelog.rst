@@ -12,6 +12,9 @@ For more detailed information have a look at the |git log|.
 [Unreleased]
 ------------
 
+[0.2.2] - 2022-08-29
+--------------------
+
 Fixed
 ^^^^^
 
