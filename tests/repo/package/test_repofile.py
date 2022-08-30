@@ -1,13 +1,73 @@
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, Tuple
+from typing import ContextManager, Dict, Tuple
 
 from pytest import LogCaptureFixture, mark, raises
 
 from repod.common.enums import RepoFileEnum
 from repod.errors import RepoManagementFileError
 from repod.repo.package import repofile
+
+
+@mark.parametrize(
+    "file, output, expectation",
+    [
+        (
+            Path("foo-1.0.0-1-any.pkg.tar.gz"),
+            {
+                "arch": "any",
+                "name": "foo",
+                "version": "1.0.0-1",
+                "suffix": "pkg.tar.gz",
+                "pkgrel": "1",
+                "pkgver": "1.0.0",
+                "epoch": "",
+            },
+            does_not_raise(),
+        ),
+        (
+            Path("foo-1:1.0.0-1-any.pkg.tar.gz"),
+            {
+                "arch": "any",
+                "name": "foo",
+                "version": "1:1.0.0-1",
+                "suffix": "pkg.tar.gz",
+                "pkgrel": "1",
+                "pkgver": "1.0.0",
+                "epoch": "1",
+            },
+            does_not_raise(),
+        ),
+        (
+            Path("foo-bar-1:1.0.0-1-any.pkg.tar.gz"),
+            {
+                "arch": "any",
+                "name": "foo-bar",
+                "version": "1:1.0.0-1",
+                "suffix": "pkg.tar.gz",
+                "pkgrel": "1",
+                "pkgver": "1.0.0",
+                "epoch": "1",
+            },
+            does_not_raise(),
+        ),
+        (
+            Path("foo-bar-any.pkg.tar.gz"),
+            None,
+            raises(ValueError),
+        ),
+        (
+            Path("foo-bar-1.0.0-1-any.pkg"),
+            None,
+            raises(ValueError),
+        ),
+    ],
+)
+def test_filename_parts(file: Path, output: Dict[str, str], expectation: ContextManager[str]) -> None:
+
+    with expectation:
+        assert repofile.filename_parts(file=file) == output
 
 
 @mark.parametrize(

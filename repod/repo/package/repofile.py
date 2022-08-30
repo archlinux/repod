@@ -12,6 +12,57 @@ from repod.common.regex import PACKAGE_PATH, PACKAGE_SIGNATURE_PATH
 from repod.errors import RepoManagementFileError
 
 
+def filename_parts(file: Path) -> Dict[str, str]:
+    """Split a package name and return its specific metadata in a dict
+
+    Parameters
+    ----------
+    file: Path
+        A package filename path
+
+    Raises
+    ------
+    ValueError
+        If file can not be split to derive architecture and suffix information.
+        If file can not be split to derive name and version information.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dict carrying data, derived from the package filename:
+        - arch: CPU architecture
+        - suffix: The package compression
+        - version: The full version
+        - pkgrel: The release version of the package
+        - pkgver: The version of the package
+        - epoch: The epoch of the package (if any)
+        - name: The name of the package
+    """
+
+    debug(f"Retrieving data from filename {file}")
+    name = file.name
+    output_dict: Dict[str, str] = {}
+
+    arch_suffix_split = name.split("-")[-1].split(".")
+    if len(arch_suffix_split) != 4 and len(arch_suffix_split) != 3:
+        raise ValueError(f"The provided file name {file} can not be split for architecture and suffix information!")
+
+    output_dict["arch"] = arch_suffix_split[0]
+    output_dict["suffix"] = ".".join(arch_suffix_split[1:])
+
+    name_version = name.split("-")[:-1]
+    if len(name_version) < 3:
+        raise ValueError(f"The provided file name {file} can not be split for name and version information!")
+
+    output_dict["version"] = "-".join([name_version[-2], name_version[-1]])
+    output_dict["pkgrel"] = name_version[-1]
+    output_dict["pkgver"] = name_version[-2].split(":")[-1]
+    output_dict["epoch"] = name_version[-2].split(":")[0] if len(name_version[-2].split(":")) > 1 else ""
+    output_dict["name"] = "-".join(name_version[0:-2])
+
+    return output_dict
+
+
 def shared_base_path(path_a: Path, path_b: Path) -> Path:
     """Return the shared base path of two absolute paths
 
