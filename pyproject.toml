@@ -1,22 +1,33 @@
-[tool.poetry]
+[project]
+# PEP 621 project metadata
+# See https://www.python.org/dev/peps/pep-0621/
+authors = [
+  {name = "Arch Linux", email = "arch-projects@lists.archlinux.org"},
+]
+dynamic = ["version"]
+license = {text = "GPL-3.0-or-later"}
+requires-python = ">=3.10,<4.0"
+dependencies = [
+  "aiofiles<1.0.0,>=0.8.0",
+  "email-validator<2.0.0,>=1.2.1",
+  "jinja2<4.0.0,>=3.0.0",
+  "orjson<4.0.0,>=3.6.6",
+  "pydantic<2.0.0,>=1.8.1",
+  "python-magic<1.0.0,>=0.4.26",
+  "pyxdg<1.0,>=0.28",
+  "pyzstd<1.0.0,>=0.15.2",
+  "subprocess-tee<1.0.0,>=0.3.5",
+  "tomli<3.0.0,>=2.0.0",
+]
 name = "repod"
-version = "0.2.2"
 description = "Tooling to maintain binary package repositories for Linux distributions using the pacman package manager"
-authors = ["Arch Linux <arch-projects@lists.archlinux.org>"]
-license = "GPL-3.0-or-later"
-packages = [
-  {include = 'repod'}
-]
-include = [
-  {path = 'tests/*', format = 'sdist'},
-  {path = 'docs/*', format = 'sdist'},
-  {path = 'justfile', format = 'sdist'},
-]
 readme = "README.md"
-homepage = "https://gitlab.archlinux.org/archlinux/repod"
-repository = "https://gitlab.archlinux.org/archlinux/repod"
-documentation = "https://repod.archlinux.page"
-keywords = ["arch linux", "repository", "pacman", "packages"]
+keywords = [
+  "arch linux",
+  "repository",
+  "pacman",
+  "packages",
+]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -38,45 +49,61 @@ classifiers = [
   "Typing :: Typed",
 ]
 
-[tool.poetry.urls]
+[project.urls]
 "Bug Tracker" = "https://gitlab.archlinux.org/archlinux/repod/-/issues/"
+homepage = "https://gitlab.archlinux.org/archlinux/repod"
+repository = "https://gitlab.archlinux.org/archlinux/repod"
+documentation = "https://repod.archlinux.page"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pydantic = "^1.8.1"
-orjson = "^3.6.6"
-Jinja2 = "^3.0.0"
-subprocess-tee = "^0.3.5"
-aiofiles = "^0.8.0"
-tomli = "^2.0.0"
-pyzstd = "^0.15.2"
-python-magic = "^0.4.26"
-email-validator = "^1.2.1"
-pyalpm = {version = "^0.10.6", optional = true, extras = ["vercmp"]}
-pyxdg = "^0.28"
+[project.optional-dependencies]
+alt_vercmp = ["pyalpm<1.0.0,>=0.10.6"]
+alt_file = ["file-magic<1.0.0,>=0.4.0"]
 
-[tool.poetry.extras]
-vercmp = ["pyalpm"]
-
-[tool.poetry.dev-dependencies]
-tox = "^3.24.5"
-pytest = "^7.0.0"
-isort = "^5.10.0"
-mypy = "^0.971"
-flake8 = "^5.0.0"
-black = "^22.1.0"
-coverage = "^6.1"
-pytest-asyncio = "^0.19.0"
-pytest-lazy-fixture = "^0.6.3"
-coverage-conditional-plugin = "^0.5.0"
-Sphinx = "^5.0.0"
-sphinx-rtd-theme = "^1.0.0"
-sphinx-argparse = "^0.3.1"
-sphinxcontrib-programoutput = "^0.17"
-vulture = "^2.5"
-
-[tool.poetry.scripts]
+[project.scripts]
 repod-file = "repod.cli:repod_file"
+
+[tool.pdm]
+version = {source = "scm"}
+
+[tool.pdm.dev-dependencies]
+dev = [
+  "black<23.0.0,>=22.1.0",
+  "coverage<7.0,>=6.1",
+  "coverage-conditional-plugin<1.0.0,>=0.5.0",
+  "flake8<6.0.0,>=5.0.0",
+  "isort<6.0.0,>=5.10.0",
+  "mypy<1.0,>=0.971",
+  # pip for mypy --install-types: https://github.com/python/mypy/issues/13580
+  "pip>=22.2.2",
+  "pytest<8.0.0,>=7.0.0",
+  "pytest-asyncio<1.0.0,>=0.19.0",
+  "pytest-lazy-fixture<1.0.0,>=0.6.3",
+  # setuptools for coverage-conditional-plugin: https://github.com/wemake-services/coverage-conditional-plugin/issues/174
+  "setuptools>=62.3.1",
+  "sphinx<6.0.0,>=5.0.0",
+  "sphinx-rtd-theme<2.0.0,>=1.0.0",
+  "sphinx-argparse<1.0.0,>=0.3.1",
+  "sphinxcontrib-programoutput<1.0,>=0.17",
+  "tox<4.0.0,>=3.24.5",
+  "vulture<3.0,>=2.5",
+]
+
+[tool.pdm.build]
+excludes = [
+  "./**/.git",
+  "docs/_build/",
+  "docs/schema/",
+]
+includes = [
+  "repod",
+]
+package-dir = "."
+source-includes = [
+  "tests/",
+  "docs/",
+  "LICENSE",
+  "justfile",
+]
 
 [tool.pytest.ini_options]
 markers = ["integration", "regex"]
@@ -104,7 +131,6 @@ exclude = '''
   |dist
 )/
 '''
-
 
 [tool.coverage.path]
 source = "repod"
@@ -151,7 +177,5 @@ disallow_incomplete_defs = true
 show_error_codes = true
 
 [build-system]
-# requiring setuptools to get around flaky pip behavior (we actually don't need it)
-# https://github.com/pypa/pip/issues/6100
-requires = ["setuptools", "poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"
