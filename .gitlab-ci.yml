@@ -13,11 +13,11 @@ stages:
   - pages
 
 variables:
-  BUILD_PUBLISH_PACKAGES: python-poetry python-tox
+  BUILD_PUBLISH_PACKAGES: python-pdm python-tox
   SYSTEM_PACKAGES: pyalpm python-aiofiles python-email-validator python-jinja python-magic python-orjson python-pydantic python-pyxdg python-pyzstd python-subprocess-tee python-tomli
-  SYSTEM_INSTALL_PACKAGES: just python-build python-installer python-poetry python-setuptools python-sphinx python-sphinx-argparse python-sphinx_rtd_theme python-sphinxcontrib-programoutput python-wheel
+  SYSTEM_INSTALL_PACKAGES: just python-build python-installer python-pdm python-setuptools python-sphinx python-sphinx-argparse python-sphinx_rtd_theme python-sphinxcontrib-programoutput python-wheel
   SYSTEM_TEST_PACKAGES: python-coverage python-pytest python-pytest-asyncio python-pytest-lazy-fixture
-  TEST_PACKAGES: base-devel python-poetry python-tox
+  TEST_PACKAGES: base-devel python-pdm python-tox
 
 .check:
   stage: check
@@ -34,8 +34,7 @@ linter:
 .bump_dependencies_to_latest: &bump_dependencies_to_latest
   - |
     if [[ $TEST_LATEST = true ]]; then
-      pacman --noconfirm -Syu --needed python-tomli
-      ./ci/bump_dependencies_to_latest.py
+      pdm update --unconstrained
     fi
 
 .test:
@@ -126,7 +125,7 @@ system_integration_core:
 build:
   extends: .build
   script:
-    - poetry build
+    - pdm build
 
 docs:
   extends: .build
@@ -159,9 +158,11 @@ pypi_publish:
       read -r -a deps <<< "${BUILD_PUBLISH_PACKAGES}"
       pacman --noconfirm -Syu --needed "${deps[@]}"
   rules:
-    - if: '$POETRY_PYPI_TOKEN_PYPI && $CI_COMMIT_TAG && $CI_PROJECT_PATH == "archlinux/repod"'
+    - if: '$PDM_PUBLISH_PASSWORD && $CI_COMMIT_TAG && $CI_PROJECT_PATH == "archlinux/repod"'
   script:
-    - poetry publish --build
+    - pdm publish --build
   stage: publish
   tags:
     - secure
+  variables:
+    PDM_PUBLISH_USERNAME: __token__
