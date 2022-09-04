@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, IntFlag, auto
 from typing import List
 
 
@@ -317,3 +317,48 @@ def tar_compression_types_for_filename_regex() -> str:
     """
 
     return r"|".join([type_.value for type_ in CompressionTypeEnum]).replace("|", r"|\.")
+
+
+class ActionStateEnum(IntFlag):
+    """An Enum to distinguish different states in Checks and Tasks
+
+    Attributes
+    ----------
+    NOT_STARTED: int
+        An action is not started
+    STARTED: int
+        An action is started
+    STARTED_TASK: int
+        An action is started and is a Task
+    FAILED: int
+        An action is failed
+    FAILED_DEPENDENCY: int
+        An action's dependency is failed
+    FAILED_PRE_CHECK: int
+        An action is failed and is a pre Check
+    FAILED_POST_CHECK: int
+        An action is failed and is a post Check
+    FAILED_TASK: int
+        An action is failed and is a Task
+    FAILED_UNDO_DEPENDENCY: int
+        An action is failed and is an undo Task of a dependency
+    FAILED_UNDO_TASK: int
+        An action is failed and is an undo Task
+    SUCCESS: int
+        An action is successful
+    SUCCESS_TASK: int
+        An action is successful and is a Task
+    """
+
+    NOT_STARTED = auto()
+    STARTED = auto()
+    STARTED_TASK = auto()
+    FAILED = auto()
+    FAILED_DEPENDENCY = auto()
+    FAILED_PRE_CHECK = auto()
+    FAILED_POST_CHECK = auto()
+    FAILED_TASK = auto()
+    FAILED_UNDO_DEPENDENCY = auto()
+    FAILED_UNDO_TASK = auto()
+    SUCCESS = auto()
+    SUCCESS_TASK = auto()
