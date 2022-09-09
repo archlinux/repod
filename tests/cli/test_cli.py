@@ -1,26 +1,30 @@
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
-from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
 from random import sample
 from re import Match, fullmatch
 from tempfile import TemporaryDirectory
-from typing import ContextManager, Optional, Tuple
+from typing import Optional, Tuple
 from unittest.mock import Mock, patch
 
 from pytest import LogCaptureFixture, mark, raises
 
 from repod import commands
+from repod.action.task import AddToRepoTask, PrintOutputPackageBasesTask
 from repod.cli import cli
 from repod.common.enums import (
+    ActionStateEnum,
     ArchitectureEnum,
     FilesVersionEnum,
     PackageDescVersionEnum,
-    PkgVerificationTypeEnum,
     tar_compression_types_for_filename_regex,
 )
 from repod.config import UserSettings
-from repod.config.defaults import DEFAULT_DATABASE_COMPRESSION
+from repod.config.defaults import (
+    DEFAULT_ARCHITECTURE,
+    DEFAULT_DATABASE_COMPRESSION,
+    DEFAULT_NAME,
+)
 
 
 @mark.parametrize(
@@ -55,7 +59,6 @@ def test_repod_file_package(
     exit_on_error_mock: Mock,
     caplog: LogCaptureFixture,
     default_package_file: Tuple[Path, ...],
-    debug_package_file: Tuple[Path, ...],
     tmp_path: Path,
     args: Namespace,
     calls_exit_on_error: bool,
@@ -109,7 +112,6 @@ def test_repod_file_repo(
     repod_file_repo_importpkg_mock: Mock,
     caplog: LogCaptureFixture,
     default_package_file: Tuple[Path, ...],
-    debug_package_file: Tuple[Path, ...],
     outputpackagebasev1_json_files_in_dir: Path,
     default_sync_db_file: Tuple[Path, Path],
     tmp_path: Path,
@@ -140,183 +142,82 @@ def test_repod_file_repo(
 
 
 @mark.parametrize(
-    "package_verification, package_verifies, debug_pkg, args, expectation",
+    "print_outputpackagebases_task_return",
     [
-        (
-            None,
-            True,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=True,
-                with_signature=False,
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            None,
-            True,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=False,
-                with_signature=False,
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            None,
-            True,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=True,
-                with_signature=False,
-                debug=True,
-                staging=False,
-                testing=False,
-            ),
-            raises(RuntimeError),
-        ),
-        (
-            None,
-            True,
-            True,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=True,
-                with_signature=False,
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            raises(RuntimeError),
-        ),
-        (
-            None,
-            True,
-            True,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=True,
-                with_signature=False,
-                debug=True,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            None,
-            True,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=False,
-                with_signature=False,
-                debug=True,
-                staging=False,
-                testing=False,
-            ),
-            raises(RuntimeError),
-        ),
-        (
-            PkgVerificationTypeEnum.PACMANKEY,
-            True,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=True,
-                with_signature=True,
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            PkgVerificationTypeEnum.PACMANKEY,
-            False,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=True,
-                with_signature=True,
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            raises(RuntimeError),
-        ),
-        (
-            None,
-            True,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=False,
-                with_signature=True,
-                debug=False,
-                staging=False,
-                testing=False,
-            ),
-            does_not_raise(),
-        ),
-        (
-            None,
-            True,
-            False,
-            Namespace(
-                repo="importpkg",
-                architecture=ArchitectureEnum.ANY,
-                dry_run=True,
-                with_signature=True,
-                debug=True,
-                staging=False,
-                testing=False,
-            ),
-            raises(RuntimeError),
-        ),
+        (ActionStateEnum.SUCCESS),
+        (ActionStateEnum.FAILED),
     ],
 )
-def test_repod_file_repo_importpkg(
-    caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
-    debug_package_file: Tuple[Path, ...],
-    outputpackagebasev1_json_files_in_dir: Path,
-    default_sync_db_file: Tuple[Path, Path],
-    tmp_path: Path,
+@patch("repod.cli.cli.exit_on_error")
+def test_repod_file_repo_importpkg_dryrun(
+    exit_on_error_mock: Mock,
+    print_outputpackagebases_task_return: ActionStateEnum,
     usersettings: UserSettings,
-    package_verification: Optional[PkgVerificationTypeEnum],
-    package_verifies: bool,
-    debug_pkg: bool,
-    args: Namespace,
-    expectation: ContextManager[str],
+    caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
 
-    usersettings.package_verification = package_verification
-    args.file = [debug_package_file[0] if debug_pkg else default_package_file[0]]
-    args.name = Path("default")
+    print_outputpackagebases_task_mock = Mock(
+        spec=PrintOutputPackageBasesTask,
+        return_value=Mock(return_value=print_outputpackagebases_task_return),
+    )
 
-    with patch("repod.cli.cli.PacmanKeyVerifier", Mock(return_value=Mock(verify=Mock(return_value=package_verifies)))):
-        with expectation:
-            cli.repod_file_repo_importpkg(args=args, settings=usersettings)
+    with patch("repod.cli.cli.PrintOutputPackageBasesTask", return_value=print_outputpackagebases_task_mock):
+        cli.repod_file_repo_importpkg(
+            args=Namespace(dry_run=True, with_signature=True, pretty=True, debug=False, file=[Path("foo")]),
+            settings=usersettings,
+        )
+    print_outputpackagebases_task_mock.assert_called_once()
+
+    if print_outputpackagebases_task_return != ActionStateEnum.SUCCESS:
+        exit_on_error_mock.assert_called_once()
+        print_outputpackagebases_task_mock.undo.assert_called_once()
+
+
+@mark.parametrize(
+    "with_signature, add_to_repo_task_return",
+    [
+        (True, ActionStateEnum.SUCCESS),
+        (False, ActionStateEnum.SUCCESS),
+        (True, ActionStateEnum.FAILED),
+        (False, ActionStateEnum.FAILED),
+    ],
+)
+@patch("repod.cli.cli.exit_on_error")
+def test_repod_file_repo_importpkg(
+    exit_on_error_mock: Mock,
+    with_signature: bool,
+    add_to_repo_task_return: ActionStateEnum,
+    usersettings: UserSettings,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    add_to_repo_task_mock = Mock(
+        spec=AddToRepoTask,
+        return_value=Mock(return_value=add_to_repo_task_return),
+    )
+
+    with patch("repod.cli.cli.AddToRepoTask", return_value=add_to_repo_task_mock):
+        cli.repod_file_repo_importpkg(
+            args=Namespace(
+                architecture=DEFAULT_ARCHITECTURE,
+                debug=False,
+                dry_run=False,
+                file=[Path("foo")],
+                name=Path(DEFAULT_NAME),
+                pretty=True,
+                staging=False,
+                testing=False,
+                with_signature=with_signature,
+            ),
+            settings=usersettings,
+        )
+    add_to_repo_task_mock.assert_called_once()
+
+    if add_to_repo_task_return != ActionStateEnum.SUCCESS:
+        exit_on_error_mock.assert_called_once()
+        add_to_repo_task_mock.undo.assert_called_once()
 
 
 @mark.parametrize(

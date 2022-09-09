@@ -3,25 +3,26 @@ from argparse import ArgumentParser, Namespace
 from logging import DEBUG, INFO, WARNING, StreamHandler, debug, getLogger
 from pathlib import Path
 from sys import exit, stderr, stdout
-from typing import List, Optional, Union
+from typing import Optional, Union
 from unittest.mock import patch
 
 from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
 
 from repod import export_schemas
-from repod.cli import argparse
-from repod.common.enums import (
-    PkgTypeEnum,
-    PkgVerificationTypeEnum,
-    RepoFileEnum,
-    RepoTypeEnum,
+from repod.action.task import (
+    AddToRepoTask,
+    CreateOutputPackageBasesTask,
+    FilesToRepoDirTask,
+    MoveTmpFilesTask,
+    PrintOutputPackageBasesTask,
+    WriteOutputPackageBasesToTmpFileInDirTask,
 )
+from repod.cli import argparse
+from repod.common.enums import ActionStateEnum, RepoFileEnum, RepoTypeEnum
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
-from repod.files.pkginfo import PkgInfoV2, PkgType
-from repod.repo import OutputPackageBase, SyncDatabase
-from repod.repo.package import RepoDbTypeEnum, RepoFile
-from repod.verification import PacmanKeyVerifier
+from repod.repo import SyncDatabase
+from repod.repo.package import RepoDbTypeEnum
 
 ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
 
@@ -103,115 +104,81 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
         If an invalid subcommand is provided.
     """
 
-    pretty = ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0
-
-    packages: List[Package] = []
-    for package_path in args.file:
-        signature_path = Path(str(package_path) + ".sig") if args.with_signature else None
-        if settings.package_verification == PkgVerificationTypeEnum.PACMANKEY and args.with_signature:
-            debug(f"Verifying package signature based on {settings.package_verification.value}...")
-            verifier = PacmanKeyVerifier()
-            if verifier.verify(
-                package=package_path,
-                signature=signature_path,  # type: ignore[arg-type]
-            ):
-                debug("Package signature successfully verified!")
-            else:
-                raise RuntimeError(f"Verification of package {package_path} with signature {signature_path} failed!")
-
-        packages.append(
-            asyncio.run(
-                Package.from_file(
-                    package=package_path,
-                    signature=signature_path,
+    if args.dry_run:
+        print_task = PrintOutputPackageBasesTask(
+            dumps_option=ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0,
+            dependencies=[
+                CreateOutputPackageBasesTask(
+                    package_paths=args.file,
+                    with_signature=args.with_signature,
+                    debug_repo=args.debug,
+                    package_verification=settings.package_verification,
                 )
+            ],
+        )
+        if print_task() != ActionStateEnum.SUCCESS:
+            print_task.undo()
+            exit_on_error("An error occured while trying to add packages to a repository in a dry-run!")
+            return
+
+        return  # pragma: no cover
+
+    add_to_repo_dependencies = [
+        MoveTmpFilesTask(
+            dependencies=[
+                WriteOutputPackageBasesToTmpFileInDirTask(
+                    directory=settings.get_repo_path(
+                        repo_type=RepoTypeEnum.MANAGEMENT,
+                        name=args.name,
+                        architecture=args.architecture,
+                        debug=args.debug,
+                        staging=args.staging,
+                        testing=args.testing,
+                    ),
+                    dependencies=[
+                        CreateOutputPackageBasesTask(
+                            package_paths=args.file,
+                            with_signature=args.with_signature,
+                            debug_repo=args.debug,
+                            package_verification=settings.package_verification,
+                        )
+                    ],
+                )
+            ]
+        ),
+        FilesToRepoDirTask(
+            files=args.file,
+            file_type=RepoFileEnum.PACKAGE,
+            settings=settings,
+            name=args.name,
+            architecture=args.architecture,
+            debug_repo=args.debug,
+            staging_repo=args.staging,
+            testing_repo=args.testing,
+        ),
+    ]
+
+    if args.with_signature:
+        add_to_repo_dependencies.append(
+            FilesToRepoDirTask(
+                files=[Path(str(file) + ".sig") for file in args.file],
+                file_type=RepoFileEnum.PACKAGE_SIGNATURE,
+                settings=settings,
+                name=args.name,
+                architecture=args.architecture,
+                debug_repo=args.debug,
+                staging_repo=args.staging,
+                testing_repo=args.testing,
             )
         )
 
-    if args.debug:
-        if any(
-            [
-                True
-                for package in packages
-                if isinstance(
-                    package.pkginfo,  # type: ignore[attr-defined]
-                    PkgInfoV2,
-                )
-                and PkgType(pkgtype=PkgTypeEnum.DEBUG) not in package.pkginfo.xdata  # type: ignore[attr-defined]
-            ]
-        ):
-            raise RuntimeError(
-                f"The debug repository of {args.name} is targetted, "
-                "but not all provided packages are debug packages!"
-            )
-    else:
-        if any(
-            [
-                True
-                for package in packages
-                if isinstance(
-                    package.pkginfo,  # type: ignore[attr-defined]
-                    PkgInfoV2,
-                )
-                and PkgType(pkgtype=PkgTypeEnum.DEBUG) in package.pkginfo.xdata  # type: ignore[attr-defined]
-            ]
-        ):
-            raise RuntimeError(
-                f"A non-debug repository of {args.name} is targetted, "
-                "but not all provided packages are non-debug packages!"
-            )
-
-    outputpackagebase = OutputPackageBase.from_package(packages=packages)
-
-    if args.dry_run:
-        print(dumps(outputpackagebase.dict(), option=pretty).decode("utf-8"))
+    add_to_repo_task = AddToRepoTask(dependencies=add_to_repo_dependencies)
+    if add_to_repo_task() != ActionStateEnum.SUCCESS:
+        add_to_repo_task.undo()
+        exit_on_error("An error occured while trying to add packages to a repository!")
         return
 
-    pkgbase = outputpackagebase.base  # type: ignore[attr-defined]
-    management_repo_dir = settings.get_repo_path(
-        repo_type=RepoTypeEnum.MANAGEMENT,
-        name=args.name,
-        architecture=args.architecture,
-        debug=args.debug,
-        staging=args.staging,
-        testing=args.testing,
-    )
-    with open(management_repo_dir / f"{pkgbase}.json", "wb") as output_file:
-        output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
-
-    package_repo_dir = settings.get_repo_path(
-        repo_type=RepoTypeEnum.PACKAGE,
-        name=args.name,
-        architecture=args.architecture,
-        debug=args.debug,
-        staging=args.staging,
-        testing=args.testing,
-    )
-    package_pool_dir = settings.get_repo_path(
-        repo_type=RepoTypeEnum.POOL,
-        name=args.name,
-        architecture=args.architecture,
-        debug=args.debug,
-        staging=args.staging,
-        testing=args.testing,
-    )
-    for package_path in args.file:
-        package_file = RepoFile(
-            file_type=RepoFileEnum.PACKAGE,
-            file_path=package_pool_dir / package_path.name,
-            symlink_path=package_repo_dir / package_path.name,
-        )
-        package_file.copy_from(path=package_path)
-        package_file.link()
-        if args.with_signature:
-            signature_path = Path(str(package_path) + ".sig")
-            signature_file = RepoFile(
-                file_type=RepoFileEnum.PACKAGE_SIGNATURE,
-                file_path=package_pool_dir / signature_path.name,
-                symlink_path=package_repo_dir / signature_path.name,
-            )
-            signature_file.copy_from(path=signature_path)
-            signature_file.link()
+    return  # pragma: no cover
 
 
 def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
