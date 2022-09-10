@@ -18,6 +18,16 @@ Added
 * A section in the documentation now provides a high-level introduction to how
   repod works as well as examples on how to add packages, write sync databases
   and use a repository with pacman.
+* Classes to allow transactional tasks with pre and post checks.
+
+Changed
+^^^^^^^
+
+* The command ``repod-file repo importpkg`` now uses transactional tasks, that
+  are chained into an atomic action, which automatically reverts itself if any
+  of the tasks fail.
+* The command ``repod-file repo importpkg`` is now able to import packages of
+  differing ``pkgbase``.
 
 [0.2.2] - 2022-08-29
 --------------------
