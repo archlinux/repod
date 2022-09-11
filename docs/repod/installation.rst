@@ -45,16 +45,16 @@ Development environment
 -----------------------
 
 The repod project can be used from a git clone of the project, with the help of
-|poetry|.
+|pdm|.
 
 .. code:: sh
 
   git clone https://gitlab.archlinux.org/archlinux/repod/
   cd repod
-  poetry install
+  pdm install
 
-Afterwards it is possible to make use of existing :ref:`tooling <manuals>` with the help
-of ``poetry run`` (e.g. ``poetry run repod-file --help``).
+Afterwards it is possible to make use of existing :ref:`tooling <manuals>` with
+the help of ``pdm run`` (e.g. ``pdm run repod-file --help``).
 
 .. |justfile| raw:: html
 
@@ -76,6 +76,6 @@ of ``poetry run`` (e.g. ``poetry run repod-file --help``).
 
   <a target="blank" href="https://darwinsys.com/file/">file</a>
 
-.. |poetry| raw:: html
+.. |pdm| raw:: html
 
-  <a target="blank" href="https://python-poetry.org/">poetry</a>
+  <a target="blank" href="https://pdm.fming.dev/latest/">pdm</a>
