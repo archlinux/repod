@@ -15,6 +15,16 @@ It is developed at https://gitlab.archlinux.org/archlinux/repod
 
 .. toctree::
    :maxdepth: 2
+   :caption: Using Repod
+
+   repod/installation.rst
+   repod/man/index.rst
+   repod/changelog.rst
+   contributing.rst
+   authors.rst
+
+.. toctree::
+   :maxdepth: 2
    :caption: Repositories
 
    repositories/source_repository.rst
@@ -29,14 +39,6 @@ It is developed at https://gitlab.archlinux.org/archlinux/repod
 
    packages/contents.rst
    packages/signatures.rst
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Using Repod
-
-   repod/installation.rst
-   repod/man/index.rst
-   repod/changelog.rst
 
 Indices and tables
 ==================
