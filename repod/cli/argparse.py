@@ -127,7 +127,7 @@ class ArgParseFactory:
 
         repo_importpkg_parser = repo_subcommands.add_parser(
             name="importpkg",
-            help="import packages of the same pkgbase to a repo",
+            help="import packages to a repo",
         )
         repo_importpkg_parser.add_argument(
             "file",
