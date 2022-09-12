@@ -12,6 +12,13 @@ For more detailed information have a look at the |git log|.
 [Unreleased]
 ------------
 
+Added
+^^^^^
+
+* A section in the documentation now provides a high-level introduction to how
+  repod works as well as examples on how to add packages, write sync databases
+  and use a repository with pacman.
+
 [0.2.2] - 2022-08-29
 --------------------
 
