@@ -18,6 +18,7 @@ It is developed at https://gitlab.archlinux.org/archlinux/repod
    :caption: Using Repod
 
    repod/installation.rst
+   repod/usage.rst
    repod/man/index.rst
    repod/changelog.rst
    contributing.rst
