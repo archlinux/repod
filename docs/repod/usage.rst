@@ -11,6 +11,7 @@ files and repositories.
 .. note::
 
   The ``repod-file`` tool is currently still limited in scope. It can
+
   * import packages to existing repositories
   * write repository sync databases
   * inspect package files

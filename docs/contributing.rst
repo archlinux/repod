@@ -55,6 +55,7 @@ entry in the `[Unreleased]` section.
   <https://keepachangelog.com/en/1.0.0/>`_ methodology.
 
 Valid subsection topics are:
+
 * **Added** for new features.
 * **Changed** for changes in existing functionality.
 * **Deprecated** for soon-to-be removed features.
