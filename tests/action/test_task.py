@@ -501,29 +501,73 @@ def test_movetmpfilestask(
 
 @mark.parametrize(
     (
-        "add_paths, add_dependencies, dependency_state, dependency_absolute, destination_exists, "
-        "copy2_raises, rename_raises, return_value"
+        "add_paths, add_dependencies, pkgbases_dep, syncdb_dep, dependency_state, dependency_absolute, "
+        "destination_exists, copy2_raises, rename_raises, return_value"
     ),
     [
-        (True, False, None, True, True, False, False, ActionStateEnum.SUCCESS_TASK),
-        (True, False, None, True, True, True, False, ActionStateEnum.FAILED_TASK),
-        (True, False, None, True, True, False, True, ActionStateEnum.FAILED_TASK),
-        (True, False, None, True, False, False, False, ActionStateEnum.SUCCESS_TASK),
-        (True, False, None, True, False, True, False, ActionStateEnum.SUCCESS_TASK),
-        (True, False, None, True, False, False, True, ActionStateEnum.FAILED_TASK),
-        (False, True, ActionStateEnum.SUCCESS, True, True, False, False, ActionStateEnum.SUCCESS_TASK),
-        (False, True, ActionStateEnum.SUCCESS, True, True, True, False, ActionStateEnum.FAILED_TASK),
-        (False, True, ActionStateEnum.SUCCESS, True, True, False, True, ActionStateEnum.FAILED_TASK),
-        (False, True, ActionStateEnum.SUCCESS, True, False, False, False, ActionStateEnum.SUCCESS_TASK),
-        (False, True, ActionStateEnum.SUCCESS, False, False, False, False, ActionStateEnum.FAILED_TASK),
-        (False, True, ActionStateEnum.SUCCESS, True, False, True, False, ActionStateEnum.SUCCESS_TASK),
-        (False, True, ActionStateEnum.SUCCESS, True, False, False, True, ActionStateEnum.FAILED_TASK),
-        (False, True, ActionStateEnum.FAILED_TASK, True, False, False, False, ActionStateEnum.FAILED_DEPENDENCY),
+        (True, False, False, False, None, True, True, False, False, ActionStateEnum.SUCCESS_TASK),
+        (True, False, False, False, None, True, True, True, False, ActionStateEnum.FAILED_TASK),
+        (True, False, False, False, None, True, True, False, True, ActionStateEnum.FAILED_TASK),
+        (True, False, False, False, None, True, False, False, False, ActionStateEnum.SUCCESS_TASK),
+        (True, False, False, False, None, True, False, True, False, ActionStateEnum.SUCCESS_TASK),
+        (True, False, False, False, None, True, False, False, True, ActionStateEnum.FAILED_TASK),
+        (False, True, False, True, ActionStateEnum.SUCCESS, True, True, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, False, True, ActionStateEnum.SUCCESS, True, True, True, False, ActionStateEnum.FAILED_TASK),
+        (False, True, False, True, ActionStateEnum.SUCCESS, True, True, False, True, ActionStateEnum.FAILED_TASK),
+        (False, True, False, True, ActionStateEnum.SUCCESS, True, False, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, False, True, ActionStateEnum.SUCCESS, False, False, False, False, ActionStateEnum.FAILED_TASK),
+        (False, True, False, True, ActionStateEnum.SUCCESS, True, False, True, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, False, True, ActionStateEnum.SUCCESS, True, False, False, True, ActionStateEnum.FAILED_TASK),
+        (False, True, True, False, ActionStateEnum.SUCCESS, True, True, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, True, False, ActionStateEnum.SUCCESS, True, True, True, False, ActionStateEnum.FAILED_TASK),
+        (False, True, True, False, ActionStateEnum.SUCCESS, True, True, False, True, ActionStateEnum.FAILED_TASK),
+        (False, True, True, False, ActionStateEnum.SUCCESS, True, False, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, True, False, ActionStateEnum.SUCCESS, False, False, False, False, ActionStateEnum.FAILED_TASK),
+        (False, True, True, False, ActionStateEnum.SUCCESS, True, False, True, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, True, False, ActionStateEnum.SUCCESS, True, False, False, True, ActionStateEnum.FAILED_TASK),
+        (
+            False,
+            True,
+            True,
+            False,
+            ActionStateEnum.FAILED_TASK,
+            True,
+            False,
+            False,
+            False,
+            ActionStateEnum.FAILED_DEPENDENCY,
+        ),
+        (
+            False,
+            True,
+            True,
+            False,
+            ActionStateEnum.FAILED_TASK,
+            True,
+            False,
+            False,
+            False,
+            ActionStateEnum.FAILED_DEPENDENCY,
+        ),
+        (
+            False,
+            True,
+            False,
+            True,
+            ActionStateEnum.FAILED_TASK,
+            True,
+            False,
+            False,
+            False,
+            ActionStateEnum.FAILED_DEPENDENCY,
+        ),
     ],
 )
 def test_movetmpfilestask_do(
     add_paths: bool,
     add_dependencies: bool,
+    pkgbases_dep: bool,
+    syncdb_dep: bool,
     dependency_state: Optional[ActionStateEnum],
     dependency_absolute: bool,
     destination_exists: bool,
@@ -535,6 +579,14 @@ def test_movetmpfilestask_do(
 ) -> None:
     caplog.set_level(DEBUG)
 
+    default_db = tmp_path / "default.db.tar.gz.tmp"
+    default_db.touch()
+    default_db_symlink = tmp_path / "default.db.tmp"
+    default_db_symlink.touch()
+    files_db = tmp_path / "default.files.tar.gz.tmp"
+    files_db.touch()
+    files_db_symlink = tmp_path / "default.files.tmp"
+    files_db_symlink.touch()
     filename_source = Path("foo.tmp")
     source = tmp_path / filename_source
     source.touch()
@@ -542,18 +594,41 @@ def test_movetmpfilestask_do(
     destination = tmp_path / filename_destination
     if destination_exists:
         destination.touch()
+        Path(str(default_db).replace(".tmp", "")).touch()
+        Path(str(files_db).replace(".tmp", "")).touch()
+
     paths = [[source, destination]]
 
     dependencies = [
-        Mock(),
         Mock(
-            spec=task.WriteOutputPackageBasesToTmpFileInDirTask,
-            state=dependency_state,
-            directory=tmp_path if dependency_absolute else Path("bar"),
-            filenames=[filename_source],
+            state=ActionStateEnum.SUCCESS,
         ),
-        Mock(),
     ]
+    if pkgbases_dep:
+        dependencies.append(
+            Mock(
+                spec=task.WriteOutputPackageBasesToTmpFileInDirTask,
+                state=dependency_state,
+                directory=tmp_path if dependency_absolute else Path("bar"),
+                filenames=[filename_source],
+            )
+        )
+    if syncdb_dep:
+        dependencies.append(
+            Mock(
+                spec=task.WriteSyncDbsToTmpFilesInDirTask,
+                state=dependency_state,
+                default_syncdb_path=default_db if dependency_absolute else default_db.name,
+                default_syncdb_symlink_path=default_db_symlink if dependency_absolute else default_db_symlink.name,
+                files_syncdb_path=files_db if dependency_absolute else files_db.name,
+                files_syncdb_symlink_path=files_db_symlink if dependency_absolute else files_db_symlink.name,
+            )
+        )
+    dependencies.append(
+        Mock(
+            state=ActionStateEnum.SUCCESS,
+        )
+    )
 
     task_ = task.MoveTmpFilesTask(
         paths=paths if add_paths else None,

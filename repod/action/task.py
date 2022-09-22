@@ -672,7 +672,8 @@ class MoveTmpFilesTask(Task):
     ):
         """Initialize an instance of MoveTmpFilesTask
 
-        If a WriteOutputPackageBasesToTmpFileInDirTask is provided as dependency Task, paths is derived from it, else
+        If a WriteOutputPackageBasesToTmpFileInDirTask or WriteSyncDbsToTmpFilesInDirTask is provided as dependency
+        Task, paths is derived from it (the input ordering of the Tasks is honored and the first match is used), else
         paths must be provided.
 
         Parameters
@@ -689,7 +690,7 @@ class MoveTmpFilesTask(Task):
         if dependencies is not None:
             self.dependencies = dependencies
             for dependency in self.dependencies:
-                if isinstance(dependency, WriteOutputPackageBasesToTmpFileInDirTask):
+                if isinstance(dependency, (WriteOutputPackageBasesToTmpFileInDirTask, WriteSyncDbsToTmpFilesInDirTask)):
                     self.input_from_dependency = True
 
         if self.input_from_dependency:
@@ -724,10 +725,14 @@ class MoveTmpFilesTask(Task):
 
         if self.input_from_dependency and len(self.dependencies) > 0:
             debug("Getting temporary files and their destinations from the output of another Task...")
-            for dependency in self.dependencies:
-                if isinstance(dependency, WriteOutputPackageBasesToTmpFileInDirTask):
+            # NOTE: we can skip branch coverage here, as the only way to go through an empty list of dependencies is by
+            # manipulating MoveTmpFilesTask.input_from_dependency after initialization
+            for dependency in self.dependencies:  # pragma: no branch
+                if isinstance(dependency, (WriteSyncDbsToTmpFilesInDirTask, WriteOutputPackageBasesToTmpFileInDirTask)):
                     match dependency.state:
-                        case ActionStateEnum.SUCCESS:
+                        case ActionStateEnum.SUCCESS if isinstance(
+                            dependency, WriteOutputPackageBasesToTmpFileInDirTask
+                        ):
                             try:
                                 self.paths = [
                                     SourceDestination(
@@ -743,6 +748,27 @@ class MoveTmpFilesTask(Task):
                                 info(e)
                                 self.state = ActionStateEnum.FAILED_TASK
                                 return self.state
+                            break
+                        case ActionStateEnum.SUCCESS if isinstance(dependency, WriteSyncDbsToTmpFilesInDirTask):
+                            try:
+                                self.paths = [
+                                    SourceDestination(
+                                        source=filename,
+                                        destination=Path(str(filename).replace(".tmp", "")),
+                                        destination_backup=(Path(str(filename).replace(".tmp", "") + ".bkp")),
+                                    )
+                                    for filename in [
+                                        dependency.default_syncdb_path,
+                                        dependency.default_syncdb_symlink_path,
+                                        dependency.files_syncdb_path,
+                                        dependency.files_syncdb_symlink_path,
+                                    ]
+                                ]
+                            except ValidationError as e:
+                                info(e)
+                                self.state = ActionStateEnum.FAILED_TASK
+                                return self.state
+                            break
                         case _:
                             self.state = ActionStateEnum.FAILED_DEPENDENCY
                             return self.state
