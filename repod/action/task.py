@@ -20,16 +20,19 @@ from repod.action.check import (
 from repod.common.enums import (
     ActionStateEnum,
     ArchitectureEnum,
+    CompressionTypeEnum,
+    FilesVersionEnum,
+    PackageDescVersionEnum,
     PkgVerificationTypeEnum,
     RepoFileEnum,
     RepoTypeEnum,
 )
 from repod.config import SystemSettings, UserSettings
-from repod.errors import RepoManagementFileError
+from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundError
 from repod.files import Package
-from repod.repo import OutputPackageBase
+from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.management import ORJSON_OPTION
-from repod.repo.package import RepoFile
+from repod.repo.package import RepoDbTypeEnum, RepoFile
 
 
 class SourceDestination(BaseModel):
@@ -1043,6 +1046,163 @@ class AddToRepoTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
+        return self.state
+
+
+class WriteSyncDbsToTmpFilesInDirTask(Task):
+    """A Task to write a repository's sync databases and their symlinks to temporary files in a directory
+
+    Attributes
+    ----------
+    compression: CompressionTypeEnum
+        A member of CompressionTypeEnum which is used as compression type for the repository sync databases
+    desc_version: PackageDescVersionEnum
+        A member of PackageDescVersionEnum which is used to set the PackageDesc version to write to file
+    files_version: FilesVersionEnum
+        A member of FilesVersionEnum which is used to set the PackageDesc version to write to file
+    management_repo_dir: Path
+        A Path to a directory in a management repository from which to read JSON files
+    default_syncdb_path: Path
+        A Path for the temporary default repository sync database
+    files_syncdb_path: Path
+        A Path for the temporary files repository sync database
+    default_syncdb_symlink_path: Path
+        A Path for the temporary symlink to the default repository sync database
+    files_syncdb_symlink_path: Path
+        A Path for the temporary symlink to the files repository sync database
+    dependencies: Optional[List[Task]]
+        An optional list of Task lists which are executed before this Task (defaults to None)
+    """
+
+    def __init__(
+        self,
+        compression: CompressionTypeEnum,
+        desc_version: PackageDescVersionEnum,
+        files_version: FilesVersionEnum,
+        management_repo_dir: Path,
+        package_repo_dir: Path,
+        dependencies: Optional[List[Task]] = None,
+    ):
+        """Initialize an instance of WriteSyncDbsToTmpFilesInDirTask
+
+        Parameters
+        ----------
+        compression: CompressionTypeEnum
+            A member of CompressionTypeEnum which is used as compression type for the repository sync databases
+        desc_version: PackageDescVersionEnum
+            A member of PackageDescVersionEnum which is used to set the PackageDesc version to write to file
+        files_version: FilesVersionEnum
+            A member of FilesVersionEnum which is used to set the PackageDesc version to write to file
+        management_repo_dir: Path
+            A Path to a directory in a management repository from which to read JSON files
+        package_repo_dir: Path
+            A Path to a directory in a package repository to write files to
+        dependencies: Optional[List[Task]]
+            An optional list of Task lists which are executed before this Task (defaults to None)
+        """
+
+        self.compression = compression
+        self.desc_version = desc_version
+        self.files_version = files_version
+        self.management_repo_dir = management_repo_dir
+        self.default_syncdb_path = package_repo_dir / Path(
+            package_repo_dir.parent.name + CompressionTypeEnum.db_tar_suffix(compression_type=compression) + ".tmp"
+        )
+        self.default_syncdb_symlink_path = package_repo_dir / Path(package_repo_dir.parent.name + ".db.tmp")
+        self.files_syncdb_path = package_repo_dir / Path(
+            package_repo_dir.parent.name
+            + CompressionTypeEnum.db_tar_suffix(compression_type=compression, files=True)
+            + ".tmp"
+        )
+        self.files_syncdb_symlink_path = package_repo_dir / Path(package_repo_dir.parent.name + ".files.tmp")
+        if dependencies:
+            self.dependencies = dependencies
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to write temporary repository sync databases to a package repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED_TASK
+
+        debug(
+            f"Running Task to write temporary repository sync databases {self.default_syncdb_path} and "
+            f"{self.files_syncdb_path}..."
+        )
+
+        try:
+            default_sync_db = SyncDatabase(
+                database=self.default_syncdb_path,
+                database_type=RepoDbTypeEnum.DEFAULT,
+                compression_type=self.compression,
+                desc_version=self.desc_version,
+                files_version=self.files_version,
+            )
+            files_sync_db = SyncDatabase(
+                database=self.files_syncdb_path,
+                database_type=RepoDbTypeEnum.FILES,
+                compression_type=self.compression,
+                desc_version=self.desc_version,
+                files_version=self.files_version,
+            )
+        except ValidationError as e:
+            info(e)
+            self.state = ActionStateEnum.FAILED_TASK
+            return self.state
+
+        try:
+            asyncio.run(default_sync_db.stream_management_repo(path=self.management_repo_dir))
+            asyncio.run(files_sync_db.stream_management_repo(path=self.management_repo_dir))
+        except (IsADirectoryError, RepoManagementFileNotFoundError) as e:
+            info(e)
+            self.state = ActionStateEnum.FAILED_TASK
+            return self.state
+
+        self.default_syncdb_symlink_path.symlink_to(
+            Path(sub(r"\.tmp$", "", str(self.default_syncdb_path))).relative_to(self.default_syncdb_symlink_path.parent)
+        )
+        self.files_syncdb_symlink_path.symlink_to(
+            Path(sub(r"\.tmp$", "", str(self.files_syncdb_path))).relative_to(self.files_syncdb_symlink_path.parent)
+        )
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo the writing of temporary repository sync databases in a package repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(
+                f"Can not undo writing of temporary repository sync databases {self.default_syncdb_path} and "
+                f"{self.files_syncdb_path}, as it has not happened yet!"
+            )
+            self.dependency_undo()
+            return self.state
+
+        for path in [
+            self.files_syncdb_path,
+            self.files_syncdb_symlink_path,
+            self.default_syncdb_path,
+            self.default_syncdb_symlink_path,
+        ]:
+            if not path.is_dir():
+                path.unlink(missing_ok=True)
 
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()

@@ -10,7 +10,14 @@ from pytest import LogCaptureFixture, mark, raises
 
 from repod.action import task
 from repod.action.check import PacmanKeyPackagesSignatureVerificationCheck
-from repod.common.enums import ActionStateEnum, PkgVerificationTypeEnum, RepoFileEnum
+from repod.common.enums import (
+    ActionStateEnum,
+    CompressionTypeEnum,
+    FilesVersionEnum,
+    PackageDescVersionEnum,
+    PkgVerificationTypeEnum,
+    RepoFileEnum,
+)
 from repod.config import UserSettings
 from repod.config.defaults import DEFAULT_ARCHITECTURE, DEFAULT_NAME
 from repod.errors import RepoManagementFileError
@@ -795,3 +802,191 @@ def test_addtorepotask_undo() -> None:
     task_ = task.AddToRepoTask(dependencies=[])
     assert task_.do() == ActionStateEnum.SUCCESS_TASK
     assert task_.undo() == ActionStateEnum.NOT_STARTED
+
+
+@mark.parametrize(
+    "add_dependencies, compression_type, desc_version, files_version",
+    [
+        (True, CompressionTypeEnum.NONE, PackageDescVersionEnum.DEFAULT, FilesVersionEnum.DEFAULT),
+        (False, CompressionTypeEnum.NONE, PackageDescVersionEnum.DEFAULT, FilesVersionEnum.DEFAULT),
+    ],
+)
+def test_writesyncdbstotmpfilesindirtask(
+    add_dependencies: bool,
+    desc_version: PackageDescVersionEnum,
+    files_version: FilesVersionEnum,
+    compression_type: CompressionTypeEnum,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    dependencies = [Mock()]
+    task_ = task.WriteSyncDbsToTmpFilesInDirTask(
+        compression=compression_type,
+        desc_version=desc_version,
+        files_version=files_version,
+        management_repo_dir=outputpackagebasev1_json_files_in_dir,
+        package_repo_dir=tmp_path,
+        dependencies=dependencies if add_dependencies else None,
+    )
+
+    if add_dependencies:
+        assert task_.dependencies == dependencies
+
+    assert task_.default_syncdb_path.suffix == ".tmp"
+    assert task_.files_syncdb_path.suffix == ".tmp"
+
+
+@mark.parametrize(
+    "add_dependencies, desc_version, return_value, json_files_exist, target_is_dir",
+    [
+        (
+            True,
+            PackageDescVersionEnum.DEFAULT,
+            ActionStateEnum.SUCCESS_TASK,
+            True,
+            False,
+        ),
+        (
+            False,
+            PackageDescVersionEnum.DEFAULT,
+            ActionStateEnum.SUCCESS_TASK,
+            True,
+            False,
+        ),
+        (
+            True,
+            "foo",
+            ActionStateEnum.FAILED_TASK,
+            True,
+            False,
+        ),
+        (
+            False,
+            "foo",
+            ActionStateEnum.FAILED_TASK,
+            True,
+            False,
+        ),
+        (
+            True,
+            PackageDescVersionEnum.DEFAULT,
+            ActionStateEnum.FAILED_TASK,
+            False,
+            False,
+        ),
+        (
+            False,
+            PackageDescVersionEnum.DEFAULT,
+            ActionStateEnum.FAILED_TASK,
+            False,
+            False,
+        ),
+        (
+            True,
+            PackageDescVersionEnum.DEFAULT,
+            ActionStateEnum.FAILED_TASK,
+            False,
+            True,
+        ),
+        (
+            False,
+            PackageDescVersionEnum.DEFAULT,
+            ActionStateEnum.FAILED_TASK,
+            False,
+            True,
+        ),
+    ],
+)
+def test_writesyncdbstotmpfilesindirtask_do(
+    add_dependencies: bool,
+    desc_version: PackageDescVersionEnum,
+    return_value: ActionStateEnum,
+    json_files_exist: bool,
+    target_is_dir: bool,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    if json_files_exist:
+        management_repo_dir = outputpackagebasev1_json_files_in_dir
+    else:
+        management_repo_dir = tmp_path / "foo"
+
+    dependencies = [Mock()]
+    task_ = task.WriteSyncDbsToTmpFilesInDirTask(
+        compression=CompressionTypeEnum.NONE,
+        desc_version=desc_version,
+        files_version=FilesVersionEnum.DEFAULT,
+        management_repo_dir=management_repo_dir,
+        package_repo_dir=tmp_path,
+        dependencies=dependencies if add_dependencies else None,
+    )
+
+    if target_is_dir:
+        task_.default_syncdb_path.mkdir(parents=True)
+        task_.files_syncdb_path.mkdir(parents=True)
+
+    assert task_.do() == return_value
+    if json_files_exist and not target_is_dir and isinstance(desc_version, PackageDescVersionEnum):
+        assert task_.default_syncdb_path.exists()
+        assert task_.files_syncdb_path.exists()
+
+
+@mark.parametrize(
+    "add_dependencies, return_value, do, target_is_dir",
+    [
+        (True, ActionStateEnum.NOT_STARTED, True, False),
+        (False, ActionStateEnum.NOT_STARTED, True, False),
+        (True, ActionStateEnum.NOT_STARTED, False, False),
+        (False, ActionStateEnum.NOT_STARTED, False, False),
+        (True, ActionStateEnum.NOT_STARTED, True, True),
+        (False, ActionStateEnum.NOT_STARTED, True, True),
+        (True, ActionStateEnum.NOT_STARTED, False, True),
+        (False, ActionStateEnum.NOT_STARTED, False, True),
+    ],
+)
+def test_writesyncdbstotmpfilesindirtask_undo(
+    add_dependencies: bool,
+    return_value: ActionStateEnum,
+    do: bool,
+    target_is_dir: bool,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    dependencies = [
+        Mock(
+            state=ActionStateEnum.SUCCESS,
+            undo=Mock(return_value=ActionStateEnum.NOT_STARTED),
+        ),
+    ]
+    task_ = task.WriteSyncDbsToTmpFilesInDirTask(
+        compression=CompressionTypeEnum.NONE,
+        desc_version=PackageDescVersionEnum.DEFAULT,
+        files_version=FilesVersionEnum.DEFAULT,
+        management_repo_dir=outputpackagebasev1_json_files_in_dir,
+        package_repo_dir=tmp_path,
+        dependencies=dependencies if add_dependencies else None,
+    )
+
+    if do:
+        assert task_.do()
+        assert task_.default_syncdb_path.exists()
+        assert task_.files_syncdb_path.exists()
+
+    if target_is_dir:
+        if do:
+            task_.default_syncdb_path.unlink()
+            task_.files_syncdb_path.unlink()
+
+        task_.default_syncdb_path.mkdir(parents=True, exist_ok=True)
+        task_.files_syncdb_path.mkdir(parents=True, exist_ok=True)
+
+    assert task_.undo() == return_value
