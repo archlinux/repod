@@ -147,8 +147,32 @@ class CompressionTypeEnum(Enum):
                 raise RuntimeError(f"The provided compression type {input_} is not valid!")
 
     @classmethod
+    def db_tar_suffix(cls, compression_type: CompressionTypeEnum, files: bool = False) -> str:
+        """Return a member of CompressionTypeEnum formated as the file suffix for a default or files repository sync
+        database
+
+        Parameters
+        ----------
+        compression_type: CompressionTypeEnum
+            A member of CompressionTypeEnum to return the tar suffix for
+        files: bool
+            Whether to return the tar suffix for a files database (defaults to False)
+
+        Returns
+        -------
+        str
+            A member of CompressionTypeEnum formated as the file suffix for a default repository sync database
+        """
+
+        return (
+            f".{'files' if files else 'db'}.tar." + compression_type.value
+            if len(compression_type.value) > 0
+            else f".{'files' if files else 'db'}.tar" + compression_type.value
+        )
+
+    @classmethod
     def as_db_file_suffixes(cls) -> List[str]:
-        """Return the members of CompressTypeEnum formated in a list of strings reprenting all possible suffix
+        """Return the members of CompressionTypeEnum formated in a list of strings reprenting all possible suffix
         permutations for a default repository sync database
 
         Returns
@@ -162,7 +186,7 @@ class CompressionTypeEnum(Enum):
 
     @classmethod
     def as_files_file_suffixes(cls) -> List[str]:
-        """Return the members of CompressTypeEnum formated in a list of strings reprenting all possible suffix
+        """Return the members of CompressionTypeEnum formated in a list of strings reprenting all possible suffix
         permutations for a files repository sync database
 
         Returns

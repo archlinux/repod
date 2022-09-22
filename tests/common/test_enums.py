@@ -26,6 +26,18 @@ def test_compressiontypeenum(input_: str, result: enums.CompressionTypeEnum, exp
         assert enums.CompressionTypeEnum.from_string(input_=input_) == result
 
 
+@mark.parametrize("files", [(True), (False)])
+def test_compressiontypeenum_db_tar_suffix(files: bool) -> None:
+    for compression_type in enums.CompressionTypeEnum:
+        return_value = enums.CompressionTypeEnum.db_tar_suffix(compression_type=compression_type, files=files)
+        if files:
+            assert return_value.startswith(".files.tar")
+        else:
+            assert return_value.startswith(".db.tar")
+
+        assert return_value.endswith(compression_type.value)
+
+
 def test_compressiontypeenum_as_db_file_suffixes() -> None:
     assert enums.CompressionTypeEnum.as_db_file_suffixes()
 
