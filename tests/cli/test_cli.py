@@ -10,7 +10,11 @@ from unittest.mock import Mock, patch
 from pytest import LogCaptureFixture, mark, raises
 
 from repod import commands
-from repod.action.task import AddToRepoTask, PrintOutputPackageBasesTask
+from repod.action.task import (
+    AddToRepoTask,
+    MoveTmpFilesTask,
+    PrintOutputPackageBasesTask,
+)
 from repod.cli import cli
 from repod.common.enums import (
     ActionStateEnum,
@@ -190,12 +194,21 @@ def test_repod_file_repo_importpkg(
     add_to_repo_task_return: ActionStateEnum,
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
+    tmp_path: Path,
 ) -> None:
     caplog.set_level(DEBUG)
 
+    tmp_file = tmp_path / "foo.tmp"
+    file = tmp_path / "foo"
+    backup_file = tmp_path / "foo.bkp"
+    backup_file.touch()
+    movetmpfiles_task = MoveTmpFilesTask(paths=[[tmp_file, file]])
+    movetmpfiles_task.state = ActionStateEnum.SUCCESS
+
     add_to_repo_task_mock = Mock(
         spec=AddToRepoTask,
-        return_value=Mock(return_value=add_to_repo_task_return),
+        return_value=add_to_repo_task_return,
+        dependencies=[movetmpfiles_task],
     )
 
     with patch("repod.cli.cli.AddToRepoTask", return_value=add_to_repo_task_mock):
@@ -215,9 +228,12 @@ def test_repod_file_repo_importpkg(
         )
     add_to_repo_task_mock.assert_called_once()
 
-    if add_to_repo_task_return != ActionStateEnum.SUCCESS:
+    if add_to_repo_task_return == ActionStateEnum.SUCCESS:
+        assert not backup_file.exists()
+    else:
         exit_on_error_mock.assert_called_once()
         add_to_repo_task_mock.undo.assert_called_once()
+        assert backup_file.exists()
 
 
 @mark.parametrize(

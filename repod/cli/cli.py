@@ -15,7 +15,9 @@ from repod.action.task import (
     FilesToRepoDirTask,
     MoveTmpFilesTask,
     PrintOutputPackageBasesTask,
+    RemoveBackupFilesTask,
     WriteOutputPackageBasesToTmpFileInDirTask,
+    WriteSyncDbsToTmpFilesInDirTask,
 )
 from repod.cli import argparse
 from repod.common.enums import ActionStateEnum, RepoFileEnum, RepoTypeEnum
@@ -89,7 +91,7 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
 
 
 def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
-    """Import a package (optionally with signature file) to a repository
+    """Import a package (optionally with signature file) to a repository and write its sync databases
 
     Parameters
     ----------
@@ -172,13 +174,46 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
             )
         )
 
+    add_to_repo_dependencies.append(
+        MoveTmpFilesTask(
+            dependencies=[
+                WriteSyncDbsToTmpFilesInDirTask(
+                    compression=settings.get_repo_database_compression(name=args.name, architecture=args.architecture),
+                    desc_version=settings.syncdb_settings.desc_version,
+                    files_version=settings.syncdb_settings.files_version,
+                    management_repo_dir=settings.get_repo_path(
+                        repo_type=RepoTypeEnum.MANAGEMENT,
+                        name=args.name,
+                        architecture=args.architecture,
+                        debug=args.debug,
+                        staging=args.staging,
+                        testing=args.testing,
+                    ),
+                    package_repo_dir=settings.get_repo_path(
+                        repo_type=RepoTypeEnum.PACKAGE,
+                        name=args.name,
+                        architecture=args.architecture,
+                        debug=args.debug,
+                        staging=args.staging,
+                        testing=args.testing,
+                    ),
+                ),
+            ],
+        ),
+    )
+
     add_to_repo_task = AddToRepoTask(dependencies=add_to_repo_dependencies)
     if add_to_repo_task() != ActionStateEnum.SUCCESS:
         add_to_repo_task.undo()
         exit_on_error("An error occured while trying to add packages to a repository!")
         return
 
-    return  # pragma: no cover
+    remove_backup_files_task = RemoveBackupFilesTask(
+        dependencies=[task for task in add_to_repo_task.dependencies if isinstance(task, MoveTmpFilesTask)]
+    )
+    remove_backup_files_task()
+
+    return
 
 
 def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
