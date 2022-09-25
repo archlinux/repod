@@ -19,6 +19,7 @@ Added
   repod works as well as examples on how to add packages, write sync databases
   and use a repository with pacman.
 * Classes to allow transactional tasks with pre and post checks.
+* Write sync databases as part of a transaction.
 
 Changed
 ^^^^^^^
@@ -28,6 +29,10 @@ Changed
   of the tasks fail.
 * The command ``repod-file repo importpkg`` is now able to import packages of
   differing ``pkgbase``.
+* The command ``repod-file repo importpkg`` now automatically also writes the
+  sync databases of the repository after adding packages.
+* The command ``repod-file repo writedb`` now writes the sync databases in a
+  transaction.
 
 [0.2.2] - 2022-08-29
 --------------------
