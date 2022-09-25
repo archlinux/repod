@@ -6,6 +6,7 @@ from itertools import groupby
 from logging import debug, info
 from operator import attrgetter
 from pathlib import Path
+from re import sub
 from shutil import copy2
 from typing import List, Optional, Union
 
@@ -1229,6 +1230,102 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
         ]:
             if not path.is_dir():
                 path.unlink(missing_ok=True)
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
+        return self.state
+
+
+class RemoveBackupFilesTask(Task):
+    """A destructive(!) Task to remove backup files
+
+    Attributes
+    ----------
+    paths: List[Path]
+        A list of backup file paths to remove
+    dependencies: Optional[List[Task]]
+        An optional list of Task lists which are executed before this Task (defaults to None)
+    """
+
+    paths: List[Path] = []
+    input_from_dependency: bool = False
+
+    def __init__(self, paths: Optional[List[Path]] = None, dependencies: Optional[List[Task]] = None):
+        """Initialize an instance of RemoveBackupFilesTask
+
+        If instances of MoveTmpFilesTask are provided in dependencies, paths is populated from them.
+
+        Parameters
+        ----------
+        paths: Optional[List[Path]]
+            An optional list of Paths which represent the backup files to be removed
+        dependencies: Optional[List[Task]]
+            An optional list of Task instances that are run before this task (defaults to None)
+        """
+
+        if dependencies:
+            self.dependencies = dependencies
+            for dependency in self.dependencies:
+                if isinstance(dependency, MoveTmpFilesTask):
+                    self.input_from_dependency = True
+
+        if self.input_from_dependency:
+            debug("Creating Task to remove backup files, using output from another Task...")
+        else:
+            if not paths:
+                raise RuntimeError("Paths must be provided if not depending on another Task for input!")
+
+            debug(f"Creating Task to backup files {paths}...")
+            self.paths = paths
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to remove backup files
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        if self.input_from_dependency and len(self.dependencies) > 0:
+            debug("Getting backup files from the output of another Task...")
+            for dependency in self.dependencies:  # pragma: no branch
+                if isinstance(dependency, MoveTmpFilesTask):
+                    if dependency.state == ActionStateEnum.SUCCESS:
+                        self.paths += [obj.destination_backup for obj in dependency.paths]
+                    else:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
+
+        debug(f"Running Task to remove backup files {self.paths}...")
+        self.state = ActionStateEnum.STARTED_TASK
+
+        for path in self.paths:
+            path.unlink(missing_ok=True)
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo Task for the removal of backup files
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(f"Can not undo removing of backup files {self.paths} as it has not happened yet!")
+            self.dependency_undo()
+            return self.state
+
+        if self.input_from_dependency:
+            self.paths.clear()
 
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()

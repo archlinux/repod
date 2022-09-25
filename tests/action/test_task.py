@@ -1065,3 +1065,124 @@ def test_writesyncdbstotmpfilesindirtask_undo(
         task_.files_syncdb_path.mkdir(parents=True, exist_ok=True)
 
     assert task_.undo() == return_value
+
+
+@mark.parametrize(
+    "add_paths, add_dependencies, expectation",
+    [
+        (True, False, does_not_raise()),
+        (True, True, does_not_raise()),
+        (False, True, does_not_raise()),
+        (False, False, raises(RuntimeError)),
+    ],
+)
+def test_removebackupfilestask(
+    add_paths: bool,
+    add_dependencies: bool,
+    expectation: ContextManager[str],
+) -> None:
+    path = Path("foo.bkp")
+    paths = [path]
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.MoveTmpFilesTask,
+            paths=[Mock(destination_backup=path)],
+        ),
+    ]
+
+    with expectation:
+        task_ = task.RemoveBackupFilesTask(
+            paths=paths if add_paths else None, dependencies=dependencies if add_dependencies else None
+        )
+
+    if add_dependencies:
+        assert task_.input_from_dependency
+        assert task_.paths == []
+    else:
+        if add_paths:
+            assert not task_.input_from_dependency
+            assert task_.paths == [path]
+
+
+@mark.parametrize(
+    "add_paths, add_dependencies, add_move_dep, dep_state, return_value",
+    [
+        (True, False, False, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, True, False, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (False, True, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (False, True, True, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+    ],
+)
+def test_removebackupfilestask_do(
+    add_paths: bool,
+    add_dependencies: bool,
+    add_move_dep: bool,
+    dep_state: ActionStateEnum,
+    return_value: ActionStateEnum,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / Path("foo.bkp")
+    path.touch()
+    paths = [path]
+    dependencies = [
+        Mock(),
+    ]
+    if add_move_dep:
+        dependencies.append(
+            Mock(
+                spec=task.MoveTmpFilesTask,
+                paths=[Mock(destination_backup=path)],
+                state=dep_state,
+            )
+        )
+
+    task_ = task.RemoveBackupFilesTask(
+        paths=paths if add_paths else None, dependencies=dependencies if add_dependencies else None
+    )
+    assert task_.do() == return_value
+
+    if dep_state != ActionStateEnum.SUCCESS and add_dependencies and add_move_dep:
+        assert path.exists()
+    else:
+        assert not path.exists()
+
+
+@mark.parametrize(
+    "add_paths, add_dependencies, do, return_value",
+    [
+        (True, False, True, ActionStateEnum.NOT_STARTED),
+        (True, False, False, ActionStateEnum.NOT_STARTED),
+        (False, True, True, ActionStateEnum.NOT_STARTED),
+        (False, True, False, ActionStateEnum.NOT_STARTED),
+    ],
+)
+def test_removebackupfilestask_undo(
+    add_paths: bool,
+    add_dependencies: bool,
+    do: bool,
+    return_value: ActionStateEnum,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / Path("foo.bkp")
+    path.touch()
+    paths = [path]
+    dependencies = [
+        Mock(
+            undo=Mock(return_value=ActionStateEnum.NOT_STARTED),
+        ),
+        Mock(
+            spec=task.MoveTmpFilesTask,
+            paths=[Mock(destination_backup=path)],
+            state=ActionStateEnum.SUCCESS,
+            undo=Mock(return_value=ActionStateEnum.NOT_STARTED),
+        ),
+    ]
+
+    task_ = task.RemoveBackupFilesTask(
+        paths=paths if add_paths else None, dependencies=dependencies if add_dependencies else None
+    )
+    if do:
+        task_.do()
+
+    assert task_.undo() == return_value
