@@ -24,7 +24,6 @@ from repod.common.enums import ActionStateEnum, RepoFileEnum, RepoTypeEnum
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
 from repod.repo import SyncDatabase
-from repod.repo.package import RepoDbTypeEnum
 
 ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
 
@@ -254,51 +253,38 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
         case "importpkg":
             repod_file_repo_importpkg(args=args, settings=settings)
         case "writedb":
-            compression = settings.get_repo_database_compression(name=args.name, architecture=args.architecture)
-            package_repo_dir = settings.get_repo_path(
-                repo_type=RepoTypeEnum.PACKAGE,
-                name=args.name,
-                architecture=args.architecture,
-                debug=args.debug,
-                staging=args.staging,
-                testing=args.testing,
+            remove_backup_files_task = RemoveBackupFilesTask(
+                dependencies=[
+                    MoveTmpFilesTask(
+                        dependencies=[
+                            WriteSyncDbsToTmpFilesInDirTask(
+                                compression=settings.get_repo_database_compression(
+                                    name=args.name, architecture=args.architecture
+                                ),
+                                desc_version=settings.syncdb_settings.desc_version,
+                                files_version=settings.syncdb_settings.files_version,
+                                management_repo_dir=settings.get_repo_path(
+                                    repo_type=RepoTypeEnum.MANAGEMENT,
+                                    name=args.name,
+                                    architecture=args.architecture,
+                                    debug=args.debug,
+                                    staging=args.staging,
+                                    testing=args.testing,
+                                ),
+                                package_repo_dir=settings.get_repo_path(
+                                    repo_type=RepoTypeEnum.PACKAGE,
+                                    name=args.name,
+                                    architecture=args.architecture,
+                                    debug=args.debug,
+                                    staging=args.staging,
+                                    testing=args.testing,
+                                ),
+                            ),
+                        ],
+                    )
+                ]
             )
-            default_syncdb_path = package_repo_dir / Path(package_repo_dir.parent.name + ".db.tar." + compression.value)
-            default_syncdb_symlink_path = package_repo_dir / Path(package_repo_dir.parent.name + ".db")
-            files_syncdb_path = package_repo_dir / Path(
-                package_repo_dir.parent.name + ".files.tar." + compression.value
-            )
-            files_syncdb_symlink_path = package_repo_dir / Path(package_repo_dir.parent.name + ".files")
-
-            default_sync_db = SyncDatabase(
-                database=default_syncdb_path,
-                database_type=RepoDbTypeEnum.DEFAULT,
-                compression_type=compression,
-                desc_version=settings.syncdb_settings.desc_version,
-                files_version=settings.syncdb_settings.files_version,
-            )
-            management_repo_dir = settings.get_repo_path(
-                repo_type=RepoTypeEnum.MANAGEMENT,
-                name=args.name,
-                architecture=args.architecture,
-                debug=args.debug,
-                staging=args.staging,
-                testing=args.testing,
-            )
-            asyncio.run(default_sync_db.stream_management_repo(path=management_repo_dir))
-            default_syncdb_symlink_path.unlink(missing_ok=True)
-            default_syncdb_symlink_path.symlink_to(default_syncdb_path.relative_to(default_syncdb_symlink_path.parent))
-
-            files_sync_db = SyncDatabase(
-                database=files_syncdb_path,
-                database_type=RepoDbTypeEnum.FILES,
-                compression_type=compression,
-                desc_version=settings.syncdb_settings.desc_version,
-                files_version=settings.syncdb_settings.files_version,
-            )
-            asyncio.run(files_sync_db.stream_management_repo(path=management_repo_dir))
-            files_syncdb_symlink_path.unlink(missing_ok=True)
-            files_syncdb_symlink_path.symlink_to(files_syncdb_path.relative_to(files_syncdb_symlink_path.parent))
+            remove_backup_files_task()
         case _:
             exit_on_error(
                 message="No subcommand provided to the 'repo' command!\n",
