@@ -55,8 +55,8 @@ Packages can be imported to the default repository using
 Assuming that the ``pkgbase`` (see `package splitting
 <https://man.archlinux.org/man/PKGBUILD.5#PACKAGE_SPLITTING>`_) of
 *package_a-1.0.0-1-any.pkg.tar.zst* is ``package_a``, the above command will
-import the package to the repository named *default* and create the following
-directory structure:
+import the package to the repository named *default*, write the :ref:`sync
+database` files for it and create the following directory structure:
 
 .. code::
 
@@ -72,6 +72,10 @@ directory structure:
   │       ├── package
   │       │   └── default
   │       │       └── any
+  │       │           ├── default.db -> default.db.tar.gz
+  │       │           ├── default.db.tar.gz
+  │       │           ├── default.files -> default.files.tar.gz
+  │       │           ├── default.files.tar.gz
   │       │           └── package_a-1.0.0-1-any.pkg.tar.zst -> ../../../../pool/package/default/package_a-1.0.0-1-any.pkg.tar.zst
   │       └── source
   │           └── default
@@ -98,7 +102,8 @@ Writing sync databases
 ======================
 
 For a repository to be usable by pacman, it requires :ref:`sync database`
-files, which have to be written after changes to the repository.
+files, which are written automatically when :ref:`importing packages`, but can
+also be written manually.
 
 .. code:: bash
 
@@ -106,7 +111,7 @@ files, which have to be written after changes to the repository.
 
 
 The above command creates the following directory structure (assuming the
-example from :ref:`importing packages`):
+example from :ref:`importing packages`), rewriting the database files:
 
 .. code::
 
