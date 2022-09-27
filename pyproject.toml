@@ -8,16 +8,16 @@ dynamic = ["version"]
 license = {text = "GPL-3.0-or-later"}
 requires-python = ">=3.10,<4.0"
 dependencies = [
-  "aiofiles<1.0.0,>=0.8.0",
-  "email-validator<2.0.0,>=1.2.1",
-  "jinja2<4.0.0,>=3.0.0",
-  "orjson<4.0.0,>=3.6.6",
-  "pydantic<2.0.0,>=1.8.1",
-  "python-magic<1.0.0,>=0.4.26",
-  "pyxdg<1.0,>=0.28",
-  "pyzstd<1.0.0,>=0.15.2",
-  "subprocess-tee<1.0.0,>=0.3.5",
-  "tomli<3.0.0,>=2.0.0",
+    "aiofiles>=22.1.0",
+    "email-validator>=1.3.0",
+    "jinja2>=3.1.2",
+    "orjson>=3.8.0",
+    "pydantic>=1.10.2",
+    "python-magic>=0.4.27",
+    "pyxdg>=0.28",
+    "pyzstd>=0.15.3",
+    "subprocess-tee>=0.3.5",
+    "tomli>=2.0.1",
 ]
 name = "repod"
 description = "Tooling to maintain binary package repositories for Linux distributions using the pacman package manager"
@@ -67,25 +67,23 @@ version = {source = "scm"}
 
 [tool.pdm.dev-dependencies]
 dev = [
-  "black<23.0.0,>=22.1.0",
-  "coverage<7.0,>=6.1",
-  "coverage-conditional-plugin<1.0.0,>=0.5.0",
-  "flake8<6.0.0,>=5.0.0",
-  "isort<6.0.0,>=5.10.0",
-  "mypy<1.0,>=0.971",
-  # pip for mypy --install-types: https://github.com/python/mypy/issues/13580
-  "pip>=22.2.2",
-  "pytest<8.0.0,>=7.0.0",
-  "pytest-asyncio<1.0.0,>=0.19.0",
-  "pytest-lazy-fixture<1.0.0,>=0.6.3",
-  # setuptools for coverage-conditional-plugin: https://github.com/wemake-services/coverage-conditional-plugin/issues/174
-  "setuptools>=62.3.1",
-  "sphinx<6.0.0,>=5.0.0",
-  "sphinx-rtd-theme<2.0.0,>=1.0.0",
-  "sphinx-argparse<1.0.0,>=0.3.1",
-  "sphinxcontrib-programoutput<1.0,>=0.17",
-  "tox<4.0.0,>=3.24.5",
-  "vulture<3.0,>=2.5",
+    "black>=22.8.0",
+    "coverage>=6.4.4",
+    "coverage-conditional-plugin>=0.7.0",
+    "flake8>=5.0.4",
+    "isort>=5.10.1",
+    "mypy>=0.981",
+    # pip for mypy --install-types: https://github.com/python/mypy/issues/13580
+    "pip>=22.2.2",
+    "pytest>=7.1.3",
+    "pytest-asyncio>=0.19.0",
+    "pytest-lazy-fixture>=0.6.3",
+    "sphinx>=5.2.1",
+    "sphinx-rtd-theme>=1.0.0",
+    "sphinx-argparse>=0.3.1",
+    "sphinxcontrib-programoutput>=0.17",
+    "tox>=3.26.0",
+    "vulture>=2.6",
 ]
 
 [tool.pdm.build]
