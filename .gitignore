@@ -137,3 +137,6 @@ flake8.txt
 
 # junit report
 junit-report.xml
+
+# pdm
+.pdm.toml
