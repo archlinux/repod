@@ -1204,6 +1204,46 @@ def test_create_and_validate_directory(
         (False, False, False, None, raises(RuntimeError)),
     ],
 )
+def test_settings_get_repo_architecture(
+    has_repo: bool,
+    has_namesake_repo: bool,
+    reuse_first_repo_name: bool,
+    architecture: Optional[ArchitectureEnum],
+    expectation: ContextManager[str],
+    usersettings: settings.UserSettings,
+) -> None:
+    name = Path("foo")
+
+    if reuse_first_repo_name:
+        name = usersettings.repositories[0].name
+    if not has_repo:
+        usersettings.repositories = []
+    else:
+        if has_namesake_repo:
+            namesake = deepcopy(usersettings.repositories[0])
+            namesake.architecture = ArchitectureEnum.ARM
+            usersettings.repositories.append(namesake)
+
+    with expectation:
+        architecture = usersettings.get_repo_architecture(name=name, architecture=architecture)
+        if has_namesake_repo and reuse_first_repo_name and architecture == ArchitectureEnum.ARM:
+            assert architecture == usersettings.repositories[1].architecture
+        else:
+            assert architecture == usersettings.repositories[0].architecture
+
+
+@mark.parametrize(
+    "has_repo, has_namesake_repo, reuse_first_repo_name, architecture, expectation",
+    [
+        (True, False, True, settings.DEFAULT_ARCHITECTURE, does_not_raise()),
+        (True, True, True, settings.DEFAULT_ARCHITECTURE, does_not_raise()),
+        (True, True, True, ArchitectureEnum.ARM, does_not_raise()),
+        (True, True, True, None, raises(RuntimeError)),
+        (True, True, False, ArchitectureEnum.ARM, raises(RuntimeError)),
+        (False, False, True, settings.DEFAULT_ARCHITECTURE, raises(RuntimeError)),
+        (False, False, False, None, raises(RuntimeError)),
+    ],
+)
 def test_settings_get_repo_database_compression(
     has_repo: bool,
     has_namesake_repo: bool,

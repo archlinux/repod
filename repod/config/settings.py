@@ -1334,6 +1334,49 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 other_name="staging repository",
             )
 
+    def get_repo_architecture(self, name: Path, architecture: Optional[ArchitectureEnum]) -> ArchitectureEnum:
+        """Get a repository's configured CPU architecture
+
+        Parameters
+        ----------
+        name: Path
+            The name of the repository
+        architecture: Optional[ArchitectureEnum]
+            The optional architecture of the repository
+
+        Raises
+        ------
+        RuntimeError
+            If more than one non-stable repository is targetted.
+            If no repository matching the name can be found.
+
+        Returns
+        -------
+        ArchitectureEnum
+            A member of ArchitectureEnum, which represents the CPU architecture of the repository
+        """
+
+        names_arches = [(repo.name, repo.architecture) for repo in self.repositories]
+        name_matches = [data for data in names_arches if data[0] == name]
+        if not architecture and len(name_matches) > 1:
+            raise RuntimeError(
+                "An error occured while trying to request the architecture for a repository: "
+                f"Specifying only a name ({name}) but no architecture while several repositories of the same name "
+                f"({[str(data[0]) + ' (' + data[1].value + ')' for data in name_matches]}) "  # type: ignore[union-attr]
+                "exist, would yield ambivalent results."
+            )
+
+        for repo in self.repositories:
+            if (architecture is not None and repo.name == name and repo.architecture == architecture) or (
+                architecture is None and repo.name == name
+            ):
+                return repo.architecture
+
+        raise RuntimeError(
+            f"Unable to find '{name}' {'(' + architecture.value + ')' if architecture else ''} in the available "
+            f"repositories ({[str(name_) for name_ in [repo.name for repo in self.repositories]]})"
+        )
+
     def get_repo_database_compression(
         self,
         name: Path,
