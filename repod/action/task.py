@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError, validator
 from repod.action.check import (
     Check,
     DebugPackagesCheck,
+    MatchingArchitectureCheck,
     PacmanKeyPackagesSignatureVerificationCheck,
 )
 from repod.common.enums import (
@@ -289,6 +290,9 @@ class CreateOutputPackageBasesTask(Task):
 
     Attributes
     ----------
+    architecture: ArchitectureEnum
+        A member of ArchitectureEnum that specifies the target CPU architecture that the OutputPackageBase instances
+        must match
     pkgbases: List[OutputPackageBase]
         A list of OutputPackageBase instances created from the input of the task (defaults to [])
     debug_repo: bool
@@ -299,6 +303,7 @@ class CreateOutputPackageBasesTask(Task):
 
     def __init__(
         self,
+        architecture: ArchitectureEnum,
         package_paths: List[Path],
         with_signature: bool,
         debug_repo: bool,
@@ -309,6 +314,9 @@ class CreateOutputPackageBasesTask(Task):
 
         Parameters
         ----------
+        architecture: ArchitectureEnum
+            A member of ArchitectureEnum that specifies the target CPU architecture that the OutputPackageBase instances
+            must match
         package_paths: List[Path]
             The path to a package file
         with_signature: bool
@@ -326,6 +334,7 @@ class CreateOutputPackageBasesTask(Task):
 
         debug(f"Initializing Task to create instances of OutputPackageBase using paths {package_paths}...")
 
+        self.architecture = architecture
         self.debug_repo = debug_repo
 
         if dependencies is not None:
@@ -384,6 +393,7 @@ class CreateOutputPackageBasesTask(Task):
                 return self.state
 
         self.post_checks.append(DebugPackagesCheck(packages=packages, debug=self.debug_repo))
+        self.post_checks.append(MatchingArchitectureCheck(architecture=self.architecture, packages=packages))
 
         self.state = ActionStateEnum.SUCCESS_TASK
         return self.state

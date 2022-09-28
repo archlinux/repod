@@ -12,6 +12,7 @@ from repod.action import task
 from repod.action.check import PacmanKeyPackagesSignatureVerificationCheck
 from repod.common.enums import (
     ActionStateEnum,
+    ArchitectureEnum,
     CompressionTypeEnum,
     FilesVersionEnum,
     PackageDescVersionEnum,
@@ -89,6 +90,7 @@ def test_createoutputpackagebasestask(
     dependencies = [Mock()]
 
     task_ = task.CreateOutputPackageBasesTask(
+        architecture=ArchitectureEnum.ANY,
         package_paths=[default_package_file[0]],
         with_signature=with_signature,
         package_verification=package_verification,
@@ -130,6 +132,7 @@ def test_createoutputpackagebasestask_do(
     caplog.set_level(DEBUG)
 
     task_ = task.CreateOutputPackageBasesTask(
+        architecture=ArchitectureEnum.ANY,
         package_paths=[default_package_file[0]],
         with_signature=with_signature,
         debug_repo=False,
@@ -156,6 +159,7 @@ def test_createoutputpackagebasestask_undo(
     caplog.set_level(DEBUG)
 
     task_ = task.CreateOutputPackageBasesTask(
+        architecture=ArchitectureEnum.ANY,
         package_paths=[default_package_file[0]],
         with_signature=True,
         debug_repo=False,
