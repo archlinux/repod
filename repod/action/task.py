@@ -25,8 +25,8 @@ from repod.common.enums import (
     FilesVersionEnum,
     PackageDescVersionEnum,
     PkgVerificationTypeEnum,
+    RepoDirTypeEnum,
     RepoFileEnum,
-    RepoTypeEnum,
 )
 from repod.config import SystemSettings, UserSettings
 from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundError
@@ -957,7 +957,7 @@ class FilesToRepoDirTask(Task):
 
         try:
             package_repo_dir = self.settings.get_repo_path(
-                repo_type=RepoTypeEnum.PACKAGE,
+                repo_type=RepoDirTypeEnum.PACKAGE,
                 name=self.name,
                 architecture=self.architecture,
                 debug=self.debug,
@@ -965,7 +965,7 @@ class FilesToRepoDirTask(Task):
                 testing=self.testing,
             )
             package_pool_dir = self.settings.get_repo_path(
-                repo_type=RepoTypeEnum.POOL,
+                repo_type=RepoDirTypeEnum.POOL,
                 name=self.name,
                 architecture=self.architecture,
                 debug=self.debug,

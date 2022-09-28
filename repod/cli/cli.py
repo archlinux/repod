@@ -20,7 +20,7 @@ from repod.action.task import (
     WriteSyncDbsToTmpFilesInDirTask,
 )
 from repod.cli import argparse
-from repod.common.enums import ActionStateEnum, RepoFileEnum, RepoTypeEnum
+from repod.common.enums import ActionStateEnum, RepoDirTypeEnum, RepoFileEnum
 from repod.config import SystemSettings, UserSettings
 from repod.files import Package
 from repod.repo import SyncDatabase
@@ -129,7 +129,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
             dependencies=[
                 WriteOutputPackageBasesToTmpFileInDirTask(
                     directory=settings.get_repo_path(
-                        repo_type=RepoTypeEnum.MANAGEMENT,
+                        repo_type=RepoDirTypeEnum.MANAGEMENT,
                         name=args.name,
                         architecture=args.architecture,
                         debug=args.debug,
@@ -181,7 +181,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
                     desc_version=settings.syncdb_settings.desc_version,
                     files_version=settings.syncdb_settings.files_version,
                     management_repo_dir=settings.get_repo_path(
-                        repo_type=RepoTypeEnum.MANAGEMENT,
+                        repo_type=RepoDirTypeEnum.MANAGEMENT,
                         name=args.name,
                         architecture=args.architecture,
                         debug=args.debug,
@@ -189,7 +189,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
                         testing=args.testing,
                     ),
                     package_repo_dir=settings.get_repo_path(
-                        repo_type=RepoTypeEnum.PACKAGE,
+                        repo_type=RepoDirTypeEnum.PACKAGE,
                         name=args.name,
                         architecture=args.architecture,
                         debug=args.debug,
@@ -234,7 +234,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
     match args.repo:
         case "importdb":
             management_repo_dir = settings.get_repo_path(
-                repo_type=RepoTypeEnum.MANAGEMENT,
+                repo_type=RepoDirTypeEnum.MANAGEMENT,
                 name=args.name,
                 architecture=args.architecture,
                 debug=args.debug,
@@ -264,7 +264,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
                                 desc_version=settings.syncdb_settings.desc_version,
                                 files_version=settings.syncdb_settings.files_version,
                                 management_repo_dir=settings.get_repo_path(
-                                    repo_type=RepoTypeEnum.MANAGEMENT,
+                                    repo_type=RepoDirTypeEnum.MANAGEMENT,
                                     name=args.name,
                                     architecture=args.architecture,
                                     debug=args.debug,
@@ -272,7 +272,7 @@ def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSetting
                                     testing=args.testing,
                                 ),
                                 package_repo_dir=settings.get_repo_path(
-                                    repo_type=RepoTypeEnum.PACKAGE,
+                                    repo_type=RepoDirTypeEnum.PACKAGE,
                                     name=args.name,
                                     architecture=args.architecture,
                                     debug=args.debug,

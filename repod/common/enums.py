@@ -297,17 +297,17 @@ class RepoFileEnum(IntEnum):
     PACKAGE_SIGNATURE = 1
 
 
-class RepoTypeEnum(Enum):
-    """An Enum to distinguish different types of repositories
+class RepoDirTypeEnum(Enum):
+    """An Enum to distinguish different types of repository directories
 
     Attributes
     ----------
     MANAGEMENT: str
-        A management repository
+        A management repository directory
     PACKAGE: str
-        A package repository
+        A package repository directory
     POOL: str
-        A pool directory
+        A pool directory directory
     """
 
     MANAGEMENT = "management"

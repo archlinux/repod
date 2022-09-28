@@ -22,7 +22,7 @@ from repod.common.enums import (
     FilesVersionEnum,
     PackageDescVersionEnum,
     PkgVerificationTypeEnum,
-    RepoTypeEnum,
+    RepoDirTypeEnum,
     SettingsTypeEnum,
 )
 from repod.config.defaults import (
@@ -1388,7 +1388,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
     def get_repo_path(
         self,
-        repo_type: RepoTypeEnum,
+        repo_type: RepoDirTypeEnum,
         name: Path,
         architecture: Optional[ArchitectureEnum],
         debug: bool,
@@ -1399,8 +1399,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         Parameters
         ----------
-        repo_type: RepoTypeEnum
-            A member of RepoTypeEnum to define which type of repository path to return
+        repo_type: RepoDirTypeEnum
+            A member of RepoDirTypeEnum to define which type of repository path to return
         name: Path
             The name of the repository
         architecture: Optional[ArchitectureEnum]
@@ -1448,39 +1448,39 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 architecture is None and repo.name == name
             ):
                 match repo_type, debug, staging, testing:
-                    case RepoTypeEnum.MANAGEMENT, False, False, False:
+                    case RepoDirTypeEnum.MANAGEMENT, False, False, False:
                         return repo._stable_management_repo_dir
-                    case RepoTypeEnum.MANAGEMENT, True, False, False:
+                    case RepoDirTypeEnum.MANAGEMENT, True, False, False:
                         if not repo.debug:
                             raise RuntimeError(f"The repository {name} does not have a debug repository!")
                         return repo._debug_management_repo_dir
-                    case RepoTypeEnum.MANAGEMENT, False, True, False:
+                    case RepoDirTypeEnum.MANAGEMENT, False, True, False:
                         if not repo.staging:
                             raise RuntimeError(f"The repository {name} does not have a staging repository!")
                         return repo._staging_management_repo_dir
-                    case RepoTypeEnum.MANAGEMENT, False, False, True:
+                    case RepoDirTypeEnum.MANAGEMENT, False, False, True:
                         if not repo.testing:
                             raise RuntimeError(f"The repository {name} does not have a testing repository!")
                         return repo._testing_management_repo_dir
-                    case RepoTypeEnum.PACKAGE, False, False, False:
+                    case RepoDirTypeEnum.PACKAGE, False, False, False:
                         return repo._stable_repo_dir
-                    case RepoTypeEnum.PACKAGE, True, False, False:
+                    case RepoDirTypeEnum.PACKAGE, True, False, False:
                         if not repo.debug:
                             raise RuntimeError(f"The repository {name} does not have a debug repository!")
                         return repo._debug_repo_dir
-                    case RepoTypeEnum.PACKAGE, False, True, False:
+                    case RepoDirTypeEnum.PACKAGE, False, True, False:
                         if not repo.staging:
                             raise RuntimeError(f"The repository {name} does not have a staging repository!")
                         return repo._staging_repo_dir
-                    case RepoTypeEnum.PACKAGE, False, False, True:
+                    case RepoDirTypeEnum.PACKAGE, False, False, True:
                         if not repo.testing:
                             raise RuntimeError(f"The repository {name} does not have a testing repository!")
                         return repo._testing_repo_dir
                     case (
-                        (RepoTypeEnum.POOL, False, False, False)
-                        | (RepoTypeEnum.POOL, True, False, False)
-                        | (RepoTypeEnum.POOL, False, True, False)
-                        | (RepoTypeEnum.POOL, False, False, True)
+                        (RepoDirTypeEnum.POOL, False, False, False)
+                        | (RepoDirTypeEnum.POOL, True, False, False)
+                        | (RepoDirTypeEnum.POOL, False, True, False)
+                        | (RepoDirTypeEnum.POOL, False, False, True)
                     ):
                         return repo._package_pool_dir
                     case _:
