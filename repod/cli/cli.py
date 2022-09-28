@@ -110,6 +110,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
             dumps_option=ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0,
             dependencies=[
                 CreateOutputPackageBasesTask(
+                    architecture=settings.get_repo_architecture(name=args.name, architecture=args.architecture),
                     package_paths=args.file,
                     with_signature=args.with_signature,
                     debug_repo=args.debug,
@@ -138,6 +139,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
                     ),
                     dependencies=[
                         CreateOutputPackageBasesTask(
+                            architecture=settings.get_repo_architecture(name=args.name, architecture=args.architecture),
                             package_paths=args.file,
                             with_signature=args.with_signature,
                             debug_repo=args.debug,

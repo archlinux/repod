@@ -168,7 +168,15 @@ def test_repod_file_repo_importpkg_dryrun(
 
     with patch("repod.cli.cli.PrintOutputPackageBasesTask", return_value=print_outputpackagebases_task_mock):
         cli.repod_file_repo_importpkg(
-            args=Namespace(dry_run=True, with_signature=True, pretty=True, debug=False, file=[Path("foo")]),
+            args=Namespace(
+                dry_run=True,
+                with_signature=True,
+                architecture=None,
+                name=usersettings.repositories[0].name,
+                pretty=True,
+                debug=False,
+                file=[Path("foo")],
+            ),
             settings=usersettings,
         )
     print_outputpackagebases_task_mock.assert_called_once()
