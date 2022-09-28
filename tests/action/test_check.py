@@ -6,7 +6,7 @@ from unittest.mock import patch
 from pytest import LogCaptureFixture, mark
 
 from repod.action import check
-from repod.common.enums import ActionStateEnum
+from repod.common.enums import ActionStateEnum, ArchitectureEnum
 from repod.files.package import Package
 from repod.files.pkginfo import PkgType
 
@@ -73,4 +73,28 @@ def test_debugpackagescheck(
         packages=packages,
     )
 
+    assert check_() == return_value
+
+
+@mark.parametrize(
+    "matching_arch, return_value",
+    [
+        (True, ActionStateEnum.SUCCESS),
+        (False, ActionStateEnum.FAILED),
+    ],
+)
+def test_matchingarchitecturecheck(
+    matching_arch: bool,
+    return_value: ActionStateEnum,
+    packagev1: Package,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    if matching_arch:
+        architecture = ArchitectureEnum(packagev1.pkginfo.arch)  # type: ignore[attr-defined]
+    else:
+        architecture = ArchitectureEnum.ANY
+
+    check_ = check.MatchingArchitectureCheck(architecture=architecture, packages=[packagev1])
     assert check_() == return_value

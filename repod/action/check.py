@@ -3,7 +3,7 @@ from logging import debug, info
 from pathlib import Path
 from typing import List
 
-from repod.common.enums import ActionStateEnum, PkgTypeEnum
+from repod.common.enums import ActionStateEnum, ArchitectureEnum, PkgTypeEnum
 from repod.files import Package
 from repod.files.pkginfo import PkgInfoV2, PkgType
 from repod.verification import PacmanKeyVerifier
@@ -175,4 +175,64 @@ class DebugPackagesCheck(Check):
                 return self.state
 
         self.state = ActionStateEnum.SUCCESS
+        return self.state
+
+
+class MatchingArchitectureCheck(Check):
+    """A Check to ensure that a list of packages match a target CPU architecture
+
+    Attributes
+    ----------
+    architecture: ArchitectureEnum
+        An instance of ArchitectureEnum which identifies the target CPU architecture
+    packages: List[Package]
+        A list of Package instances to check
+    """
+
+    def __init__(self, architecture: ArchitectureEnum, packages: List[Package]):
+        """Initialize an instance of DebugPackagesCheck
+
+        Parameters
+        ----------
+        architecture: ArchitectureEnum
+            An instance of ArchitectureEnum which identifies the target CPU architecture
+        packages: List[Package]
+            A list of Package instances to check
+        """
+
+        self.architecture = architecture
+        self.packages = packages
+
+    def __call__(self) -> ActionStateEnum:
+        """Check whether all instances of self.packages are supposed to be debug packages or not
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check is successful,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        debug("Running check to test whether all packages match the target architecture...")
+
+        non_matching: List[str] = []
+
+        for package in self.packages:
+            if (
+                package.pkginfo.arch != self.architecture.value  # type: ignore[attr-defined]
+                and package.pkginfo.arch != ArchitectureEnum.ANY.value  # type: ignore[attr-defined]
+            ):
+                non_matching.append(f"{package.pkginfo.name}/{package.pkginfo.arch}")  # type: ignore[attr-defined]
+
+        if len(non_matching) > 0:
+            self.state = ActionStateEnum.FAILED
+            info(
+                "Adding package(s) to repository failed as the following packages are not compatible with CPU "
+                f"architecture {'(' + self.architecture.value + ')' if self.architecture else ''}: {non_matching}"
+            )
+        else:
+            self.state = ActionStateEnum.SUCCESS
+
         return self.state
