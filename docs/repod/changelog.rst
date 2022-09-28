@@ -33,6 +33,8 @@ Changed
   sync databases of the repository after adding packages.
 * The command ``repod-file repo writedb`` now writes the sync databases in a
   transaction.
+* The CLI now automatically checks whether all consumed packages match the
+  target repository's CPU architecture.
 
 [0.2.2] - 2022-08-29
 --------------------
