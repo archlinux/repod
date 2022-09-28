@@ -549,6 +549,7 @@ def test_import_into_default_repo(tmp_path: Path) -> None:
     custom_config = f"""
     [[repositories]]
 
+    architecture = "x86_64"
     name = "{tmp_path}/data/repo/package/default/"
     debug = "{tmp_path}/data/repo/package/default-debug/"
     staging = "{tmp_path}/data/repo/package/default-staging/"
