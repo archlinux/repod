@@ -203,7 +203,7 @@ def test_printoutputpackagebasestask(
             dependencies=dependencies if add_dependencies else None,
         )
 
-    if expectation is does_not_raise():
+    if expectation is does_not_raise():  # type: ignore[comparison-overlap]
         assert task_.dumps_option == 0
 
         if add_pkgbases and not add_dependencies:
@@ -395,7 +395,9 @@ def test_writeoutputpackagebasestotmpfileindirtask_do(
     else:
         assert task_.do() == return_value
         if return_value == ActionStateEnum.SUCCESS_TASK:
-            assert task_.filenames[0] == Path(f"{outputpackagebasev1.base}.json.tmp")  # type: ignore[attr-defined]
+            assert task_.filenames[0] == (
+                tmp_path / Path(f"{outputpackagebasev1.base}.json.tmp")  # type: ignore[attr-defined]
+            )
             assert (tmp_path / task_.filenames[0]).exists()
         else:
             assert task_.filenames == []
@@ -613,8 +615,7 @@ def test_movetmpfilestask_do(
             Mock(
                 spec=task.WriteOutputPackageBasesToTmpFileInDirTask,
                 state=dependency_state,
-                directory=tmp_path if dependency_absolute else Path("bar"),
-                filenames=[filename_source],
+                filenames=[source if dependency_absolute else filename_source],
             )
         )
     if syncdb_dep:
@@ -677,10 +678,11 @@ def test_movetmpfilestask_do(
         case (False, False, True):
             with patch("repod.action.task.Path.rename", side_effect=Exception("ERROR")):
                 assert task_.do() == return_value
-            assert task_.paths[0].source.exists()
-            assert not task_.paths[0].destination.exists()
-            assert not task_.paths[0].destination_backup.exists()
-            assert not task_.paths[0].backup_done
+            if not (not dependency_absolute and add_dependencies and pkgbases_dep):
+                assert task_.paths[0].source.exists()
+                assert not task_.paths[0].destination.exists()
+                assert not task_.paths[0].destination_backup.exists()
+                assert not task_.paths[0].backup_done
 
 
 @mark.parametrize(

@@ -35,6 +35,7 @@ from repod.files import Package
 from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.management import ORJSON_OPTION
 from repod.repo.package import RepoDbTypeEnum, RepoFile
+from repod.repo.package.repofile import relative_to_shared_base
 
 
 class SourceDestination(BaseModel):
@@ -593,6 +594,8 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
             ActionStateEnum.FAILED_TASK otherwise.
         """
 
+        pkgname_dir = self.directory / "pkgnames"
+
         self.state = ActionStateEnum.STARTED_TASK
 
         if self.input_from_dependency:
@@ -611,17 +614,25 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
         else:
             debug("Running Task to write OutputPackageBase instances to a management repository directory...")
 
+        pkgname_dir.mkdir(parents=True, exist_ok=True)
+
         for outputpackagebase in self.pkgbases:
-            filename = Path(f"{outputpackagebase.base}.json.tmp")  # type: ignore[attr-defined]
+            filename = self.directory / Path(f"{outputpackagebase.base}.json.tmp")  # type: ignore[attr-defined]
             self.filenames.append(filename)
 
             try:
-                with open(self.directory / filename, "wb") as output_file:
+                with open(filename, "wb") as output_file:
                     output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
             except (OSError, BlockingIOError, JSONEncodeError) as e:
                 info(e)
                 self.state = ActionStateEnum.FAILED_TASK
                 return self.state
+
+            target = self.directory / Path(f"{outputpackagebase.base}.json")  # type: ignore[attr-defined]
+            for pkg in outputpackagebase.packages:  # type: ignore[attr-defined]
+                symlink_path = pkgname_dir / Path(pkg.name + ".json.tmp")
+                self.filenames.append(symlink_path)
+                symlink_path.symlink_to(relative_to_shared_base(path_b=symlink_path, path_a=target))
 
         self.state = ActionStateEnum.SUCCESS_TASK
         return self.state
@@ -647,7 +658,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
             return self.state
 
         for filename in self.filenames:
-            (self.directory / filename).unlink(missing_ok=True)
+            filename.unlink(missing_ok=True)
         self.filenames.clear()
 
         if self.input_from_dependency:
@@ -747,11 +758,9 @@ class MoveTmpFilesTask(Task):
                             try:
                                 self.paths = [
                                     SourceDestination(
-                                        source=dependency.directory / filename,
-                                        destination=dependency.directory / Path(str(filename).replace(".tmp", "")),
-                                        destination_backup=(
-                                            dependency.directory / Path(str(filename).replace(".tmp", "") + ".bkp")
-                                        ),
+                                        source=filename,
+                                        destination=Path(str(filename).replace(".tmp", "")),
+                                        destination_backup=(Path(str(filename).replace(".tmp", "") + ".bkp")),
                                     )
                                     for filename in dependency.filenames
                                 ]
