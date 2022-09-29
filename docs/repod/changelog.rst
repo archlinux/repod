@@ -20,6 +20,10 @@ Added
   and use a repository with pacman.
 * Classes to allow transactional tasks with pre and post checks.
 * Write sync databases as part of a transaction.
+* The command ``repod-file repo importpkg`` now automatically creates symlinks
+  in a subdirectory of a repository's management repository from each package
+  name to their respective ``pkgbase``. This allows for easier search by
+  package name.
 
 Changed
 ^^^^^^^
