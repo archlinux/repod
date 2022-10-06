@@ -40,6 +40,13 @@ Changed
 * The CLI now automatically checks whether all consumed packages match the
   target repository's CPU architecture.
 
+Fixed
+^^^^^
+
+* The parser for mtree files did not zerofill retrieved file modes and as mtree
+  may return strings shorter than three chars as a file mode, this led to
+  ValidationErrors when initializing MTree objects.
+
 [0.2.2] - 2022-08-29
 --------------------
 
