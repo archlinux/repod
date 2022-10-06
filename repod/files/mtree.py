@@ -321,21 +321,47 @@ class MTree(BaseModel):
             An instance of MTree, derived from data
         """
 
-        base_settings: Dict[str, Union[int, str]] = {}
+        def sanitize_mtree_pairs(
+            settings_list: List[List[str]],
+            settings_dict: Dict[str, Union[float, int, str]],
+        ) -> None:
+            """Sanitize mtree pairs in a list and add them to a dict
+
+            Parameters
+            ----------
+            settings_list: List[List[str]]
+                A list of string lists, that represent mtree key-value pairs
+            settings_dict: Dict[str, Union[float, int, str]]
+                A dict to which sanitized mtree key-value pairs are added
+            """
+
+            for setting in settings_list:
+                settings_key = setting[0]
+                setting_value = setting[1].strip("\n")
+                match settings_key:
+                    case "gid" | "uid" | "size":
+                        settings_dict[settings_key] = int(setting_value)
+                    case "time":
+                        settings_dict[settings_key] = float(setting_value)
+                    case "type":
+                        # NOTE: do not overload type()
+                        settings_dict["type_"] = setting_value
+                    case "mode":
+                        # NOTE: ensure that file modes are zero-filled and of length 4
+                        settings_dict[settings_key] = setting_value.zfill(4)
+                    case "md5digest" | "sha1digest" | "sha256digest" | "sha384digest" | "sha512digest":
+                        # NOTE: only use the name of the digest as key to be more flexible in reusing the model
+                        settings_dict[settings_key.replace("digest", "")] = setting_value
+                    case _:
+                        settings_dict[settings_key] = setting_value
+
+        base_settings: Dict[str, Union[float, int, str]] = {}
         entries: List[MTreeEntry] = []
 
         for line in data:
             if line.startswith("/set"):
-                settings = [assignment.split("=") for assignment in line.split(" ")[1:]]
-                for setting in settings:
-                    setting_value = setting[1].strip("\n")
-                    match setting[0]:
-                        case "gid" | "uid":
-                            base_settings[setting[0]] = int(setting_value)
-                        case "type":
-                            base_settings["type_"] = setting_value
-                        case _:
-                            base_settings[setting[0]] = setting_value
+                settings_list = [assignment.split("=") for assignment in line.split(" ")[1:]]
+                sanitize_mtree_pairs(settings_list=settings_list, settings_dict=base_settings)
 
             elif line.startswith("."):
                 file_settings: Dict[str, Union[float, int, str]] = {}
@@ -343,33 +369,19 @@ class MTree(BaseModel):
 
                 # provide a list of all settings in an entry line (skip empty assigments due to multiple whitespace)
                 settings_list = [assignment.split("=") for assignment in line.split()[1:] if assignment]
-                for setting in settings_list:
-                    setting_value = setting[1].strip("\n")
-                    match setting[0]:
-                        case "gid" | "uid" | "size":
-                            file_settings[setting[0]] = int(setting_value)
-                        case "time":
-                            file_settings[setting[0]] = float(setting_value)
-                        case "type":
-                            # NOTE: do not overload type()
-                            file_settings["type_"] = setting_value
-                        case "md5digest" | "sha1digest" | "sha256digest" | "sha384digest" | "sha512digest":
-                            # NOTE: only use the name of the digest as key to be more flexible in reusing the model
-                            file_settings[setting[0].replace("digest", "")] = setting_value
-                        case _:
-                            file_settings[setting[0]] = setting_value
+                sanitize_mtree_pairs(settings_list=settings_list, settings_dict=file_settings)
 
                 try:
                     entries.append(
                         MTreeEntryV1(
                             gid=file_settings.get("gid") or base_settings.get("gid"),
                             link=file_settings.get("link"),
-                            md5=file_settings.get("md5"),
+                            md5=file_settings.get("md5") or base_settings.get("md5"),
                             mode=file_settings.get("mode") or base_settings.get("mode"),
                             name=file_settings.get("name"),
-                            sha256=file_settings.get("sha256"),
-                            size=file_settings.get("size"),
-                            time=file_settings.get("time"),
+                            sha256=file_settings.get("sha256") or base_settings.get("sha256"),
+                            size=file_settings.get("size") or base_settings.get("size"),
+                            time=file_settings.get("time") or base_settings.get("time"),
                             type_=file_settings.get("type_") or base_settings.get("type_"),
                             uid=file_settings.get("uid") or base_settings.get("uid"),
                         )
