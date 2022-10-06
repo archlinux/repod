@@ -403,7 +403,10 @@ def test_mtree_from_file(
     expectation: ContextManager[str],
     mtreeentryv1_stringio: StringIO,
     invalid_mtreeentryv1_stringio: StringIO,
+    caplog: LogCaptureFixture,
 ) -> None:
+    caplog.set_level(DEBUG)
+
     if valid:
         data = mtreeentryv1_stringio
     else:
