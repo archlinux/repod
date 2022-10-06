@@ -553,15 +553,23 @@ def mtreeentryv1_stringio() -> Generator[StringIO, None, None]:
         ./etc/foo time=1651787473.0 type=dir
         ./etc/foo/foo.conf time=1651787473.0 mode=644 size=2761 md5digest=c6e1c562468738e93335f2e2ce314e8b \
         sha256digest=87d2b2075fbb24eb1108fed7ef9f2971d7954ae0894b1405425a04ff9e1df49e
-        ./etc/foo.conf.d time=1651787473.0 type=dir
-        ./usr time=1651787473.0 type=dir
-        ./usr/share time=1651787473.0 type=dir
-        ./usr/share/foo time=1651787473.0 type=dir
-        ./usr/share/foo/conf time=1651787473.0 type=dir
-        ./usr/share/foo/conf/override.conf time=1651787473.0 mode=777 type=link link=/etc/foo.conf.d/override.conf
+        ./etc/foo/bar.conf time=1651787473.0 mode=44 size=2761 md5digest=c6e1c562468738e93335f2e2ce314e8b \
+        sha256digest=87d2b2075fbb24eb1108fed7ef9f2971d7954ae0894b1405425a04ff9e1df49e
+        /set time=1651787473.0
+        ./etc/foo.conf.d type=dir
+        ./usr type=dir
+        ./usr/share type=dir
+        ./usr/share/foo type=dir
+        ./usr/share/foo/conf type=dir
+        ./usr/share/foo/conf/override.conf time=1651787476.0 mode=777 type=link link=/etc/foo.conf.d/override.conf
+        /set mode=66
+        ./usr/share/foo/conf/foo.conf size=2761 md5digest=c6e1c562468738e93335f2e2ce314e8b \
+        sha256digest=87d2b2075fbb24eb1108fed7ef9f2971d7954ae0894b1405425a04ff9e1df49e
+        ./usr/share/foo/conf/bar.conf size=2761 md5digest=c6e1c562468738e93335f2e2ce314e8b \
+        sha256digest=87d2b2075fbb24eb1108fed7ef9f2971d7954ae0894b1405425a04ff9e1df49e
         """
 
-    yield StringIO(initial_value=mtree_contents.strip())
+    yield StringIO(initial_value=dedent(mtree_contents).strip())
 
 
 @fixture(
