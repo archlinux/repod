@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from email_validator import EmailNotValidError, validate_email
 from pydantic import (
@@ -22,7 +23,6 @@ from repod.common.regex import (
     PACKAGE_NAME,
     PACKAGER_NAME,
     PKGREL,
-    RELATIVE_PATH,
     SHA256,
     VERSION,
 )
@@ -53,7 +53,37 @@ class Backup(BaseModel):
         identifies which file(s) of a package pacman will create backups for
     """
 
-    backup: list[constr(regex=f"^{RELATIVE_PATH}$")] | None  # type: ignore[valid-type]  # noqa: F722
+    backup: list[str] | None
+
+    @validator("backup")
+    def validate_backup(cls, backup: list[str] | None) -> list[str] | None:
+        """Validate the backup attribute
+
+        The backup attribute may not contain strings that represent absolute Paths or Paths in the home directory
+
+        Parameters
+        ----------
+        backup: list[str] | None
+            An optional list of strings, representing paths to validate
+
+        Returns
+        -------
+        list[str] | None
+            None if backup is None, empty list if backup is empty list, or a validated list of strings
+        """
+
+        if backup:
+            for file in backup:
+                path = Path(file)
+                if path.is_absolute():
+                    raise ValueError(f"Absolute paths in a list of files are not valid: {path}")
+                parts = path.parts
+                if parts[0] == "home" and len(parts) > 1:
+                    raise ValueError(
+                        f"Files or directories in the home directory is not valid in a list of files: {path}"
+                    )
+
+        return backup
 
 
 class Base(BaseModel):
@@ -170,14 +200,35 @@ class FileList(BaseModel):
         identifies which file(s) belong to a package
     """
 
-    files: list[constr(regex=f"^{RELATIVE_PATH}$")] | None  # type: ignore[valid-type]  # noqa: F722
+    files: list[str] | None
 
     @validator("files")
-    def validate_no_file_in_home(cls, files: list[str]) -> list[str] | None:
+    def validate_files(cls, files: list[str] | None) -> list[str] | None:
+        """Validate the files attribute
+
+        The files attribute may not contain strings that represent absolute Paths or Paths in the home directory
+
+        Parameters
+        ----------
+        files: list[str] | None
+            An optional list of strings, representing paths to validate
+
+        Returns
+        -------
+        list[str] | None
+            None if files is None, empty list if files is empty list, or a validated list of strings
+        """
+
         if files:
             for file in files:
-                if re.search("^(home/).+$", file):
-                    raise ValueError("A package must not provide files in /home")
+                path = Path(file)
+                if path.is_absolute():
+                    raise ValueError(f"Absolute paths in a list of files are not valid: {path}")
+                parts = path.parts
+                if parts[0] == "home" and len(parts) > 1:
+                    raise ValueError(
+                        f"Files or directories in the home directory is not valid in a list of files: {path}"
+                    )
 
         return files
 

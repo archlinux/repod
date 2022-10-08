@@ -13,6 +13,22 @@ from tests.conftest import (
 
 
 @mark.parametrize(
+    "backup, expectation",
+    [
+        (None, does_not_raise()),
+        ([], does_not_raise()),
+        (["foo"], does_not_raise()),
+        (["home/"], does_not_raise()),
+        (["/foo"], raises(ValidationError)),
+        (["home/foo"], raises(ValidationError)),
+    ],
+)
+def test_backup_validate_backup(backup: list[str] | None, expectation: ContextManager[str]) -> None:
+    with expectation:
+        models.Backup(backup=backup)
+
+
+@mark.parametrize(
     "builddate, expectation",
     [
         (-1, raises(ValueError)),
@@ -72,10 +88,12 @@ def test_epoch_vercmp(subj: int | str, obj: int | str, expectation: int) -> None
         (None, does_not_raise()),
         ([], does_not_raise()),
         (["foo"], does_not_raise()),
+        (["home/"], does_not_raise()),
         (["home/foo"], raises(ValidationError)),
+        (["/foo"], raises(ValidationError)),
     ],
 )
-def test_file_list(file_list: list[str] | None, expectation: ContextManager[str]) -> None:
+def test_filelist_validate_files(file_list: list[str] | None, expectation: ContextManager[str]) -> None:
     with expectation:
         models.FileList(files=file_list)
 
