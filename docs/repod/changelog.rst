@@ -41,6 +41,8 @@ Changed
   target repository's CPU architecture.
 * Type hints now use generics for the standard containers ``dict``, ``list``,
   ``set`` and ``tuple`` instead of the imports from ``typing``.
+* Type hints now use the union operator ``|`` instead of ``Union`` and
+  ``Optional``.
 
 Fixed
 ^^^^^

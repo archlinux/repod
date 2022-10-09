@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from email_validator import EmailNotValidError, validate_email
 from pydantic import (
@@ -49,12 +48,12 @@ class Backup(BaseModel):
 
     Attributes
     ----------
-    backup: Optional[list[str]]
+    backup: list[str] | None
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     """
 
-    backup: Optional[list[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
+    backup: list[constr(regex=f"^{RELATIVE_PATH}$")] | None  # type: ignore[valid-type]  # noqa: F722
 
 
 class Base(BaseModel):
@@ -88,12 +87,12 @@ class CheckDepends(BaseModel):
 
     Attributes
     ----------
-    checkdepends: Optional[list[str]]
+    checkdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
     """
 
-    checkdepends: Optional[list[str]]
+    checkdepends: list[str] | None
 
 
 class Conflicts(BaseModel):
@@ -101,12 +100,12 @@ class Conflicts(BaseModel):
 
     Attributes
     ----------
-    conflicts: Optional[list[str]]
+    conflicts: list[str] | None
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     """
 
-    conflicts: Optional[list[str]]
+    conflicts: list[str] | None
 
 
 class CSize(BaseModel):
@@ -127,12 +126,12 @@ class Depends(BaseModel):
 
     Attributes
     ----------
-    depends: Optional[list[str]]
+    depends: list[str] | None
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     """
 
-    depends: Optional[list[str]]
+    depends: list[str] | None
 
 
 class Desc(BaseModel):
@@ -166,15 +165,15 @@ class FileList(BaseModel):
 
     Attributes
     ----------
-    files: Optional[list[str]]
+    files: list[str] | None
         The attribute can be used to describe the (optional) data below a %FILES% identifier in a 'files' file, which
         identifies which file(s) belong to a package
     """
 
-    files: Optional[list[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
+    files: list[constr(regex=f"^{RELATIVE_PATH}$")] | None  # type: ignore[valid-type]  # noqa: F722
 
     @validator("files")
-    def validate_no_file_in_home(cls, files: list[str]) -> Optional[list[str]]:
+    def validate_no_file_in_home(cls, files: list[str]) -> list[str] | None:
         if files:
             for file in files:
                 if re.search("^(home/).+$", file):
@@ -188,12 +187,12 @@ class Groups(BaseModel):
 
     Attributes
     ----------
-    groups: Optional[list[str]]
+    groups: list[str] | None
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     """
 
-    groups: Optional[list[constr(regex=f"^{PACKAGE_NAME}$")]]  # type: ignore[valid-type]  # noqa: F722
+    groups: list[constr(regex=f"^{PACKAGE_NAME}$")] | None  # type: ignore[valid-type]  # noqa: F722
 
 
 class ISize(BaseModel):
@@ -227,12 +226,12 @@ class MakeDepends(BaseModel):
 
     Attributes
     ----------
-    makedepends: Optional[list[str]]
+    makedepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     """
 
-    makedepends: Optional[list[str]]
+    makedepends: list[str] | None
 
 
 class Md5Sum(BaseModel):
@@ -295,7 +294,7 @@ class PgpSig(BaseModel):
         identifies a package's PGP signature
     """
 
-    pgpsig: Optional[constr(regex=f"^{BASE64}$")]  # type: ignore[valid-type]  # noqa: F722
+    pgpsig: constr(regex=f"^{BASE64}$") | None  # type: ignore[valid-type]  # noqa: F722
 
 
 class Provides(BaseModel):
@@ -303,12 +302,12 @@ class Provides(BaseModel):
 
     Attributes
     ----------
-    provides: Optional[list[str]]
+    provides: list[str] | None
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
     """
 
-    provides: Optional[list[str]]
+    provides: list[str] | None
 
 
 class Replaces(BaseModel):
@@ -316,12 +315,12 @@ class Replaces(BaseModel):
 
     Attributes
     ----------
-    replaces: Optional[list[str]]
+    replaces: list[str] | None
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     """
 
-    replaces: Optional[list[str]]
+    replaces: list[str] | None
 
 
 class SchemaVersionV1(BaseModel):
@@ -366,12 +365,12 @@ class OptDepends(BaseModel):
 
     Attributes
     ----------
-    optdepends: Optional[list[str]]
+    optdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     """
 
-    optdepends: Optional[list[str]]
+    optdepends: list[str] | None
 
 
 class Url(BaseModel):
@@ -513,12 +512,12 @@ class Version(BaseModel):
 
     version: constr(regex=rf"^({EPOCH}|){VERSION}-{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
 
-    def get_epoch(self) -> Optional[Epoch]:
+    def get_epoch(self) -> Epoch | None:
         """Return the epoch of the version
 
         Returns
         -------
-        Optional[int]
+        int | None
             An optional string representing the epoch of the version
         """
 

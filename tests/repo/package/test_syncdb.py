@@ -3,7 +3,7 @@ from io import StringIO
 from logging import DEBUG
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, ContextManager, Optional, Union
+from typing import Any, ContextManager
 from unittest.mock import patch
 
 from pytest import LogCaptureFixture, mark, raises
@@ -404,7 +404,7 @@ def test_files_from_dict_derive_file_version(
 def test_package_desc_from_dict_derive_file_version(
     files_versions: dict[int, dict[str, set[str]]],
     default_version: int,
-    input_dict: dict[str, Union[int, str, list[str]]],
+    input_dict: dict[str, int | str | list[str]],
     emit_warning: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
@@ -915,7 +915,7 @@ async def test_packagedesc_from_stream(data: str, expectation: ContextManager[st
 def test_package_desc_v1_get_output_package_v1(
     outputpackagev1: OutputPackage,
     packagedescv1: syncdb.PackageDesc,
-    filesv1: Optional[syncdb.FilesV1],
+    filesv1: syncdb.FilesV1 | None,
     no_files: bool,
     invalid_packagedesc_version: bool,
     expectation: ContextManager[str],
@@ -951,7 +951,7 @@ def test_package_desc_get_output_package_inconsistent_schema_config(packagedescv
 def test_package_desc_v1_get_output_package_base_v1(
     outputpackagebasev1: OutputPackageBase,
     packagedescv1: syncdb.PackageDesc,
-    filesv1: Optional[syncdb.Files],
+    filesv1: syncdb.Files | None,
     no_files: bool,
     invalid_package_desc: bool,
     expectation: ContextManager[str],
@@ -1098,7 +1098,7 @@ def test_packagedesc_get_output_package_base() -> None:
         "invalid key-value pair",
     ],
 )
-def test_packagedesc_from_dict(data: dict[str, Union[int, str, list[str]]], expectation: ContextManager[str]) -> None:
+def test_packagedesc_from_dict(data: dict[str, int | str | list[str]], expectation: ContextManager[str]) -> None:
     with expectation:
         syncdb.PackageDesc.from_dict(data=data)
 

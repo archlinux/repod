@@ -8,7 +8,6 @@ from operator import attrgetter
 from pathlib import Path
 from re import sub
 from shutil import copy2
-from typing import Optional, Union
 
 from orjson import JSONEncodeError, dumps
 from pydantic import BaseModel, ValidationError, validator
@@ -161,7 +160,7 @@ class Task(ABC):
 
     Attributes
     ----------
-    dependencies: Optional[list[Task]]
+    dependencies: list[Task] | None
         An optional list of Task instances that are run before this task and its pre_checks (defaults to None)
     pre_checks: list[Check]
         A list of Check instances that are called before the Task is called
@@ -308,8 +307,8 @@ class CreateOutputPackageBasesTask(Task):
         package_paths: list[Path],
         with_signature: bool,
         debug_repo: bool,
-        package_verification: Optional[PkgVerificationTypeEnum] = None,
-        dependencies: Optional[list[Task]] = None,
+        package_verification: PkgVerificationTypeEnum | None = None,
+        dependencies: list[Task] | None = None,
     ):
         """Initialize an instance of CreateOutputPackageBasesTask
 
@@ -324,9 +323,9 @@ class CreateOutputPackageBasesTask(Task):
             A boolean value indicating whether to also consider signature files
         debug_repo: bool
             A boolean value indicating whether a debug repository is targetted
-        package_verification: Optional[PkgVerificationTypeEnum]
+        package_verification: PkgVerificationTypeEnum | None
             The type of package verification to be run against the package (defaults to None)
-        dependencies: Optional[list[Task]]
+        dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
 
@@ -427,7 +426,7 @@ class PrintOutputPackageBasesTask(Task):
         An option parameter for orjson's dumps method
     pkgbases: list[OutputPackageBase]
         A list of OutputPackageBase instances to print (defaults to [])
-    dependencies: Optional[list[Task]]
+    dependencies: list[Task] | None
         An optional list of Task instances that are run before this task (defaults to None)
     input_from_dependency: bool
         A boolean value indicating whether the Task derives its list of OutputPackageBase instances from a dependency
@@ -437,8 +436,8 @@ class PrintOutputPackageBasesTask(Task):
     def __init__(
         self,
         dumps_option: int,
-        pkgbases: Optional[list[OutputPackageBase]] = None,
-        dependencies: Optional[list[Task]] = None,
+        pkgbases: list[OutputPackageBase] | None = None,
+        dependencies: list[Task] | None = None,
     ):
         """Initialize and instance of PrintOutputPackageBasesTask
 
@@ -446,9 +445,9 @@ class PrintOutputPackageBasesTask(Task):
         ----------
         dumps_option: int
             An option parameter for orjson's dumps method
-        pkgbases: Optional[list[OutputPackageBase]]
+        pkgbases: list[OutputPackageBase] | None
             An optional list of OutputPackageBase instances to print
-        dependencies: Optional[list[Task]]
+        dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
 
@@ -534,7 +533,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
 
     Attributes
     ----------
-    filenames: Optional[list[Path]]
+    filenames: list[Path] | None
         An optional list of Paths representing the OutputPackageBase instances that are written
     pkgbases: list[OutputPackageBase]
         A list of OutputPackageBase instances to write to file
@@ -545,8 +544,8 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
     def __init__(
         self,
         directory: Path,
-        pkgbases: Optional[list[OutputPackageBase]] = None,
-        dependencies: Optional[list[Task]] = None,
+        pkgbases: list[OutputPackageBase] | None = None,
+        dependencies: list[Task] | None = None,
     ):
         """Initialize and instance of WriteOutputPackageBasesToTmpFileInDirTask
 
@@ -554,9 +553,9 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
         ----------
         directory: Path
             A directory Path to write the files to
-        pkgbases: Optional[list[OutputPackageBase]]
+        pkgbases: list[OutputPackageBase] | None
             A list of OutputPackageBase instances to write to files
-        dependencies: Optional[list[Task]]
+        dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
 
@@ -681,7 +680,7 @@ class MoveTmpFilesTask(Task):
         each file to be moved
     input_from_dependency: bool
         A boolean value indicating whether input is derived from a dependency Task (defaults to False)
-    dependencies: Optional[list[Task]]
+    dependencies: list[Task] | None
         An optional list of Task instances that are run before this task (defaults to None)
     """
 
@@ -689,8 +688,8 @@ class MoveTmpFilesTask(Task):
 
     def __init__(
         self,
-        paths: Optional[list[list[Path]]] = None,
-        dependencies: Optional[list[Task]] = None,
+        paths: list[list[Path]] | None = None,
+        dependencies: list[Task] | None = None,
     ):
         """Initialize an instance of MoveTmpFilesTask
 
@@ -700,9 +699,9 @@ class MoveTmpFilesTask(Task):
 
         Parameters
         ----------
-        paths: Optional[list[list[Path]]]
+        paths: list[list[Path]] | None
             An optional list of Path lists which represent the source and destination for each file to be moved
-        dependencies: Optional[list[Task]]
+        dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
 
@@ -893,11 +892,11 @@ class FilesToRepoDirTask(Task):
         A list of files to copy and create symlinks for
     file_type: RepoFileEnum
         An instance of RepoFileEnum, indicating what type of RepoFile to initialize
-    settings: Union[UserSettings, SystemSettings]
+    settings: UserSettings | SystemSettings
         A instance of Settings to derive package_repo_dir and package_pool_dir from
     name: Path
         The name of a repository
-    architecture: Optional[ArchitectureEnum]
+    architecture: ArchitectureEnum | None
         The optional architecture of the target repository
     debug_repo: bool
         A boolean value indicating whether a debug repository is targeted
@@ -913,13 +912,13 @@ class FilesToRepoDirTask(Task):
         self,
         files: list[Path],
         file_type: RepoFileEnum,
-        settings: Union[UserSettings, SystemSettings],
+        settings: UserSettings | SystemSettings,
         name: Path,
-        architecture: Optional[ArchitectureEnum],
+        architecture: ArchitectureEnum | None,
         debug_repo: bool,
         staging_repo: bool,
         testing_repo: bool,
-        dependencies: Optional[list[Task]] = None,
+        dependencies: list[Task] | None = None,
     ):
         """Initialize an instance of FilesToRepoDirTask
 
@@ -929,11 +928,11 @@ class FilesToRepoDirTask(Task):
             A list of files to copy and create symlinks for
         file_type: RepoFileEnum
             An instance of RepoFileEnum, indicating what type of RepoFile to initialize
-        settings: Union[UserSettings, SystemSettings]
+        settings: UserSettings | SystemSettings
             A instance of Settings to derive package_repo_dir and package_pool_dir from
         name: Path
             The name of a repository
-        architecture: Optional[ArchitectureEnum]
+        architecture: ArchitectureEnum | None
             The optional architecture of the target repository
         debug_repo: bool
             A boolean value indicating whether a debug repository is targeted
@@ -941,7 +940,7 @@ class FilesToRepoDirTask(Task):
             A boolean value indicating whether a staging repository is targeted
         testing_repo: bool
             A boolean value indicating whether a testing repository is targeted
-        dependencies: Optional[list[Task]]
+        dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
 
@@ -1119,7 +1118,7 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
         A Path for the temporary symlink to the default repository sync database
     files_syncdb_symlink_path: Path
         A Path for the temporary symlink to the files repository sync database
-    dependencies: Optional[list[Task]]
+    dependencies: list[Task] | None
         An optional list of Task lists which are executed before this Task (defaults to None)
     """
 
@@ -1130,7 +1129,7 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
         files_version: FilesVersionEnum,
         management_repo_dir: Path,
         package_repo_dir: Path,
-        dependencies: Optional[list[Task]] = None,
+        dependencies: list[Task] | None = None,
     ):
         """Initialize an instance of WriteSyncDbsToTmpFilesInDirTask
 
@@ -1146,7 +1145,7 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
             A Path to a directory in a management repository from which to read JSON files
         package_repo_dir: Path
             A Path to a directory in a package repository to write files to
-        dependencies: Optional[list[Task]]
+        dependencies: list[Task] | None
             An optional list of Task lists which are executed before this Task (defaults to None)
         """
 
@@ -1262,23 +1261,23 @@ class RemoveBackupFilesTask(Task):
     ----------
     paths: list[Path]
         A list of backup file paths to remove
-    dependencies: Optional[list[Task]]
+    dependencies: list[Task] | None
         An optional list of Task lists which are executed before this Task (defaults to None)
     """
 
     paths: list[Path] = []
     input_from_dependency: bool = False
 
-    def __init__(self, paths: Optional[list[Path]] = None, dependencies: Optional[list[Task]] = None):
+    def __init__(self, paths: list[Path] | None = None, dependencies: list[Task] | None = None):
         """Initialize an instance of RemoveBackupFilesTask
 
         If instances of MoveTmpFilesTask are provided in dependencies, paths is populated from them.
 
         Parameters
         ----------
-        paths: Optional[list[Path]]
+        paths: list[Path] | None
             An optional list of Paths which represent the backup files to be removed
-        dependencies: Optional[list[Task]]
+        dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
 

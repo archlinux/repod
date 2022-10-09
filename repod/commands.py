@@ -1,16 +1,15 @@
 from pathlib import Path
 from subprocess import PIPE, STDOUT, CalledProcessError
-from typing import Optional, Union
 
 from subprocess_tee import CompletedProcess, run
 
 
-def _print_env(env: Optional[dict[str, str]]) -> None:
+def _print_env(env: dict[str, str] | None) -> None:
     """Print the environment variables from a dict
 
     Parameters
     ----------
-    env: Optional[dict[str, str]]
+    env: dict[str, str] | None
         An optional dict with environment variables and their values
     """
 
@@ -20,21 +19,21 @@ def _print_env(env: Optional[dict[str, str]]) -> None:
 
 
 def run_command(
-    cmd: Union[str, list[str]],
-    env: Optional[dict[str, str]] = None,
+    cmd: str | list[str],
+    env: dict[str, str] | None = None,
     debug: bool = False,
     echo: bool = False,
     quiet: bool = False,
     check: bool = False,
-    cwd: Union[Optional[str], Optional[Path]] = None,
+    cwd: str | Path | None = None,
 ) -> CompletedProcess:
     """Run a command
 
     Parameters
     ----------
-    cmd: Union[str, list[str]]
+    cmd: str | list[str]
         A string or list of strings that will be passed to subprocess.run()
-    env: Optional[dict[str, str]]
+    env: dict[str, str] | None
         A dict of environment variables and their respective values (defaults to None)
     debug: bool
         Whether to run in debug mode, which prints environment variables and command output (defaults to False)
@@ -44,7 +43,7 @@ def run_command(
         Whether to print the output of command while running it (defaults to False)
     check: bool
         Whether to check the return code of the command, which implies raising CallecProcessError (defaults to False)
-    cwd: Union[Optional[str], Optional[Path]]
+    cwd: str | Path | None
         In which directory to run the command (defaults to None, which means current working directory)
 
     Raises

@@ -1,5 +1,5 @@
 from contextlib import nullcontext as does_not_raise
-from typing import ContextManager, Optional, Union
+from typing import ContextManager
 from unittest.mock import patch
 
 from pydantic import ValidationError
@@ -46,7 +46,7 @@ def test_csize(csize: int, expectation: ContextManager[str]) -> None:
         ("1.1", raises(ValidationError)),
     ],
 )
-def test_epoch(value: Union[str, int], expectation: ContextManager[str]) -> None:
+def test_epoch(value: str | int, expectation: ContextManager[str]) -> None:
     with expectation:
         assert isinstance(models.Epoch(epoch=value), models.Epoch)
 
@@ -62,7 +62,7 @@ def test_epoch(value: Union[str, int], expectation: ContextManager[str]) -> None
         (2, 1, 1),
     ],
 )
-def test_epoch_vercmp(subj: Union[int, str], obj: Union[int, str], expectation: int) -> None:
+def test_epoch_vercmp(subj: int | str, obj: int | str, expectation: int) -> None:
     assert models.Epoch(epoch=subj).vercmp(epoch=models.Epoch(epoch=obj)) == expectation
 
 
@@ -75,7 +75,7 @@ def test_epoch_vercmp(subj: Union[int, str], obj: Union[int, str], expectation: 
         (["home/foo"], raises(ValidationError)),
     ],
 )
-def test_file_list(file_list: Optional[list[str]], expectation: ContextManager[str]) -> None:
+def test_file_list(file_list: list[str] | None, expectation: ContextManager[str]) -> None:
     with expectation:
         models.FileList(files=file_list)
 
@@ -272,7 +272,7 @@ def test_version(value: str, expectation: ContextManager[str]) -> None:
         ("1.0.0-1", None),
     ],
 )
-def test_version_get_epoch(value: str, expectation: Optional[models.Epoch]) -> None:
+def test_version_get_epoch(value: str, expectation: models.Epoch | None) -> None:
     assert models.Version(version=value).get_epoch() == expectation
 
 
@@ -285,7 +285,7 @@ def test_version_get_epoch(value: str, expectation: Optional[models.Epoch]) -> N
         ("1_0_0-1", models.PkgVer(pkgver="1_0_0")),
     ],
 )
-def test_version_get_pkgver(value: str, expectation: Optional[models.PkgVer]) -> None:
+def test_version_get_pkgver(value: str, expectation: models.PkgVer | None) -> None:
     assert models.Version(version=value).get_pkgver() == expectation
 
 
@@ -302,7 +302,7 @@ def test_version_get_pkgver(value: str, expectation: Optional[models.PkgVer]) ->
         ("1_0_0-1.1", models.PkgRel(pkgrel="1.1")),
     ],
 )
-def test_version_get_pkgrel(value: str, expectation: Optional[models.PkgRel]) -> None:
+def test_version_get_pkgrel(value: str, expectation: models.PkgRel | None) -> None:
     assert models.Version(version=value).get_pkgrel() == expectation
 
 

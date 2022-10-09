@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from tarfile import TarFile
-from typing import ContextManager, Optional, Union
+from typing import ContextManager
 from unittest.mock import patch
 
 from pytest import mark, raises
@@ -30,7 +30,7 @@ from repod.files import common
 )
 def test_open_tarfile(
     file_type: str,
-    compression_override: Optional[str],
+    compression_override: str | None,
     expectation: ContextManager[str],
     bz2_file: Path,
     gz_file: Path,
@@ -173,7 +173,7 @@ def test_compression_type_of_tarfile(
     ],
 )
 def test_names_in_tarfile(
-    names: Union[list[str], set[str]],
+    names: list[str] | set[str],
     expectation: bool,
     default_package_file: tuple[Path, ...],
 ) -> None:

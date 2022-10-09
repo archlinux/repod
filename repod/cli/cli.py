@@ -3,7 +3,6 @@ from argparse import ArgumentParser, Namespace
 from logging import DEBUG, INFO, WARNING, StreamHandler, debug, getLogger
 from pathlib import Path
 from sys import exit, stderr, stdout
-from typing import Optional, Union
 from unittest.mock import patch
 
 from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
@@ -28,14 +27,14 @@ from repod.repo import SyncDatabase
 ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
 
 
-def exit_on_error(message: str, argparser: Optional[ArgumentParser] = None) -> None:
+def exit_on_error(message: str, argparser: ArgumentParser | None = None) -> None:
     """Print a message to stderr, optionally print argparse help and exit with return code 1
 
     Parameters
     ----------
     message: str
         A message to print to stderr
-    argparser: Optional[ArgumentParser]
+    argparser: ArgumentParser | None
         An optional Argumentparser on which to call print_help()
     """
 
@@ -45,14 +44,14 @@ def exit_on_error(message: str, argparser: Optional[ArgumentParser] = None) -> N
     exit(1)
 
 
-def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
+def repod_file_package(args: Namespace, settings: SystemSettings | UserSettings) -> None:
     """Package related actions from the repod-file script
 
     Parameters
     ----------
     args: Namespace
         The options used for the Package related actions
-    settings: Union[SystemSettings, UserSettings]
+    settings: SystemSettings | UserSettings
         A Settings instance that is used for deriving repository directories from
 
     Raises
@@ -89,14 +88,14 @@ def repod_file_package(args: Namespace, settings: Union[SystemSettings, UserSett
             )
 
 
-def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
+def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSettings) -> None:
     """Import a package (optionally with signature file) to a repository and write its sync databases
 
     Parameters
     ----------
     args: Namespace
         The options used for repo related actions
-    settings: Union[SystemSettings, UserSettings]
+    settings: SystemSettings | UserSettings
         A Settings instance that is used for deriving repository directories from
 
     Raises
@@ -217,14 +216,14 @@ def repod_file_repo_importpkg(args: Namespace, settings: Union[SystemSettings, U
     return
 
 
-def repod_file_repo(args: Namespace, settings: Union[SystemSettings, UserSettings]) -> None:
+def repod_file_repo(args: Namespace, settings: SystemSettings | UserSettings) -> None:
     """Repository related actions from the repod-file script
 
     Parameters
     ----------
     args: Namespace
         The options used for repo related actions
-    settings: Union[SystemSettings, UserSettings]
+    settings: SystemSettings | UserSettings
         A Settings instance that is used for deriving repository directories from
 
     Raises

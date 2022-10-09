@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from logging import debug
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import tomli
 from pydantic import (
@@ -39,7 +39,7 @@ from repod.config.defaults import (
 )
 
 DIR_MODE = "0755"
-CUSTOM_CONFIG: Optional[Path] = None
+CUSTOM_CONFIG: Path | None = None
 
 
 def to_absolute_path(path: Path, base_path: Path) -> Path:
@@ -109,7 +109,7 @@ class Architecture(BaseModel):
         An ArchitectureEnum member describing a valid architecture for a repository
     """
 
-    architecture: Optional[ArchitectureEnum]
+    architecture: ArchitectureEnum | None
 
 
 class DatabaseCompression(BaseModel):
@@ -121,7 +121,7 @@ class DatabaseCompression(BaseModel):
         A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
     """
 
-    database_compression: Optional[CompressionTypeEnum]
+    database_compression: CompressionTypeEnum | None
 
 
 class PackagePool(BaseModel):
@@ -133,7 +133,7 @@ class PackagePool(BaseModel):
         An optional Path instance that identifies an absolute directory location for package tarball data
     """
 
-    package_pool: Optional[Path]
+    package_pool: Path | None
 
 
 class SourcePool(BaseModel):
@@ -145,7 +145,7 @@ class SourcePool(BaseModel):
         An optional Path instance that identifies an absolute directory location for source tarball data
     """
 
-    source_pool: Optional[Path]
+    source_pool: Path | None
 
 
 class SyncDbSettings(BaseModel):
@@ -171,20 +171,20 @@ class ManagementRepo(BaseModel):
     ----------
     directory: Path
         A Path instance describing the location of the management repository
-    url: Optional[AnyUrl]
+    url: AnyUrl | None
         A URL describing the VCS upstream of the management repository
     """
 
     directory: Path
-    url: Optional[AnyUrl]
+    url: AnyUrl | None
 
     @validator("url")
-    def validate_url(cls, url: Optional[AnyUrl]) -> Optional[AnyUrl]:
+    def validate_url(cls, url: AnyUrl | None) -> AnyUrl | None:
         """A validator for the url attribute
 
         Parameters
         ----------
-        url: Optional[AnyUrl]
+        url: AnyUrl | None
             An instance of AnyUrl, that describes an upstream repository URL
 
         Raises
@@ -195,7 +195,7 @@ class ManagementRepo(BaseModel):
 
         Returns
         -------
-        Optional[AnyUrl]
+        AnyUrl | None
             A validated instance of AnyUrl or None
         """
 
@@ -217,26 +217,26 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
 
     Attributes
     ----------
-    architecture: Optional[ArchitectureEnum]
+    architecture: ArchitectureEnum | None
         An optional ArchitectureEnum member, that serves as an override to the application-wide architecture. The
         attribute defines the CPU architecture for the package repository
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
-    debug: Optional[Path]
+    debug: Path | None
         The optional name of a debug repository associated with a package repository
-    package_pool: Optional[Path]
+    package_pool: Path | None
         An optional directory, that serves as an override to the application-wide package_pool.
         The attribute defines the location to store the binary packages and their signatures in
-    source_pool: Optional[Path]
+    source_pool: Path | None
         An optional directory, that serves as an override to the application-wide source_pool.
         The attribute defines the location to store the source tarballs in
     name: Path
         The required name of a package repository
-    staging: Optional[Path]
+    staging: Path | None
         The optional name of a staging repository associated with a package repository
-    testing: Optional[Path]
+    testing: Path | None
         The optional name of a testing repository associated with a package repository
-    management_repo: Optional[ManagementRepo]
+    management_repo: ManagementRepo | None
         An optional instance of ManagementRepo, that serves as an override to the application-wide management_repo
         The attribute defines the directory and upstream VCS repository that is used to track changes to a package
         repository
@@ -305,13 +305,13 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
     _testing_source_repo_dir: Path = PrivateAttr()
 
     name: Path
-    debug: Optional[Path]
-    staging: Optional[Path]
-    testing: Optional[Path]
-    management_repo: Optional[ManagementRepo]
+    debug: Path | None
+    staging: Path | None
+    testing: Path | None
+    management_repo: ManagementRepo | None
 
     @validator("name", pre=True)
-    def validate_repo_name(cls, name: Union[Path, str]) -> Path:
+    def validate_repo_name(cls, name: Path | str) -> Path:
         """A validator for the name attribute, which converts string input to a valid Path
 
         Parameters
@@ -360,17 +360,17 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         return name
 
     @validator("debug", "staging", "testing")
-    def validate_optional_staging_testing(cls, name: Optional[Path]) -> Optional[Path]:
+    def validate_optional_staging_testing(cls, name: Path | None) -> Path | None:
         """A validator for the optional staging and testing attributes
 
         Parameters
         ----------
-        name: Optional[Path]
+        name: Path | None
             An optional relative Path to validate. If a string is provided, PackageRepo.validate_name() is used.
 
         Returns
         -------
-        Optional[Path]
+        Path | None
             A validated name string, else None
         """
 
@@ -400,9 +400,9 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         """
 
         stable_repo: Path = values.get("name")  # type: ignore[assignment]
-        debug_repo: Optional[Path] = values.get("debug")
-        staging_repo: Optional[Path] = values.get("staging")
-        testing_repo: Optional[Path] = values.get("testing")
+        debug_repo: Path | None = values.get("debug")
+        staging_repo: Path | None = values.get("staging")
+        testing_repo: Path | None = values.get("testing")
 
         debug(f"stable_repo: {stable_repo}")
 
@@ -590,24 +590,24 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository
         without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
-    management_repo: Optional[ManagementRepo]
+    management_repo: ManagementRepo | None
         An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
         which does not define one itself.
         If unset, a default one is created during validation.
-    package_pool: Optional[Path]
+    package_pool: Path | None
         An optional relative or absolute directory, that is used as PackagePool for each PackageRepo, which does not
         define one itself.
         If a relative path is provided, it is prepended with _package_pool_base during validation.
         If an absolute path is provided, it is used as is.
         If unset, it is set to _package_pool_base / DEFAULT_NAME during validation.
-    package_verification: Optional[PkgVerificationTypeEnum]
+    package_verification: PkgVerificationTypeEnum | None
         An optional member of PkgVerificationTypeEnum, which defines which verification scheme to apply for the detached
         package signatures.
     repositories: list[PackageRepo]
         A list of PackageRepos that each define a binary package repository (with optional debug, staging and testing
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
         If no repository is defined, a default one is created during validation.
-    source_pool: Optional[Path]
+    source_pool: Path | None
         An optional relative or absolute directory, that is used as SourcePool for each PackageRepo, which does not
         define one itself.
         If a relative path is provided, it is prepended with _source_pool_base during validation.
@@ -639,9 +639,9 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
     architecture: ArchitectureEnum = DEFAULT_ARCHITECTURE
     database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
-    management_repo: Optional[ManagementRepo]
+    management_repo: ManagementRepo | None
     repositories: list[PackageRepo] = []
-    package_verification: Optional[PkgVerificationTypeEnum]
+    package_verification: PkgVerificationTypeEnum | None
     syncdb_settings: SyncDbSettings = SyncDbSettings()
 
     class Config:
@@ -662,14 +662,14 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             )
 
     @validator("management_repo")
-    def validate_management_repo(cls, management_repo: Optional[ManagementRepo]) -> ManagementRepo:
+    def validate_management_repo(cls, management_repo: ManagementRepo | None) -> ManagementRepo:
         """Validate the ManagementRepo and return a default if none is set
 
         Return a default ManagementRepo created by a call to get_default_managementrepo() if none is set.
 
         Parameters
         ----------
-        management_repo: Optional[ManagementRepo]
+        management_repo: ManagementRepo | None
             The optional ManagementRepo
 
         Returns
@@ -1334,14 +1334,14 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 other_name="staging repository",
             )
 
-    def get_repo_architecture(self, name: Path, architecture: Optional[ArchitectureEnum]) -> ArchitectureEnum:
+    def get_repo_architecture(self, name: Path, architecture: ArchitectureEnum | None) -> ArchitectureEnum:
         """Get a repository's configured CPU architecture
 
         Parameters
         ----------
         name: Path
             The name of the repository
-        architecture: Optional[ArchitectureEnum]
+        architecture: ArchitectureEnum | None
             The optional architecture of the repository
 
         Raises
@@ -1380,7 +1380,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     def get_repo_database_compression(
         self,
         name: Path,
-        architecture: Optional[ArchitectureEnum],
+        architecture: ArchitectureEnum | None,
     ) -> CompressionTypeEnum:
         """Return the database compression type of a repository
 
@@ -1388,7 +1388,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         ----------
         name: Path
             The name of the repository
-        architecture: Optional[ArchitectureEnum]
+        architecture: ArchitectureEnum | None
             An optional member of ArchitectureEnum to define the CPU architecture of the repository
 
         Raises
@@ -1433,7 +1433,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         self,
         repo_type: RepoDirTypeEnum,
         name: Path,
-        architecture: Optional[ArchitectureEnum],
+        architecture: ArchitectureEnum | None,
         debug: bool,
         staging: bool,
         testing: bool,
@@ -1446,7 +1446,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             A member of RepoDirTypeEnum to define which type of repository path to return
         name: Path
             The name of the repository
-        architecture: Optional[ArchitectureEnum]
+        architecture: ArchitectureEnum | None
             An optional member of ArchitectureEnum to define the CPU architecture of the repository
         debug: bool
             Whether to return a debug repository path
@@ -1548,7 +1548,7 @@ class UserSettings(Settings):
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository
         without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
-    management_repo: Optional[ManagementRepo]
+    management_repo: ManagementRepo | None
         An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
         which does not define one itself.
         If unset, a default one is created during validation.
@@ -1556,13 +1556,13 @@ class UserSettings(Settings):
         A list of PackageRepos that each define a binary package repository (with optional staging and testing
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
         If no repository is defined, a default one is created during validation.
-    package_pool: Optional[Path]
+    package_pool: Path | None
         An optional relative or absolute directory, that is used as PackagePool for each PackageRepo, which does not
         define one itself.
         If a relative path is provided, it is prepended with _package_pool_base during validation.
         If an absolute path is provided, it is used as is.
         If unset, it is set to _package_pool_base / DEFAULT_NAME during validation.
-    source_pool: Optional[Path]
+    source_pool: Path | None
         An optional relative or absolute directory, that is used as SourcePool for each PackageRepo, which does not
         define one itself.
         If a relative path is provided, it is prepended with _source_pool_base during validation.
@@ -1609,7 +1609,7 @@ class SystemSettings(Settings):
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository
         without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
-    management_repo: Optional[ManagementRepo]
+    management_repo: ManagementRepo | None
         An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
         which does not define one itself.
         If unset, a default one is created during validation.
@@ -1617,13 +1617,13 @@ class SystemSettings(Settings):
         A list of PackageRepos that each define a binary package repository (with optional staging and testing
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
         If no repository is defined, a default one is created during validation.
-    package_pool: Optional[Path]
+    package_pool: Path | None
         An optional relative or absolute directory, that is used as PackagePool for each PackageRepo, which does not
         define one itself.
         If a relative path is provided, it is prepended with _package_pool_base during validation.
         If an absolute path is provided, it is used as is.
         If unset, it is set to _package_pool_base / DEFAULT_NAME during validation.
-    source_pool: Optional[Path]
+    source_pool: Path | None
         An optional relative or absolute directory, that is used as SourcePool for each PackageRepo, which does not
         define one itself.
         If a relative path is provided, it is prepended with _source_pool_base during validation.

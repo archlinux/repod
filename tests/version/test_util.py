@@ -1,5 +1,3 @@
-from typing import Union
-
 from pytest import mark
 
 from repod.version.util import cmp
@@ -22,5 +20,5 @@ from repod.version.util import cmp
         (12, 11, 1),
     ],
 )
-def test_cmp(first: Union[int, str], second: Union[int, str], expectation: int) -> None:
+def test_cmp(first: int | str, second: int | str, expectation: int) -> None:
     assert cmp(first, second) == expectation

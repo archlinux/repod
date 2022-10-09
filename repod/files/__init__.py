@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Union
 
 from repod.files.buildinfo import BuildInfo  # noqa: F401
 from repod.files.buildinfo import export_schemas as buildinfo_export_schemas
@@ -12,7 +11,7 @@ from repod.files.pkginfo import PkgInfo  # noqa: F401
 from repod.files.pkginfo import export_schemas as pkginfo_export_schemas
 
 
-def export_schemas(output: Union[Path, str]) -> None:
+def export_schemas(output: Path | str) -> None:
     """Export the JSON schema files of the repod.files package to a directory
 
     Parameters

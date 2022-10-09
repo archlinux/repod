@@ -4,7 +4,6 @@ from pathlib import Path
 from random import sample
 from re import Match, fullmatch
 from tempfile import TemporaryDirectory
-from typing import Optional
 from unittest.mock import Mock, patch
 
 from pytest import LogCaptureFixture, mark, raises
@@ -39,7 +38,7 @@ from repod.config.defaults import (
     ],
 )
 @patch("repod.cli.cli.exit")
-def test_exit_on_error(exit_mock: Mock, message: str, argparser: Optional[ArgumentParser]) -> None:
+def test_exit_on_error(exit_mock: Mock, message: str, argparser: ArgumentParser | None) -> None:
     cli.exit_on_error(message=message, argparser=argparser)
     exit_mock.assert_called_once_with(1)
 

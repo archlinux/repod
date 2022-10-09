@@ -7,7 +7,6 @@ from logging import debug, warning
 from pathlib import Path
 from tarfile import DIRTYPE, TarFile, TarInfo
 from time import time
-from typing import Optional, Union
 
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from pydantic import BaseModel, ValidationError
@@ -95,7 +94,7 @@ FILES_VERSIONS: dict[int, dict[str, set[str]]] = {
 }
 DEFAULT_FILES_VERSION = 1
 DEFAULT_PACKAGE_DESC_VERSION = 1
-PACKAGE_DESC_VERSIONS: dict[int, dict[str, Union[set[str], int]]] = {
+PACKAGE_DESC_VERSIONS: dict[int, dict[str, set[str] | int]] = {
     1: {
         "required": {
             "arch",
@@ -333,8 +332,8 @@ class SyncDatabase(BaseModel):
     """
 
     database: Path
-    database_type: Optional[RepoDbTypeEnum]
-    compression_type: Optional[CompressionTypeEnum]
+    database_type: RepoDbTypeEnum | None
+    compression_type: CompressionTypeEnum | None
     desc_version: PackageDescVersionEnum
     files_version: FilesVersionEnum
 
@@ -342,7 +341,7 @@ class SyncDatabase(BaseModel):
     async def outputpackagebase_to_tarfile(
         cls,
         tarfile: TarFile,
-        database_type: Optional[RepoDbTypeEnum],
+        database_type: RepoDbTypeEnum | None,
         model: outputpackage.OutputPackageBase,
         packagedesc_version: PackageDescVersionEnum,
         files_version: FilesVersionEnum,
@@ -529,14 +528,14 @@ class PackageDesc(BaseModel):
     """
 
     @classmethod
-    def from_dict(cls, data: dict[str, Union[int, str, list[str]]]) -> PackageDesc:
+    def from_dict(cls, data: dict[str, int | str | list[str]]) -> PackageDesc:
         """Create an instance of one of PackageDesc's subclasses from a dict
 
         This method should be used with data derived from reading a 'desc' file from a repository sync database.
 
         Parameters
         ----------
-        data: dict[str, Union[int, str, list[str]]]
+        data: dict[str, int | str | list[str]]
             A dict containing data required to instantiate a subclass of PackageDesc
 
         Raises
@@ -551,7 +550,7 @@ class PackageDesc(BaseModel):
             An instance of one of the subclasses of PackageDesc
         """
 
-        def derive_package_desc_version(data: set[str]) -> Optional[int]:
+        def derive_package_desc_version(data: set[str]) -> int | None:
             """Derive which PackageDesc subclass to instantiate
 
             Parameters
@@ -561,7 +560,7 @@ class PackageDesc(BaseModel):
 
             Returns
             -------
-            Optional[int]
+            int | None
                 The integer representing the version of the PackageDesc subclass, else None
             """
 
@@ -654,7 +653,7 @@ class PackageDesc(BaseModel):
                 current_header = get_desc_json_name(key=line)
                 current_type = get_desc_json_field_type(line)
                 # FIXME: find better way to provide a default (None or empty list for STRING_LIST as they all are
-                # Optional[list[str]]
+                # list[str] | None
                 if current_header and current_type == FieldTypeEnum.STRING_LIST:
                     string_list_types[current_header] = []
 
@@ -677,7 +676,7 @@ class PackageDesc(BaseModel):
                         f"\n{data.getvalue()}\n{e}"
                     )
 
-        desc_dict: dict[str, Union[int, str, list[str]]] = {**int_types, **string_types, **string_list_types}
+        desc_dict: dict[str, int | str | list[str]] = {**int_types, **string_types, **string_list_types}
         try:
             return PackageDesc.from_dict(desc_dict)
         except RepoManagementValidationError as e:
@@ -715,7 +714,7 @@ class PackageDesc(BaseModel):
             raise RepoManagementFileNotFoundError(f"The 'desc' template file {template_file} could not be found!")
         output.write(await template.render_async(self.dict()))
 
-    def get_output_package(self, files: Optional[Files]) -> outputpackage.OutputPackage:
+    def get_output_package(self, files: Files | None) -> outputpackage.OutputPackage:
         """Transform the PackageDesc model and an optional Files model into an OutputPackage model
 
         NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
@@ -723,7 +722,7 @@ class PackageDesc(BaseModel):
 
         Parameters
         ----------
-        files: Optional[Files]:
+        files: Files | None:
             A pydantic model, that represents the list of files, that belong to the package described by self
 
         Raises
@@ -762,7 +761,7 @@ class PackageDesc(BaseModel):
                 "OutputPackage from a PackageDesc!"
             )
 
-    def get_output_package_base(self, files: Optional[Files]) -> outputpackage.OutputPackageBase:
+    def get_output_package_base(self, files: Files | None) -> outputpackage.OutputPackageBase:
         """Transform the PackageDesc model and an Files model into an OutputPackageBase model
 
         NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
@@ -770,7 +769,7 @@ class PackageDesc(BaseModel):
 
         Parameters
         ----------
-        files: Optional[Files]:
+        files: Files | None:
             A pydantic model, that represents the list of files, that belong to the package described by self
 
         Raises
@@ -911,7 +910,7 @@ class Files(BaseModel):
             A Files instance (technically only one of its subclasses), instantiated from data
         """
 
-        def derive_files_version(data: set[str]) -> Optional[int]:
+        def derive_files_version(data: set[str]) -> int | None:
             """Derive which Files subclass to instantiate
 
             Parameters
@@ -921,7 +920,7 @@ class Files(BaseModel):
 
             Returns
             -------
-            Optional[int]
+            int | None
                 The integer representing the schema version of the Files subclass, else None
             """
 
@@ -1078,7 +1077,7 @@ class FilesV1(Files, FileList, SchemaVersionV1):
 
     Attributes
     ----------
-    files: Optional[list[str]]
+    files: list[str] | None
         An optional list of files. This is the data below a %FILES% identifier in a 'files' file, which identifies which
         file(s) belong to a package
     """
@@ -1121,7 +1120,7 @@ class PackageDescV1(
     arch: str
         The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
         identifies a package's architecture
-    backup: Optional[list[str]]
+    backup: list[str] | None
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     base: str
@@ -1130,16 +1129,16 @@ class PackageDescV1(
     builddate: int
         The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
         which identifies a package's build date (represented in seconds since the epoch)
-    checkdepends: Optional[list[str]]
+    checkdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
-    conflicts: Optional[list[str]]
+    conflicts: list[str] | None
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     csize: int
         The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
         identifies a package's size
-    depends: Optional[list[str]]
+    depends: list[str] | None
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     desc: str
@@ -1148,7 +1147,7 @@ class PackageDescV1(
     filename: str
         The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
         identifies a package's file name
-    groups: Optional[list[str]]
+    groups: list[str] | None
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     isize: int
@@ -1157,7 +1156,7 @@ class PackageDescV1(
     license: list[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
-    makedepends: Optional[list[str]]
+    makedepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     md5sum: str
@@ -1166,7 +1165,7 @@ class PackageDescV1(
     name: str
         The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
         identifies a package's name
-    optdepends: Optional[list[str]]
+    optdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     packager: str
@@ -1175,10 +1174,10 @@ class PackageDescV1(
     pgpsig: str
         The attribute can be used to describe the (optional) data below a %PGPSIG% identifier in a 'desc' file, which
         identifies a package's PGP signature
-    provides: Optional[list[str]]
+    provides: list[str] | None
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
-    replaces: Optional[list[str]]
+    replaces: list[str] | None
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     schema_version: PositiveInt
@@ -1229,7 +1228,7 @@ class PackageDescV2(
     arch: str
         The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
         identifies a package's architecture
-    backup: Optional[list[str]]
+    backup: list[str] | None
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     base: str
@@ -1238,16 +1237,16 @@ class PackageDescV2(
     builddate: int
         The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
         which identifies a package's build date (represented in seconds since the epoch)
-    checkdepends: Optional[list[str]]
+    checkdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
-    conflicts: Optional[list[str]]
+    conflicts: list[str] | None
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     csize: int
         The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
         identifies a package's size
-    depends: Optional[list[str]]
+    depends: list[str] | None
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     desc: str
@@ -1256,7 +1255,7 @@ class PackageDescV2(
     filename: str
         The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
         identifies a package's file name
-    groups: Optional[list[str]]
+    groups: list[str] | None
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     isize: int
@@ -1265,7 +1264,7 @@ class PackageDescV2(
     license: list[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
-    makedepends: Optional[list[str]]
+    makedepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     md5sum: str
@@ -1274,16 +1273,16 @@ class PackageDescV2(
     name: str
         The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
         identifies a package's name
-    optdepends: Optional[list[str]]
+    optdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     packager: str
         The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
         identifies a package's packager
-    provides: Optional[list[str]]
+    provides: list[str] | None
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
-    replaces: Optional[list[str]]
+    replaces: list[str] | None
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     schema_version: PositiveInt
@@ -1300,7 +1299,7 @@ class PackageDescV2(
     """
 
 
-def export_schemas(output: Union[Path, str]) -> None:
+def export_schemas(output: Path | str) -> None:
     """Export the JSON schema of selected pydantic models to an output directory
 
     Parameters

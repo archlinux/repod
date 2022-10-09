@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from logging import debug
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from pydantic import BaseModel, constr
 
@@ -295,7 +295,7 @@ class PkgInfo(BaseModel):
         """
 
         pkg_info_version = 0
-        entries: dict[str, Union[int, str, list[Union[str, dict[str, Any]]]]] = {}
+        entries: dict[str, int | str | list[str | dict[str, Any]]] = {}
 
         for line in data:
             key, value, field_type = parse_pairs(line=line)
@@ -350,23 +350,23 @@ class PkgInfoV1(
     ----------
     arch: str
         A string representing a CPU architecture
-    backup: Optional[list[str]]
+    backup: list[str] | None
         An optional list of strings representing relative file paths
     base: str
         A string representing a pkgbase
     builddate: int
         A number representing a build date (in seconds since the epoch)
-    checkdepends: Optional[list[str]]
+    checkdepends: list[str] | None
         An optional list of strings representing package names a package requires for tests
-    conflicts: Optional[list[str]]
+    conflicts: list[str] | None
         An optional list of strings representing package names a package conflicts with
-    depends: Optional[list[str]]
+    depends: list[str] | None
         An optional list of strings representing package names a package depends on
     desc: str
         A string that serves as description for a package
     fakeroot_version: str
         A string representing a version of fakeroot
-    groups: Optional[list[str]]
+    groups: list[str] | None
         An optional list of strings representing group names a package belongs to
     isize: int
         A number representing the installed sized of a package in bytes
@@ -374,17 +374,17 @@ class PkgInfoV1(
         A string describing the UID of a package's packager
     license: list[str]
         A list of strings describing the license identifiers that apply to a package
-    makedepends: Optional[list[str]]
+    makedepends: list[str] | None
         An optional list of strings representing package names a package requires for building
     makepkg_version: str
         A string representing a version of makepkg
     name: str
         A string representing the name of a package
-    optdepends: Optional[list[str]]
+    optdepends: list[str] | None
         An optional list of strings representing package names a package requires optionally
-    provides: Optional[list[str]]
+    provides: list[str] | None
         An optional list of strings representing package names a package provides
-    replaces: Optional[list[str]]
+    replaces: list[str] | None
         An optional list of strings representing package names a package replaces
     url: str
         A string representing the upstream URL of a package
@@ -427,54 +427,54 @@ class PkgInfoV2(
     ----------
     arch: str
         A string representing a CPU architecture
-    backup: Optional[list[str]]
+    backup: list[str] | None
         An optional list of strings representing relative file paths
     base: str
         A string representing a pkgbase
     builddate: int
         A number representing a build date (in seconds since the epoch)
-    checkdepends: Optional[list[str]]
+    checkdepends: list[str] | None
         An optional list of strings representing package names a package requires for tests
-    conflicts: Optional[list[str]]
+    conflicts: list[str] | None
         An optional list of strings representing package names a package conflicts with
-    depends: Optional[list[str]]
+    depends: list[str] | None
         An optional list of strings representing package names a package depends on
     desc: str
         A string that serves as description for a package
     fakeroot_version: str
         A string representing a version of fakeroot
-    groups: Optional[list[str]]
+    groups: list[str] | None
         An optional list of strings representing group names a package belongs to
     isize: int
         A number representing the installed sized of a package in bytes
     packager: str
         A string describing the UID of a package's packager
-    license: ;ist[str]
+    license: list[str]
         A list of strings describing the license identifiers that apply to a package
-    makedepends: Optional[list[str]]
+    makedepends: list[str] | None
         An optional list of strings representing package names a package requires for building
     makepkg_version: str
         A string representing a version of makepkg
     name: str
         A string representing the name of a package
-    optdepends: Optional[list[str]]
+    optdepends: list[str] | None
         An optional list of strings representing package names a package requires optionally
-    provides: Optional[list[str]]
+    provides: list[str] | None
         An optional list of strings representing package names a package provides
-    replaces: Optional[list[str]]
+    replaces: list[str] | None
         An optional list of strings representing package names a package replaces
     url: str
         A string representing the upstream URL of a package
     version: str
         A string representing the full version (optional epoch, version and pkgrel) of a package
-    xdata: Optional[list[PkgType]]
+    xdata: list[PkgType] | None
         An optional list of extra data
     """
 
     pass
 
 
-def export_schemas(output: Union[Path, str]) -> None:
+def export_schemas(output: Path | str) -> None:
     """Export the JSON schema of selected pydantic models to an output directory
 
     Parameters

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from logging import debug
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from aiofiles import open as async_open
 from orjson import JSONDecodeError, loads
@@ -94,7 +94,7 @@ OUTPUT_PACKAGE_VERSIONS: dict[int, dict[str, set[str]]] = {
         },
     },
 }
-OUTPUT_PACKAGE_BASE_VERSIONS: dict[int, dict[str, Union[int, set[str]]]] = {
+OUTPUT_PACKAGE_BASE_VERSIONS: dict[int, dict[str, int | set[str]]] = {
     1: {
         "required": {
             "base",
@@ -255,7 +255,7 @@ class OutputPackage(BaseModel):
         ----------
         package: Path
             The path to a package file
-        signature: Optional[Path]
+        signature: Path | None
             The optional path to a signature file for package
 
         Returns
@@ -347,22 +347,22 @@ class OutputPackageV1(
     arch: str
         The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
         identifies a package's architecture
-    backup: Optional[list[str]]
+    backup: list[str] | None
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     builddate: int
         The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
         which identifies a package's build date (represented in seconds since the epoch)
-    checkdepends: Optional[list[str]]
+    checkdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
-    conflicts: Optional[list[str]]
+    conflicts: list[str] | None
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     csize: int
         The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
         identifies a package's size
-    depends: Optional[list[str]]
+    depends: list[str] | None
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     desc: str
@@ -371,10 +371,10 @@ class OutputPackageV1(
     filename: str
         The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
         identifies a package's file name
-    files: Optional[list[str]]
+    files: list[str] | None
         The attribute can be used to describe the (optional) data below a %FILES% identifier in a 'files' file, which
         identifies which file(s) belong to a package
-    groups: Optional[list[str]]
+    groups: list[str] | None
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     isize: int
@@ -389,16 +389,16 @@ class OutputPackageV1(
     name: str
         The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
         identifies a package's name
-    optdepends: Optional[list[str]]
+    optdepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     pgpsig: str
         The attribute can be used to describe the (required) data below a %PGPSIG% identifier in a 'desc' file, which
         identifies a package's PGP signature
-    provides: Optional[list[str]]
+    provides: list[str] | None
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
-    replaces: Optional[list[str]]
+    replaces: list[str] | None
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     schema_version: PositiveInt
@@ -411,7 +411,7 @@ class OutputPackageV1(
         identifies a package's URL
     """
 
-    files: Optional[Files] = None
+    files: Files | None = None
 
 
 class OutputPackageBase(BaseModel):
@@ -423,7 +423,7 @@ class OutputPackageBase(BaseModel):
     """
 
     @classmethod
-    def from_dict(cls, data: dict[str, Union[Any, list[Any]]]) -> OutputPackageBase:
+    def from_dict(cls, data: dict[str, Any | list[Any]]) -> OutputPackageBase:
         """Create an instance of one of OutputPackageBase's subclasses from a dict
 
         This method expects data derived from reading a pkgbase JSON file from the management repository.
@@ -432,7 +432,7 @@ class OutputPackageBase(BaseModel):
 
         Parameters
         ----------
-        data: dict[str, Union[Any, list[Any]]]
+        data: dict[str, Any | list[Any]]
             A dict containing data required to instantiate a subclass of OutputPackageBase
 
         Raises
@@ -826,10 +826,10 @@ class OutputPackageBaseV1(
     base: str
         The attribute can be used to describe the (required) data below a %BASE% identifier in a 'desc' file, which
         identifies a package's pkgbase
-    buildinfo: Optional[OutputBuildInfo]
+    buildinfo: OutputBuildInfo | None
         An optional OutputBuildInfo, which describes the build circumstances of the OutputPackageBase. The data is not
         covered in a repository sync database and therefore optional.
-    makedepends: Optional[list[str]]
+    makedepends: list[str] | None
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     packager: str
@@ -844,11 +844,11 @@ class OutputPackageBaseV1(
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
     """
 
-    buildinfo: Optional[OutputBuildInfo]
+    buildinfo: OutputBuildInfo | None
     packages: list[OutputPackage]
 
 
-def export_schemas(output: Union[Path, str]) -> None:
+def export_schemas(output: Path | str) -> None:
     """Export the JSON schema of selected pydantic models to an output directory
 
     Parameters

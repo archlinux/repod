@@ -2,7 +2,7 @@ from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, Optional
+from typing import ContextManager
 from unittest.mock import Mock, call, patch
 
 from pytest import LogCaptureFixture, mark, raises
@@ -142,13 +142,13 @@ def test_mangement_repo(
 )
 def test_package_repo(
     name: Path,
-    debug_repo: Optional[Path],
-    staging_repo: Optional[Path],
-    testing_repo: Optional[Path],
+    debug_repo: Path | None,
+    staging_repo: Path | None,
+    testing_repo: Path | None,
     package_pool: bool,
     source_pool: bool,
     management_repo: bool,
-    url: Optional[str],
+    url: str | None,
     expectation: ContextManager[str],
     empty_dir: Path,
     caplog: LogCaptureFixture,
@@ -1208,7 +1208,7 @@ def test_settings_get_repo_architecture(
     has_repo: bool,
     has_namesake_repo: bool,
     reuse_first_repo_name: bool,
-    architecture: Optional[ArchitectureEnum],
+    architecture: ArchitectureEnum | None,
     expectation: ContextManager[str],
     usersettings: settings.UserSettings,
 ) -> None:
@@ -1248,7 +1248,7 @@ def test_settings_get_repo_database_compression(
     has_repo: bool,
     has_namesake_repo: bool,
     reuse_first_repo_name: bool,
-    architecture: Optional[ArchitectureEnum],
+    architecture: ArchitectureEnum | None,
     expectation: ContextManager[str],
     usersettings: settings.UserSettings,
 ) -> None:

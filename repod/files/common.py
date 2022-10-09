@@ -5,7 +5,7 @@ from logging import debug
 from pathlib import Path
 from tarfile import ReadError, TarFile
 from tarfile import open as tarfile_open
-from typing import IO, Literal, Optional, Union
+from typing import IO, Literal
 
 import magic
 from pyzstd import CParameter, ZstdDict, ZstdFile
@@ -19,10 +19,10 @@ class ZstdTarFile(TarFile):
 
     def __init__(  # type: ignore[no-untyped-def]
         self,
-        name: Union[str, Path],
+        name: str | Path,
         mode: Literal["r", "a", "w", "x"] = "r",
-        level_or_option: Union[None, int, dict[CParameter, int]] = None,
-        zstd_dict: Optional[ZstdDict] = None,
+        level_or_option: None | int | dict[CParameter, int] = None,
+        zstd_dict: ZstdDict | None = None,
         **kwargs,
     ) -> None:
         self.zstd_file = ZstdFile(
@@ -96,7 +96,7 @@ def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
 
 def open_tarfile(
     path: Path,
-    compression: Optional[CompressionTypeEnum] = None,
+    compression: CompressionTypeEnum | None = None,
     mode: Literal["r", "w", "x"] = "r",
 ) -> TarFile:
     """Open a file as a TarFile
@@ -108,7 +108,7 @@ def open_tarfile(
     ----------
     path: Path
         A Path to a file
-    compression: Optional[CompressionTypeEnum]
+    compression: CompressionTypeEnum | None
         An optional compression type to override the detection based on mime type.
     mode: Literal["r", "w", "x"]
         A mode to open the file with (defaults to "r").
@@ -162,7 +162,7 @@ async def extract_file_from_tarfile(
     file: str,
     as_stringio: bool = False,
     gzip_compressed: bool = False,
-) -> Union[IO[bytes], StringIO]:
+) -> IO[bytes] | StringIO:
     """Extract a file from a TarFile and return it as a bytes stream or text I/O buffer
 
     Parameters
@@ -216,14 +216,14 @@ async def extract_file_from_tarfile(
             return extracted
 
 
-def names_in_tarfile(tarfile: TarFile, names: Union[list[str], set[str]]) -> bool:
+def names_in_tarfile(tarfile: TarFile, names: list[str] | set[str]) -> bool:
     """Check whether a list of names is found in the list of names of a TarFile
 
     Parameters
     ----------
     tarfile: TarFile
         A TarFile to lookup names in
-    names: Union[list[str], set[str]]
+    names: list[str] | set[str]
         A list or set of names to lookup
 
     Returns

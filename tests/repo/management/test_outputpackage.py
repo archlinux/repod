@@ -2,7 +2,7 @@ from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
 from logging import DEBUG
 from pathlib import Path
-from typing import Any, ContextManager, Optional, Union
+from typing import Any, ContextManager
 
 from pytest import LogCaptureFixture, mark, raises
 
@@ -50,7 +50,7 @@ async def test_output_package_base_v1_get_packages_as_models(
     packagedescv2: outputpackage.PackageDescV2,
     filesv1: syncdb.FilesV1,
     outputpackagebasev1: outputpackage.OutputPackageBase,
-    outputpackagebase_version: Optional[int],
+    outputpackagebase_version: int | None,
     packagedesc_version: PackageDescVersionEnum,
     files_version: FilesVersionEnum,
     expectation: ContextManager[str],
@@ -188,7 +188,7 @@ async def test_output_package_base_v1_get_packages_as_models(
         "schema version 1, package is string",
     ],
 )
-def test_outputpackagebase_from_dict(data: dict[str, Union[Any, list[Any]]], expectation: ContextManager[str]) -> None:
+def test_outputpackagebase_from_dict(data: dict[str, Any | list[Any]], expectation: ContextManager[str]) -> None:
     with expectation:
         assert isinstance(outputpackage.OutputPackageBase.from_dict(data=data), outputpackage.OutputPackageBase)
 

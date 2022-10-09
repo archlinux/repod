@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, Optional
+from typing import ContextManager
 from unittest.mock import Mock, patch
 
 from orjson import JSONEncodeError
@@ -79,7 +79,7 @@ def test_sourcedestination_validate_destination_backup(path: Path, expectation: 
     ],
 )
 def test_createoutputpackagebasestask(
-    package_verification: Optional[PkgVerificationTypeEnum],
+    package_verification: PkgVerificationTypeEnum | None,
     with_signature: bool,
     add_dependencies: bool,
     default_package_file: tuple[Path, ...],
@@ -574,7 +574,7 @@ def test_movetmpfilestask_do(
     add_dependencies: bool,
     pkgbases_dep: bool,
     syncdb_dep: bool,
-    dependency_state: Optional[ActionStateEnum],
+    dependency_state: ActionStateEnum | None,
     dependency_absolute: bool,
     destination_exists: bool,
     copy2_raises: bool,

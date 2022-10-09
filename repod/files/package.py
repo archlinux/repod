@@ -4,7 +4,7 @@ from base64 import b64encode
 from hashlib import md5, sha256
 from logging import debug, info
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -34,14 +34,14 @@ class Package(BaseModel):
     """
 
     @classmethod
-    async def from_file(cls, package: Path, signature: Optional[Path] = None) -> Package:
+    async def from_file(cls, package: Path, signature: Path | None = None) -> Package:
         """Create a Package from a package file and an optional signature
 
         Parameters
         ----------
         package: Path
             The path to a package file
-        signature: Optional[Path]
+        signature: Path | None
             The optional path to a signature file for package
 
         Raises
@@ -59,7 +59,7 @@ class Package(BaseModel):
         package_version = 0
         package_md5sum = ""
         package_sha256sum = ""
-        pgpsig: Optional[str] = None
+        pgpsig: str | None = None
 
         if signature:
             debug(f"Opening signature file {signature} for reading...")
@@ -163,7 +163,7 @@ class PackageV1(CSize, FileName, Md5Sum, Package, PgpSig, Sha256Sum):
         An MD5 checksum for the package
     mtree: MTree
         An .MTREE file representation
-    pgpsig: Optional[str]
+    pgpsig: str | None
         An optional PGP signature (in base64 representation) for the package
     pkginfo: PkgInfo
         A .PKGINFO file representation
@@ -176,7 +176,7 @@ class PackageV1(CSize, FileName, Md5Sum, Package, PgpSig, Sha256Sum):
     pkginfo: PkgInfo
 
 
-def export_schemas(output: Union[Path, str]) -> None:
+def export_schemas(output: Path | str) -> None:
     """Export the JSON schema of selected pydantic models to an output directory
 
     Parameters

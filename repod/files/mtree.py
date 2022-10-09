@@ -4,7 +4,6 @@ import io
 import re
 from logging import debug
 from pathlib import Path
-from typing import Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -37,13 +36,11 @@ class LinkTarget(BaseModel):
 
     Attributes
     ----------
-    link: Optional[str]
+    link: str | None
         An optional string representing a relative or absolute file
     """
 
-    link: Optional[  # type: ignore[valid-type]
-        constr(regex=rf"^({RELATIVE_MTREE_PATH}|{ABSOLUTE_MTREE_PATH})$")  # noqa: F722
-    ]
+    link: constr(regex=rf"^({RELATIVE_MTREE_PATH}|{ABSOLUTE_MTREE_PATH})$") | None  # type: ignore[valid-type]  # noqa: F722,E501
 
 
 class Md5(BaseModel):
@@ -51,11 +48,11 @@ class Md5(BaseModel):
 
     Attributes
     ----------
-    md5: Optional[str]
+    md5: str | None
         An optional string representing an MD5 checksum
     """
 
-    md5: Optional[constr(regex=rf"^{MD5}$")]  # type: ignore[valid-type]  # noqa: F722
+    md5: constr(regex=rf"^{MD5}$") | None  # type: ignore[valid-type]  # noqa: F722
 
 
 class FileMode(BaseModel):
@@ -94,7 +91,7 @@ class Sha256(BaseModel):
         An optional string representing a SHA-256 checksum
     """
 
-    sha256: Optional[constr(regex=rf"^{SHA256}$")]  # type: ignore[valid-type]  # noqa: F722
+    sha256: constr(regex=rf"^{SHA256}$") | None  # type: ignore[valid-type]  # noqa: F722
 
 
 class FileSize(BaseModel):
@@ -106,7 +103,7 @@ class FileSize(BaseModel):
         A non-negative integer describing a file size in bytes
     """
 
-    size: Optional[NonNegativeInt]
+    size: NonNegativeInt | None
 
 
 class UnixTime(BaseModel):
@@ -180,7 +177,7 @@ class MTreeEntry(BaseModel):
 
         return Path(output_name)
 
-    def get_link_path(self, resolve: bool = False) -> Optional[Path]:
+    def get_link_path(self, resolve: bool = False) -> Path | None:
         """Return the link as a Path
 
         The mtree format allows for encoding characters using a block of backslash and three octal digits (see
@@ -200,7 +197,7 @@ class MTreeEntry(BaseModel):
 
         Returns
         -------
-        Optional[Path]
+        Path | None
             The Path representation of link, or None if there is None
         """
 
@@ -265,9 +262,9 @@ class MTreeEntryV1(
     ----------
     gid: int
         A group ID >0, <1000
-    link: Optional[str]
+    link: str | None
         An optional string representing a relative or absolute file
-    md5: Optional[str]
+    md5: str | None
         A optional string representing an MD5 checksum
     mode: str
         A three or four digit long string, consisting only of valid file modes
@@ -323,7 +320,7 @@ class MTree(BaseModel):
 
         def sanitize_mtree_pairs(
             settings_list: list[list[str]],
-            settings_dict: dict[str, Union[float, int, str]],
+            settings_dict: dict[str, float | int | str],
         ) -> None:
             """Sanitize mtree pairs in a list and add them to a dict
 
@@ -331,7 +328,7 @@ class MTree(BaseModel):
             ----------
             settings_list: list[list[str]]
                 A list of string lists, that represent mtree key-value pairs
-            settings_dict: dict[str, Union[float, int, str]]
+            settings_dict: dict[str, float | int | str]
                 A dict to which sanitized mtree key-value pairs are added
             """
 
@@ -355,7 +352,7 @@ class MTree(BaseModel):
                     case _:
                         settings_dict[settings_key] = setting_value
 
-        base_settings: dict[str, Union[float, int, str]] = {}
+        base_settings: dict[str, float | int | str] = {}
         entries: list[MTreeEntry] = []
 
         for line in data:
@@ -364,7 +361,7 @@ class MTree(BaseModel):
                 sanitize_mtree_pairs(settings_list=settings_list, settings_dict=base_settings)
 
             elif line.startswith("."):
-                file_settings: dict[str, Union[float, int, str]] = {}
+                file_settings: dict[str, float | int | str] = {}
                 file_settings["name"] = line.split()[0][1:]
 
                 # provide a list of all settings in an entry line (skip empty assigments due to multiple whitespace)
@@ -424,7 +421,7 @@ class MTree(BaseModel):
         return path_list
 
 
-def export_schemas(output: Union[Path, str]) -> None:
+def export_schemas(output: Path | str) -> None:
     """Export the JSON schema of selected pydantic models to an output directory
 
     Parameters

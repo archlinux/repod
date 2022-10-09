@@ -6,7 +6,7 @@ from random import choice, randrange, sample
 from re import Match, fullmatch
 from string import ascii_lowercase, digits
 from tempfile import TemporaryDirectory
-from typing import ContextManager, Optional
+from typing import ContextManager
 
 from pydantic import ValidationError
 from pytest import LogCaptureFixture, mark, raises
@@ -40,7 +40,7 @@ def test_systemgid(gid: int, expectation: ContextManager[str]) -> None:
         ("äüö", raises(ValidationError)),
     ],
 )
-def test_linktarget(link: Optional[str], expectation: ContextManager[str]) -> None:
+def test_linktarget(link: str | None, expectation: ContextManager[str]) -> None:
     with expectation:
         mtree.LinkTarget(link=link)
 
@@ -55,7 +55,7 @@ def test_linktarget(link: Optional[str], expectation: ContextManager[str]) -> No
         ("".join(choice(ascii_lowercase + digits) for x in range(32)), raises(ValidationError)),
     ],
 )
-def test_md5(md5: Optional[str], expectation: ContextManager[str]) -> None:
+def test_md5(md5: str | None, expectation: ContextManager[str]) -> None:
     with expectation:
         mtree.Md5(md5=md5)
 
@@ -86,7 +86,7 @@ def test_filemode(mode: str, expectation: ContextManager[str]) -> None:
         ("".join(choice(ascii_lowercase + digits) for x in range(64)), raises(ValidationError)),
     ],
 )
-def test_sha256(sha256: Optional[str], expectation: ContextManager[str]) -> None:
+def test_sha256(sha256: str | None, expectation: ContextManager[str]) -> None:
     with expectation:
         mtree.Sha256(sha256=sha256)
 
@@ -99,7 +99,7 @@ def test_sha256(sha256: Optional[str], expectation: ContextManager[str]) -> None
         (randrange(-1000, 0, 1), raises(ValidationError)),
     ],
 )
-def test_filesize(size: Optional[int], expectation: ContextManager[str]) -> None:
+def test_filesize(size: int | None, expectation: ContextManager[str]) -> None:
     with expectation:
         mtree.FileSize(size=size)
 
@@ -111,7 +111,7 @@ def test_filesize(size: Optional[int], expectation: ContextManager[str]) -> None
         (-1000.0, raises(ValidationError)),
     ],
 )
-def test_unixtime(time: Optional[float], expectation: ContextManager[str]) -> None:
+def test_unixtime(time: float | None, expectation: ContextManager[str]) -> None:
     with expectation:
         mtree.UnixTime(time=time)
 

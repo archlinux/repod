@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from pathlib import Path
 from re import fullmatch
-from typing import Any, Union
+from typing import Any
 
 from pydantic import BaseModel, NonNegativeInt, conint, constr, root_validator
 
@@ -260,7 +260,7 @@ class BuildInfo(BaseModel):
             An instance of BuildInfo
         """
 
-        entries: dict[str, Union[int, str, list[str]]] = {}
+        entries: dict[str, int | str | list[str]] = {}
 
         for line in data:
             [key, value] = [x.strip() for x in line.strip().split("=")]
@@ -426,7 +426,7 @@ class BuildInfoV2(
         return values
 
 
-def export_schemas(output: Union[Path, str]) -> None:
+def export_schemas(output: Path | str) -> None:
     """Export the JSON schema of selected pydantic models to an output directory
 
     Parameters
