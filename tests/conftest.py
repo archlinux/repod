@@ -9,7 +9,7 @@ from string import ascii_lowercase, ascii_uppercase, digits
 from tarfile import open as tarfile_open
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from textwrap import dedent
-from typing import IO, Any, AsyncGenerator, Generator, List, Tuple
+from typing import IO, Any, AsyncGenerator, Generator
 from unittest.mock import patch
 
 import orjson
@@ -675,7 +675,7 @@ def invalid_mtreeentryv1_stringio(request: Any) -> Generator[StringIO, None, Non
 
 
 @fixture(scope="function")
-def mtreeentryv1_internals() -> Generator[List[MTreeEntryV1], None, None]:
+def mtreeentryv1_internals() -> Generator[list[MTreeEntryV1], None, None]:
     base = {
         "gid": 0,
         "link": None,
@@ -740,7 +740,7 @@ def valid_mtree(
     mtreeentryv1_dir: MTreeEntryV1,
     mtreeentryv1_file: MTreeEntryV1,
     mtreeentryv1_link: MTreeEntryV1,
-    mtreeentryv1_internals: List[MTreeEntryV1],
+    mtreeentryv1_internals: list[MTreeEntryV1],
 ) -> Generator[MTree, None, None]:
     yield MTree(
         entries=[
@@ -1355,7 +1355,7 @@ async def default_sync_db_file(
     request: Any,
     sha256sum: str,
     tmp_path: Path,
-) -> AsyncGenerator[Tuple[Path, Path], None]:
+) -> AsyncGenerator[tuple[Path, Path], None]:
     compression = request.param
     suffix = ""
     match compression:
@@ -1408,7 +1408,7 @@ async def files_sync_db_file(
     outputpackagebasev1: OutputPackageBaseV1,
     request: Any,
     sha256sum: str,
-) -> AsyncGenerator[Tuple[Path, Path], None]:
+) -> AsyncGenerator[tuple[Path, Path], None]:
     compression = request.param
     suffix = ""
     match compression:
@@ -1457,7 +1457,7 @@ def debug_package_file(
     valid_buildinfov2_file: Path,
     debug_pkginfov2_file: Path,
     request: Any,
-) -> Tuple[Path, ...]:
+) -> tuple[Path, ...]:
     compression = request.param
     suffix = "." + str(request.param.value) if request.param.value else ""
     pkg_name = Path(f"{default_package_name}-debug-{default_full_version}-{default_arch}.pkg.tar{suffix}")
@@ -1496,7 +1496,7 @@ def default_package_file(
     valid_buildinfov2_file: Path,
     valid_pkginfov2_file: Path,
     request: Any,
-) -> Tuple[Path, ...]:
+) -> tuple[Path, ...]:
     compression = request.param
     suffix = "." + str(request.param.value) if request.param.value else ""
     pkg_name = Path(f"{default_package_name}-{default_full_version}-{default_arch}.pkg.tar{suffix}")
@@ -1586,9 +1586,9 @@ def empty_file(tmp_path: Path) -> Path:
 
 
 @fixture(scope="function")
-def empty_syncdbs(tmp_path: Path) -> List[Path]:
+def empty_syncdbs(tmp_path: Path) -> list[Path]:
     directory = tmp_path / "pacman/sync"
-    files: List[Path] = [directory / "tmp.db", directory / "tmp.files"]
+    files: list[Path] = [directory / "tmp.db", directory / "tmp.files"]
 
     directory.mkdir(parents=True)
     for file in files:

@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, Tuple
+from typing import ContextManager
 
 from pytest import LogCaptureFixture, mark, raises
 
@@ -24,8 +24,8 @@ async def test_package_from_file(
     sig_exists: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
-    default_sync_db_file: Tuple[Path],
+    default_package_file: tuple[Path, ...],
+    default_sync_db_file: tuple[Path],
 ) -> None:
     caplog.set_level(DEBUG)
 

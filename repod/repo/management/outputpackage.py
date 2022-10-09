@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from logging import debug
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from aiofiles import open as async_open
 from orjson import JSONDecodeError, loads
@@ -65,7 +65,7 @@ from repod.repo.package.syncdb import (
     PackageDescV2,
 )
 
-OUTPUT_PACKAGE_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
+OUTPUT_PACKAGE_VERSIONS: dict[int, dict[str, set[str]]] = {
     1: {
         "required": {
             "arch",
@@ -94,7 +94,7 @@ OUTPUT_PACKAGE_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
         },
     },
 }
-OUTPUT_PACKAGE_BASE_VERSIONS: Dict[int, Dict[str, Union[int, Set[str]]]] = {
+OUTPUT_PACKAGE_BASE_VERSIONS: dict[int, dict[str, Union[int, set[str]]]] = {
     1: {
         "required": {
             "base",
@@ -182,14 +182,14 @@ class OutputBuildInfoV1(
     ----------
     builddir: str
         A string representing an absolute directory
-    buildenv: List[str]
+    buildenv: list[str]
         A list of strings as described by makepkg.conf's BUILDENV option
     format_: int
         An integer describing a BuildInfo format version
-    installed: List[str]
+    installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
-    options: List[str]
+    options: list[str]
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     pkgbuild_sha256sum: str
         A string representing a SHA-256 checksum for a PKGBUILD of a package
@@ -219,7 +219,7 @@ class OutputBuildInfoV2(
     ----------
     builddir: str
         A string representing an absolute directory
-    buildenv: List[str]
+    buildenv: list[str]
         A list of strings as described by makepkg.conf's BUILDENV option
     buildtool: str
         The package name of the build tool used to create a package
@@ -227,10 +227,10 @@ class OutputBuildInfoV2(
         The version of the build tool used to create a package
     format_: int
         An integer describing a BuildInfo format version
-    installed: List[str]
+    installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
-    options: List[str]
+    options: list[str]
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     pkgbuild_sha256sum: str
         A string representing a SHA-256 checksum for a PKGBUILD of a package
@@ -347,22 +347,22 @@ class OutputPackageV1(
     arch: str
         The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
         identifies a package's architecture
-    backup: Optional[List[str]]
+    backup: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     builddate: int
         The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
         which identifies a package's build date (represented in seconds since the epoch)
-    checkdepends: Optional[List[str]]
+    checkdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
-    conflicts: Optional[List[str]]
+    conflicts: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     csize: int
         The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
         identifies a package's size
-    depends: Optional[List[str]]
+    depends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     desc: str
@@ -371,16 +371,16 @@ class OutputPackageV1(
     filename: str
         The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
         identifies a package's file name
-    files: Optional[List[str]]
+    files: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %FILES% identifier in a 'files' file, which
         identifies which file(s) belong to a package
-    groups: Optional[List[str]]
+    groups: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     isize: int
         The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
         identifies a package's installed size
-    license: List[str]
+    license: list[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
     md5sum: str
@@ -389,16 +389,16 @@ class OutputPackageV1(
     name: str
         The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
         identifies a package's name
-    optdepends: Optional[List[str]]
+    optdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     pgpsig: str
         The attribute can be used to describe the (required) data below a %PGPSIG% identifier in a 'desc' file, which
         identifies a package's PGP signature
-    provides: Optional[List[str]]
+    provides: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
-    replaces: Optional[List[str]]
+    replaces: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     schema_version: PositiveInt
@@ -423,7 +423,7 @@ class OutputPackageBase(BaseModel):
     """
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Union[Any, List[Any]]]) -> OutputPackageBase:
+    def from_dict(cls, data: dict[str, Union[Any, list[Any]]]) -> OutputPackageBase:
         """Create an instance of one of OutputPackageBase's subclasses from a dict
 
         This method expects data derived from reading a pkgbase JSON file from the management repository.
@@ -432,7 +432,7 @@ class OutputPackageBase(BaseModel):
 
         Parameters
         ----------
-        data: Dict[str, Union[Any, List[Any]]]
+        data: dict[str, Union[Any, list[Any]]]
             A dict containing data required to instantiate a subclass of OutputPackageBase
 
         Raises
@@ -448,7 +448,7 @@ class OutputPackageBase(BaseModel):
             An instance of one of the subclasses of OutputPackageBase
         """
 
-        def default_output_package_from_dict(version: int, package: Dict[str, Any]) -> OutputPackage:
+        def default_output_package_from_dict(version: int, package: dict[str, Any]) -> OutputPackage:
             """Create the default OutputPackage subclass for a OutputPackageBase from a dict
 
             Parameters
@@ -456,7 +456,7 @@ class OutputPackageBase(BaseModel):
             version: int
                 The schema_version of the OutputPackageBase subclass for which to create an instance of a subclass of
                 OutputPackage
-            package: Dict[str, Any]
+            package: dict[str, Any]
                 A dict describing the attributes of an OutputPackage instance
 
             Returns
@@ -542,12 +542,12 @@ class OutputPackageBase(BaseModel):
                 raise errors.RepoManagementFileError(f"The JSON file '{path}' could not be decoded!\n{e}")
 
     @classmethod
-    def from_package(cls, packages: List[package.Package]) -> OutputPackageBase:
+    def from_package(cls, packages: list[package.Package]) -> OutputPackageBase:
         """Create an OutputPackageBase from a list of Packages of the same pkgbase, pkgtype and version
 
         Parameters
         ----------
-        packages: List[Package]
+        packages: list[Package]
             A list of Packages to create an OutputPackageBase for
 
         Raises
@@ -591,16 +591,16 @@ class OutputPackageBase(BaseModel):
                 f"provided: {', '.join(versions)}"
             )
 
-        all_xdata: List[List[Dict[str, Any]]] = [
+        all_xdata: list[list[dict[str, Any]]] = [
             pkg.top_level_dict().get("xdata")  # type: ignore[misc]
             for pkg in packages
             if pkg.top_level_dict().get("xdata")
         ]
         debug(f"all xdata: {all_xdata}")
-        xdata: List[Dict[str, str]] = []
+        xdata: list[dict[str, str]] = []
         xdata = [item for sublist in all_xdata for item in sublist]
         debug(f"collected xdata: {xdata}")
-        pkgtypes: List[str] = []
+        pkgtypes: list[str] = []
         pkgtypes = [data.get("pkgtype").value for data in xdata if data.get("pkgtype")]  # type: ignore[union-attr]
         debug(f"collected pkgtypes: {pkgtypes}")
 
@@ -648,7 +648,7 @@ class OutputPackageBase(BaseModel):
                     f"Unable to find matching version for Package keys: {keys}"
                 )
 
-    def add_packages(self, packages: List[OutputPackage]) -> None:
+    def add_packages(self, packages: list[OutputPackage]) -> None:
         """Add packages to an instance of one of OutputPackageBase's subclasses
 
         NOTE: This method only operates successfully if the instance of the class using it actually defines the
@@ -656,7 +656,7 @@ class OutputPackageBase(BaseModel):
 
         Parameters
         ----------
-        packages: List[OutputPackage]
+        packages: list[OutputPackage]
             A list of OutputPackage instances to add
 
         Raises
@@ -700,7 +700,7 @@ class OutputPackageBase(BaseModel):
         self,
         packagedesc_version: PackageDescVersionEnum = PackageDescVersionEnum.DEFAULT,
         files_version: FilesVersionEnum = FilesVersionEnum.DEFAULT,
-    ) -> List[Tuple[PackageDesc, Files]]:
+    ) -> list[tuple[PackageDesc, Files]]:
         """Return the list of packages as tuples of PackageDesc and Files models
 
         NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
@@ -722,7 +722,7 @@ class OutputPackageBase(BaseModel):
 
         Returns
         -------
-        List[Tuple[PackageDesc, Files]]
+        list[tuple[PackageDesc, Files]]
             A list of tuples with one PackageDesc and one Files each
         """
 
@@ -829,13 +829,13 @@ class OutputPackageBaseV1(
     buildinfo: Optional[OutputBuildInfo]
         An optional OutputBuildInfo, which describes the build circumstances of the OutputPackageBase. The data is not
         covered in a repository sync database and therefore optional.
-    makedepends: Optional[List[str]]
+    makedepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     packager: str
         The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
         identifies a package's packager
-    packages: List[OutputPackage]
+    packages: list[OutputPackage]
         A list of OutputPackage instances that belong to the pkgbase identified by base
     schema_version: PositiveInt
         A positive integer - 1 - identifying the schema version of the object
@@ -845,7 +845,7 @@ class OutputPackageBaseV1(
     """
 
     buildinfo: Optional[OutputBuildInfo]
-    packages: List[OutputPackage]
+    packages: list[OutputPackage]
 
 
 def export_schemas(output: Union[Path, str]) -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from logging import debug
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import Any, Union
 
 from pydantic import BaseModel, constr
 
@@ -34,7 +34,7 @@ from repod.common.models import (
 from repod.common.regex import VERSION
 from repod.errors import RepoManagementError, RepoManagementFileError
 
-PKGINFO_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
+PKGINFO_ASSIGNMENTS: dict[str, tuple[str, FieldTypeEnum]] = {
     "pkgname": ("name", FieldTypeEnum.STRING),
     "pkgbase": ("base", FieldTypeEnum.STRING),
     "pkgtype": ("pkgtype", FieldTypeEnum.STRING),
@@ -57,11 +57,11 @@ PKGINFO_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "checkdepend": ("checkdepends", FieldTypeEnum.STRING_LIST),
     "xdata": ("xdata", FieldTypeEnum.KEY_VALUE_LIST),
 }
-PKGINFO_COMMENT_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
+PKGINFO_COMMENT_ASSIGNMENTS: dict[str, tuple[str, FieldTypeEnum]] = {
     "makepkg": ("makepkg_version", FieldTypeEnum.STRING),
     "fakeroot": ("fakeroot_version", FieldTypeEnum.STRING),
 }
-PKGINFO_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
+PKGINFO_VERSIONS: dict[int, dict[str, set[str]]] = {
     1: {
         "required": {
             "arch",
@@ -120,7 +120,7 @@ PKGINFO_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
 }
 
 
-def parse_pairs(line: str, separator: str = " = ") -> Tuple[str, str, FieldTypeEnum]:
+def parse_pairs(line: str, separator: str = " = ") -> tuple[str, str, FieldTypeEnum]:
     """Parse key-value pairs from a line of text
 
     The line of text represents the data contained in a .PKGINFO file.
@@ -142,7 +142,7 @@ def parse_pairs(line: str, separator: str = " = ") -> Tuple[str, str, FieldTypeE
 
     Returns
     -------
-    Tuple[str, str, FieldTypeEnum]
+    tuple[str, str, FieldTypeEnum]
         A tuple of two strings and a member of FieldTypeEnum, which represent key, value and field type extracted from
         the line of text
     """
@@ -172,7 +172,7 @@ def parse_pairs(line: str, separator: str = " = ") -> Tuple[str, str, FieldTypeE
     return key, value, field_type
 
 
-def pairs_to_entries(key: str, value: str, field_type: FieldTypeEnum, entries: Dict[str, Any]) -> None:
+def pairs_to_entries(key: str, value: str, field_type: FieldTypeEnum, entries: dict[str, Any]) -> None:
     """Append key value-pairs to a dict
 
     Values are cast based on their provided field types.
@@ -186,7 +186,7 @@ def pairs_to_entries(key: str, value: str, field_type: FieldTypeEnum, entries: D
         The extracted value
     field_type: FieldTypeEnum
         A member of FieldTypeEnum based upon which value is cast to a specific type
-    entries: Dict[str, Any]
+    entries: dict[str, Any]
         The dict to which the key-value pairs are added
 
     Raises
@@ -266,11 +266,11 @@ class XData(BaseModel):
 
     Attributes
     ----------
-    xdata: List[PkgType]
+    xdata: list[PkgType]
         An list of extra data
     """
 
-    xdata: List[PkgType] = []
+    xdata: list[PkgType] = []
 
 
 class PkgInfo(BaseModel):
@@ -295,7 +295,7 @@ class PkgInfo(BaseModel):
         """
 
         pkg_info_version = 0
-        entries: Dict[str, Union[int, str, List[Union[str, Dict[str, Any]]]]] = {}
+        entries: dict[str, Union[int, str, list[Union[str, dict[str, Any]]]]] = {}
 
         for line in data:
             key, value, field_type = parse_pairs(line=line)
@@ -350,41 +350,41 @@ class PkgInfoV1(
     ----------
     arch: str
         A string representing a CPU architecture
-    backup: Optional[List[str]]
+    backup: Optional[list[str]]
         An optional list of strings representing relative file paths
     base: str
         A string representing a pkgbase
     builddate: int
         A number representing a build date (in seconds since the epoch)
-    checkdepends: Optional[List[str]]
+    checkdepends: Optional[list[str]]
         An optional list of strings representing package names a package requires for tests
-    conflicts: Optional[List[str]]
+    conflicts: Optional[list[str]]
         An optional list of strings representing package names a package conflicts with
-    depends: Optional[List[str]]
+    depends: Optional[list[str]]
         An optional list of strings representing package names a package depends on
     desc: str
         A string that serves as description for a package
     fakeroot_version: str
         A string representing a version of fakeroot
-    groups: Optional[List[str]]
+    groups: Optional[list[str]]
         An optional list of strings representing group names a package belongs to
     isize: int
         A number representing the installed sized of a package in bytes
     packager: str
         A string describing the UID of a package's packager
-    license: List[str]
+    license: list[str]
         A list of strings describing the license identifiers that apply to a package
-    makedepends: Optional[List[str]]
+    makedepends: Optional[list[str]]
         An optional list of strings representing package names a package requires for building
     makepkg_version: str
         A string representing a version of makepkg
     name: str
         A string representing the name of a package
-    optdepends: Optional[List[str]]
+    optdepends: Optional[list[str]]
         An optional list of strings representing package names a package requires optionally
-    provides: Optional[List[str]]
+    provides: Optional[list[str]]
         An optional list of strings representing package names a package provides
-    replaces: Optional[List[str]]
+    replaces: Optional[list[str]]
         An optional list of strings representing package names a package replaces
     url: str
         A string representing the upstream URL of a package
@@ -427,47 +427,47 @@ class PkgInfoV2(
     ----------
     arch: str
         A string representing a CPU architecture
-    backup: Optional[List[str]]
+    backup: Optional[list[str]]
         An optional list of strings representing relative file paths
     base: str
         A string representing a pkgbase
     builddate: int
         A number representing a build date (in seconds since the epoch)
-    checkdepends: Optional[List[str]]
+    checkdepends: Optional[list[str]]
         An optional list of strings representing package names a package requires for tests
-    conflicts: Optional[List[str]]
+    conflicts: Optional[list[str]]
         An optional list of strings representing package names a package conflicts with
-    depends: Optional[List[str]]
+    depends: Optional[list[str]]
         An optional list of strings representing package names a package depends on
     desc: str
         A string that serves as description for a package
     fakeroot_version: str
         A string representing a version of fakeroot
-    groups: Optional[List[str]]
+    groups: Optional[list[str]]
         An optional list of strings representing group names a package belongs to
     isize: int
         A number representing the installed sized of a package in bytes
     packager: str
         A string describing the UID of a package's packager
-    license: List[str]
+    license: ;ist[str]
         A list of strings describing the license identifiers that apply to a package
-    makedepends: Optional[List[str]]
+    makedepends: Optional[list[str]]
         An optional list of strings representing package names a package requires for building
     makepkg_version: str
         A string representing a version of makepkg
     name: str
         A string representing the name of a package
-    optdepends: Optional[List[str]]
+    optdepends: Optional[list[str]]
         An optional list of strings representing package names a package requires optionally
-    provides: Optional[List[str]]
+    provides: Optional[list[str]]
         An optional list of strings representing package names a package provides
-    replaces: Optional[List[str]]
+    replaces: Optional[list[str]]
         An optional list of strings representing package names a package replaces
     url: str
         A string representing the upstream URL of a package
     version: str
         A string representing the full version (optional epoch, version and pkgrel) of a package
-    xdata: Optional[List[PkgType]]
+    xdata: Optional[list[PkgType]]
         An optional list of extra data
     """
 

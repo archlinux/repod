@@ -39,6 +39,8 @@ Changed
   transaction.
 * The CLI now automatically checks whether all consumed packages match the
   target repository's CPU architecture.
+* Type hints now use generics for the standard containers ``dict``, ``list``,
+  ``set`` and ``tuple`` instead of the imports from ``typing``.
 
 Fixed
 ^^^^^

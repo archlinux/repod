@@ -4,7 +4,7 @@ from logging import DEBUG
 from pathlib import Path
 from random import sample
 from re import Match, fullmatch
-from typing import Any, ContextManager, Dict, List, Union
+from typing import Any, ContextManager, Union
 from unittest.mock import patch
 
 from pydantic import ValidationError
@@ -30,7 +30,7 @@ def test_parse_pairs(
     line: str,
     separator: str,
     key: str,
-    value: Union[int, str, List[str]],
+    value: Union[int, str, list[str]],
     field_type: FieldTypeEnum,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
@@ -77,8 +77,8 @@ def test_pairs_to_entries(
     key: str,
     value: str,
     field_type: FieldTypeEnum,
-    input_entries: Dict[str, Any],
-    output_entries: Dict[str, Any],
+    input_entries: dict[str, Any],
+    output_entries: dict[str, Any],
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
 ) -> None:

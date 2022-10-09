@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from pathlib import Path
 from re import fullmatch
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 
 from pydantic import BaseModel, NonNegativeInt, conint, constr, root_validator
 
@@ -22,7 +22,7 @@ from repod.common.regex import (
 )
 from repod.errors import RepoManagementError
 
-BUILDINFO_ASSIGNMENTS: Dict[str, Tuple[str, FieldTypeEnum]] = {
+BUILDINFO_ASSIGNMENTS: dict[str, tuple[str, FieldTypeEnum]] = {
     "builddate": ("builddate", FieldTypeEnum.INT),
     "builddir": ("builddir", FieldTypeEnum.STRING),
     "buildenv": ("buildenv", FieldTypeEnum.STRING_LIST),
@@ -72,11 +72,11 @@ class BuildEnv(BaseModel):
 
     Attributes
     ----------
-    buildenv: List[str]
+    buildenv: list[str]
         A list of strings as described by makepkg.conf's BUILDENV option
     """
 
-    buildenv: List[constr(regex=rf"^{BUILDENVS}$")]  # type: ignore[valid-type]  # noqa: F722
+    buildenv: list[constr(regex=rf"^{BUILDENVS}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class BuildTool(BaseModel):
@@ -132,12 +132,12 @@ class Installed(BaseModel):
 
     Attributes
     ----------
-    installed: List[str]
+    installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
     """
 
-    installed: List[  # type: ignore[valid-type]
+    installed: list[  # type: ignore[valid-type]
         constr(regex=rf"^({PACKAGE_NAME})-({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}$")  # noqa: F722
     ]
 
@@ -149,11 +149,11 @@ class Options(BaseModel):
 
     Attributes
     ----------
-    options: List[str]
+    options: list[str]
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     """
 
-    options: List[constr(regex=rf"^{OPTIONS}$")]  # type: ignore[valid-type]  # noqa: F722
+    options: list[constr(regex=rf"^{OPTIONS}$")]  # type: ignore[valid-type]  # noqa: F722
 
 
 class PkgArch(BaseModel):
@@ -260,7 +260,7 @@ class BuildInfo(BaseModel):
             An instance of BuildInfo
         """
 
-        entries: Dict[str, Union[int, str, List[str]]] = {}
+        entries: dict[str, Union[int, str, list[str]]] = {}
 
         for line in data:
             [key, value] = [x.strip() for x in line.strip().split("=")]
@@ -314,14 +314,14 @@ class BuildInfoV1(
         A number >= 0
     builddir: str
         A string representing an absolute directory
-    buildenv: List[str]
+    buildenv: list[str]
         A list of strings as described by makepkg.conf's BUILDENV option
     format_: int
         1 - representing version 1
-    installed: List[str]
+    installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
-    options: List[str]
+    options: list[str]
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     packager: str
         A string representing a packager UID (e.g. "First Last <mail@example.tld>")
@@ -366,7 +366,7 @@ class BuildInfoV2(
         A number >= 0
     builddir: str
         A string representing an absolute directory
-    buildenv: List[str]
+    buildenv: list[str]
         A list of strings as described by makepkg.conf's BUILDENV option
     buildtool: str
         The package name of the build tool used to create a package
@@ -374,10 +374,10 @@ class BuildInfoV2(
         The version of the build tool used to create a package
     format_: int
         2 - representing version 2
-    installed: List[str]
+    installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
-    options: List[str]
+    options: list[str]
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     packager: str
         A string representing a packager UID (e.g. "First Last <mail@example.tld>")
@@ -396,12 +396,12 @@ class BuildInfoV2(
     """
 
     @root_validator
-    def validate_devtools_version(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_devtools_version(cls, values: dict[str, Any]) -> dict[str, Any]:
         """A root validator that ensures the use of a valid version string when devtools is the buildtool
 
         Parameters
         ----------
-        values: Dict[str, Any]
+        values: dict[str, Any]
             A dict with all values of a BuildInfoV2 object
 
         Raises
@@ -411,7 +411,8 @@ class BuildInfoV2(
             <optional_epoch><pkgver>-<pkgrel>-<arch>
 
         Returns
-        ------- values: Dict[str, Any]
+        -------
+        values: dict[str, Any]
             The unmodified dict with all values of a BuildInfoV2 instance
         """
 

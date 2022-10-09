@@ -2,7 +2,7 @@ from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, Dict, Optional
+from typing import ContextManager, Optional
 from unittest.mock import Mock, call, patch
 
 from pytest import LogCaptureFixture, mark, raises
@@ -1006,8 +1006,8 @@ def test_ensure_non_overlapping_repositories(
     packagerepo_in_tmp_path: settings.PackageRepo,
     tmp_path: Path,
     caplog: LogCaptureFixture,
-    base_overrides: Dict[str, Path],
-    repo_overrides: Dict[str, Path],
+    base_overrides: dict[str, Path],
+    repo_overrides: dict[str, Path],
     expectation: ContextManager[str],
 ) -> None:
     caplog.set_level(DEBUG)

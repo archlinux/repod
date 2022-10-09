@@ -3,7 +3,7 @@ from io import StringIO
 from logging import DEBUG
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, ContextManager, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, ContextManager, Optional, Union
 from unittest.mock import patch
 
 from pytest import LogCaptureFixture, mark, raises
@@ -115,7 +115,7 @@ def test_files_get_schema_version() -> None:
         ),
     ],
 )
-def test_files_from_dict(data: Dict[str, Any], expectation: ContextManager[str]) -> None:
+def test_files_from_dict(data: dict[str, Any], expectation: ContextManager[str]) -> None:
     with expectation:
         syncdb.Files.from_dict(data=data)
 
@@ -196,9 +196,9 @@ async def test_files_from_stream(data: str, expectation: ContextManager[str], ca
     ],
 )
 def test_files_from_dict_derive_file_version(
-    files_versions: Dict[int, Dict[str, Set[str]]],
+    files_versions: dict[int, dict[str, set[str]]],
     default_files_version: int,
-    files_dict: Dict[str, List[str]],
+    files_dict: dict[str, list[str]],
     emit_warning: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
@@ -402,9 +402,9 @@ def test_files_from_dict_derive_file_version(
     ],
 )
 def test_package_desc_from_dict_derive_file_version(
-    files_versions: Dict[int, Dict[str, Set[str]]],
+    files_versions: dict[int, dict[str, set[str]]],
     default_version: int,
-    input_dict: Dict[str, Union[int, str, List[str]]],
+    input_dict: dict[str, Union[int, str, list[str]]],
     emit_warning: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
@@ -1098,7 +1098,7 @@ def test_packagedesc_get_output_package_base() -> None:
         "invalid key-value pair",
     ],
 )
-def test_packagedesc_from_dict(data: Dict[str, Union[int, str, List[str]]], expectation: ContextManager[str]) -> None:
+def test_packagedesc_from_dict(data: dict[str, Union[int, str, list[str]]], expectation: ContextManager[str]) -> None:
     with expectation:
         syncdb.PackageDesc.from_dict(data=data)
 
@@ -1139,7 +1139,7 @@ async def test_syncdatabase_outputpackagebase_to_tarfile(
 async def test_syncdatabase_add(
     caplog: LogCaptureFixture,
     database_type: syncdb.RepoDbTypeEnum,
-    default_sync_db_file: Tuple[Path, Path],
+    default_sync_db_file: tuple[Path, Path],
     outputpackagebasev1: OutputPackageBase,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -1157,7 +1157,7 @@ async def test_syncdatabase_add(
 async def test_syncdatabase_stream_management_repo(
     caplog: LogCaptureFixture,
     database_type: syncdb.RepoDbTypeEnum,
-    default_sync_db_file: Tuple[Path, Path],
+    default_sync_db_file: tuple[Path, Path],
     outputpackagebasev1_json_files_in_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -1175,7 +1175,7 @@ async def test_syncdatabase_stream_management_repo(
 async def test_syncdatabase_stream_management_repo_raises_on_empty_dir(
     caplog: LogCaptureFixture,
     database_type: syncdb.RepoDbTypeEnum,
-    default_sync_db_file: Tuple[Path, Path],
+    default_sync_db_file: tuple[Path, Path],
     tmp_path: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -1190,7 +1190,7 @@ async def test_syncdatabase_stream_management_repo_raises_on_empty_dir(
 
 
 @mark.asyncio
-async def test_syncdatabase_outputpackagebases(files_sync_db_file: Tuple[Path, Path]) -> None:
+async def test_syncdatabase_outputpackagebases(files_sync_db_file: tuple[Path, Path]) -> None:
     for (name, model) in await syncdb.SyncDatabase(
         database=files_sync_db_file[0],
         desc_version=PackageDescVersionEnum.DEFAULT,

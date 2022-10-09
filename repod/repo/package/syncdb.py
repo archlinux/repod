@@ -7,7 +7,7 @@ from logging import debug, warning
 from pathlib import Path
 from tarfile import DIRTYPE, TarFile, TarInfo
 from time import time
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Optional, Union
 
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from pydantic import BaseModel, ValidationError
@@ -58,7 +58,7 @@ DB_USER = "root"
 DB_GROUP = "root"
 DB_FILE_MODE = "0644"
 DB_DIR_MODE = "0755"
-DESC_JSON: Dict[str, Tuple[str, FieldTypeEnum]] = {
+DESC_JSON: dict[str, tuple[str, FieldTypeEnum]] = {
     "%BASE%": ("base", FieldTypeEnum.STRING),
     "%VERSION%": ("version", FieldTypeEnum.STRING),
     "%MAKEDEPENDS%": ("makedepends", FieldTypeEnum.STRING_LIST),
@@ -84,8 +84,8 @@ DESC_JSON: Dict[str, Tuple[str, FieldTypeEnum]] = {
     "%OPTDEPENDS%": ("optdepends", FieldTypeEnum.STRING_LIST),
     "%BACKUP%": ("backup", FieldTypeEnum.STRING_LIST),
 }
-FILES_JSON: Dict[str, Tuple[str, FieldTypeEnum]] = {"%FILES%": ("files", FieldTypeEnum.STRING_LIST)}
-FILES_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
+FILES_JSON: dict[str, tuple[str, FieldTypeEnum]] = {"%FILES%": ("files", FieldTypeEnum.STRING_LIST)}
+FILES_VERSIONS: dict[int, dict[str, set[str]]] = {
     1: {
         "required": {
             "files",
@@ -95,7 +95,7 @@ FILES_VERSIONS: Dict[int, Dict[str, Set[str]]] = {
 }
 DEFAULT_FILES_VERSION = 1
 DEFAULT_PACKAGE_DESC_VERSION = 1
-PACKAGE_DESC_VERSIONS: Dict[int, Dict[str, Union[Set[str], int]]] = {
+PACKAGE_DESC_VERSIONS: dict[int, dict[str, Union[set[str], int]]] = {
     1: {
         "required": {
             "arch",
@@ -195,12 +195,12 @@ class RepoDbTypeEnum(IntEnum):
     FILES = 2
 
 
-def get_desc_json_keys() -> Set[str]:
+def get_desc_json_keys() -> set[str]:
     """Get the keys of repod.models.repo.DESC_JSON
 
     Returns
     -------
-    Set[str]
+    set[str]
         A set of strings representing the keys of repod.models.repo.DESC_JSON
     """
 
@@ -257,12 +257,12 @@ def get_desc_json_field_type(key: str) -> FieldTypeEnum:
         raise RepoManagementFileError(f"The key {key} is not a known 'desc' file identifier.")
 
 
-def get_files_json_keys() -> Set[str]:
+def get_files_json_keys() -> set[str]:
     """Get the keys of repod.models.repo.FILES_JSON
 
     Returns
     -------
-    Set[str]
+    set[str]
         A set of strings representing the keys of repod.models.repo.FILES_JSON
     """
 
@@ -423,19 +423,19 @@ class SyncDatabase(BaseModel):
                 files_version=self.files_version,
             )
 
-    async def outputpackagebases(self) -> List[Tuple[str, outputpackage.OutputPackageBase]]:
+    async def outputpackagebases(self) -> list[tuple[str, outputpackage.OutputPackageBase]]:
         """Read a repository database and yield the name of each pkgbase and the respective data (represented as an
-        instance of OutputPackageBase) in a Tuple.
+        instance of OutputPackageBase) in a tuple.
 
         Returns
         -------
-        Iterator[Tuple[str, OutputPackageBase]]:
-            A Tuple holding the name of a pkgbase and its accompanying data in an instance of OutputPackageBase
+        Iterator[tuple[str, OutputPackageBase]]:
+            A tuple holding the name of a pkgbase and its accompanying data in an instance of OutputPackageBase
         """
 
-        packages: Dict[str, outputpackage.OutputPackageBase] = {}
-        package_descs: Dict[str, PackageDesc] = {}
-        package_files: Dict[str, Files] = {}
+        packages: dict[str, outputpackage.OutputPackageBase] = {}
+        package_descs: dict[str, PackageDesc] = {}
+        package_files: dict[str, Files] = {}
 
         with open_tarfile(path=self.database, compression=self.compression_type) as db_file:
             for file_name in [
@@ -529,14 +529,14 @@ class PackageDesc(BaseModel):
     """
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Union[int, str, List[str]]]) -> PackageDesc:
+    def from_dict(cls, data: dict[str, Union[int, str, list[str]]]) -> PackageDesc:
         """Create an instance of one of PackageDesc's subclasses from a dict
 
         This method should be used with data derived from reading a 'desc' file from a repository sync database.
 
         Parameters
         ----------
-        data: Dict[str, Union[int, str, List[str]]]
+        data: dict[str, Union[int, str, list[str]]]
             A dict containing data required to instantiate a subclass of PackageDesc
 
         Raises
@@ -551,12 +551,12 @@ class PackageDesc(BaseModel):
             An instance of one of the subclasses of PackageDesc
         """
 
-        def derive_package_desc_version(data: Set[str]) -> Optional[int]:
+        def derive_package_desc_version(data: set[str]) -> Optional[int]:
             """Derive which PackageDesc subclass to instantiate
 
             Parameters
             ----------
-            data: Set[str]
+            data: set[str]
                  A set of strings representing the keys of the data dict passed to PackageDesc.from_dict()
 
             Returns
@@ -568,8 +568,8 @@ class PackageDesc(BaseModel):
             for version, config in sorted(PACKAGE_DESC_VERSIONS.items(), reverse=True):
 
                 debug(f"Comparing 'desc' data to schema version {version}")
-                config_required: Set[str] = config["required"]  # type: ignore[assignment]
-                config_optional: Set[str] = config["optional"]  # type: ignore[assignment]
+                config_required: set[str] = config["required"]  # type: ignore[assignment]
+                config_optional: set[str] = config["optional"]  # type: ignore[assignment]
                 if config_required.issubset(data):
                     optionals = data - config_required
 
@@ -640,9 +640,9 @@ class PackageDesc(BaseModel):
 
         current_header = ""
         current_type: FieldTypeEnum
-        int_types: Dict[str, int] = {}
-        string_types: Dict[str, str] = {}
-        string_list_types: Dict[str, List[str]] = {}
+        int_types: dict[str, int] = {}
+        string_types: dict[str, str] = {}
+        string_list_types: dict[str, list[str]] = {}
         keys = get_desc_json_keys()
 
         for line in data:
@@ -654,7 +654,7 @@ class PackageDesc(BaseModel):
                 current_header = get_desc_json_name(key=line)
                 current_type = get_desc_json_field_type(line)
                 # FIXME: find better way to provide a default (None or empty list for STRING_LIST as they all are
-                # Optional[List[str]]
+                # Optional[list[str]]
                 if current_header and current_type == FieldTypeEnum.STRING_LIST:
                     string_list_types[current_header] = []
 
@@ -677,7 +677,7 @@ class PackageDesc(BaseModel):
                         f"\n{data.getvalue()}\n{e}"
                     )
 
-        desc_dict: Dict[str, Union[int, str, List[str]]] = {**int_types, **string_types, **string_list_types}
+        desc_dict: dict[str, Union[int, str, list[str]]] = {**int_types, **string_types, **string_list_types}
         try:
             return PackageDesc.from_dict(desc_dict)
         except RepoManagementValidationError as e:
@@ -889,14 +889,14 @@ class Files(BaseModel):
     """
 
     @classmethod
-    def from_dict(cls, data: Dict[str, List[str]]) -> Files:
+    def from_dict(cls, data: dict[str, list[str]]) -> Files:
         """Class method to create one of Files' subclasses from a dict
 
         This method is supposed to be called with data derived from a 'files' file.
 
         Parameters
         ----------
-        data: Dict[str, List[str]]
+        data: dict[str, list[str]]
             A dict with required data read from a 'files' file, which is used to instantiate one of Files' subclasses
 
         Raises
@@ -911,12 +911,12 @@ class Files(BaseModel):
             A Files instance (technically only one of its subclasses), instantiated from data
         """
 
-        def derive_files_version(data: Set[str]) -> Optional[int]:
+        def derive_files_version(data: set[str]) -> Optional[int]:
             """Derive which Files subclass to instantiate
 
             Parameters
             ----------
-            data: Set[str]
+            data: set[str]
                  A set of strings representing the keys of the data dict passed to Files.from_dict()
 
             Returns
@@ -992,7 +992,7 @@ class Files(BaseModel):
 
         current_header = ""
         current_type: FieldTypeEnum
-        string_list_types: Dict[str, List[str]] = {}
+        string_list_types: dict[str, list[str]] = {}
         keys = get_files_json_keys()
 
         for line in data:
@@ -1078,7 +1078,7 @@ class FilesV1(Files, FileList, SchemaVersionV1):
 
     Attributes
     ----------
-    files: Optional[List[str]]
+    files: Optional[list[str]]
         An optional list of files. This is the data below a %FILES% identifier in a 'files' file, which identifies which
         file(s) belong to a package
     """
@@ -1121,7 +1121,7 @@ class PackageDescV1(
     arch: str
         The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
         identifies a package's architecture
-    backup: Optional[List[str]]
+    backup: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     base: str
@@ -1130,16 +1130,16 @@ class PackageDescV1(
     builddate: int
         The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
         which identifies a package's build date (represented in seconds since the epoch)
-    checkdepends: Optional[List[str]]
+    checkdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
-    conflicts: Optional[List[str]]
+    conflicts: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     csize: int
         The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
         identifies a package's size
-    depends: Optional[List[str]]
+    depends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     desc: str
@@ -1148,16 +1148,16 @@ class PackageDescV1(
     filename: str
         The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
         identifies a package's file name
-    groups: Optional[List[str]]
+    groups: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     isize: int
         The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
         identifies a package's installed size
-    license: List[str]
+    license: list[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
-    makedepends: Optional[List[str]]
+    makedepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     md5sum: str
@@ -1166,7 +1166,7 @@ class PackageDescV1(
     name: str
         The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
         identifies a package's name
-    optdepends: Optional[List[str]]
+    optdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     packager: str
@@ -1175,10 +1175,10 @@ class PackageDescV1(
     pgpsig: str
         The attribute can be used to describe the (optional) data below a %PGPSIG% identifier in a 'desc' file, which
         identifies a package's PGP signature
-    provides: Optional[List[str]]
+    provides: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
-    replaces: Optional[List[str]]
+    replaces: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     schema_version: PositiveInt
@@ -1229,7 +1229,7 @@ class PackageDescV2(
     arch: str
         The attribute can be used to describe the (required) data below an %ARCH% identifier in a 'desc' file, which
         identifies a package's architecture
-    backup: Optional[List[str]]
+    backup: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     base: str
@@ -1238,16 +1238,16 @@ class PackageDescV2(
     builddate: int
         The attribute can be used to describe the (required) data below a %BUILDDATE% identifier in a 'desc' file,
         which identifies a package's build date (represented in seconds since the epoch)
-    checkdepends: Optional[List[str]]
+    checkdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
-    conflicts: Optional[List[str]]
+    conflicts: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     csize: int
         The attribute can be used to describe the (required) data below a %CSIZE% identifier in a 'desc' file, which
         identifies a package's size
-    depends: Optional[List[str]]
+    depends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     desc: str
@@ -1256,16 +1256,16 @@ class PackageDescV2(
     filename: str
         The attribute can be used to describe the (required) data below a %FILENAME% identifier in a 'desc' file, which
         identifies a package's file name
-    groups: Optional[List[str]]
+    groups: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     isize: int
         The attribute can be used to describe the (required) data below an %ISIZE% identifier in a 'desc' file, which
         identifies a package's installed size
-    license: List[str]
+    license: list[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
-    makedepends: Optional[List[str]]
+    makedepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     md5sum: str
@@ -1274,16 +1274,16 @@ class PackageDescV2(
     name: str
         The attribute can be used to describe the (required) data below a %NAME% identifier in a 'desc' file, which
         identifies a package's name
-    optdepends: Optional[List[str]]
+    optdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     packager: str
         The attribute can be used to describe the (required) data below a %PACKAGER% identifier in a 'desc' file, which
         identifies a package's packager
-    provides: Optional[List[str]]
+    provides: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
-    replaces: Optional[List[str]]
+    replaces: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     schema_version: PositiveInt

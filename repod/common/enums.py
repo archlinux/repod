@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from enum import Enum, IntEnum, IntFlag, auto
-from typing import List
 
 
 class ArchitectureEnum(Enum):
@@ -77,7 +76,7 @@ class FieldTypeEnum(IntEnum):
     INT: int
         An entry of typoe 'int'
     STRING_LIST: int
-        An entry of type 'List[str]'
+        An entry of type 'list[str]'
     """
 
     STRING = 0
@@ -171,13 +170,13 @@ class CompressionTypeEnum(Enum):
         )
 
     @classmethod
-    def as_db_file_suffixes(cls) -> List[str]:
+    def as_db_file_suffixes(cls) -> list[str]:
         """Return the members of CompressionTypeEnum formated in a list of strings reprenting all possible suffix
         permutations for a default repository sync database
 
         Returns
         -------
-        List[str]
+        list[str]
             A list of strings representing all possible permutations of file suffixes for a default repository sync
             database
         """
@@ -185,13 +184,13 @@ class CompressionTypeEnum(Enum):
         return [".db", ".db.tar"] + [".db.tar." + name.value for name in cls if len(name.value) > 0]
 
     @classmethod
-    def as_files_file_suffixes(cls) -> List[str]:
+    def as_files_file_suffixes(cls) -> list[str]:
         """Return the members of CompressionTypeEnum formated in a list of strings reprenting all possible suffix
         permutations for a files repository sync database
 
         Returns
         -------
-        List[str]
+        list[str]
             A list of strings representing all possible permutations of file suffixes for a files repository sync
             database
         """

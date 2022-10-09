@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from email_validator import EmailNotValidError, validate_email
 from pydantic import (
@@ -49,12 +49,12 @@ class Backup(BaseModel):
 
     Attributes
     ----------
-    backup: Optional[List[str]]
+    backup: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %BACKUP% identifier in a 'desc' file, which
         identifies which file(s) of a package pacman will create backups for
     """
 
-    backup: Optional[List[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
+    backup: Optional[list[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
 
 
 class Base(BaseModel):
@@ -88,12 +88,12 @@ class CheckDepends(BaseModel):
 
     Attributes
     ----------
-    checkdepends: Optional[List[str]]
+    checkdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CHECKDEPENDS% identifier in a 'desc' file,
         which identifies a package's checkdepends
     """
 
-    checkdepends: Optional[List[str]]
+    checkdepends: Optional[list[str]]
 
 
 class Conflicts(BaseModel):
@@ -101,12 +101,12 @@ class Conflicts(BaseModel):
 
     Attributes
     ----------
-    conflicts: Optional[List[str]]
+    conflicts: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %CONFLICTS% identifier in a 'desc' file, which
         identifies what other package(s) a package conflicts with
     """
 
-    conflicts: Optional[List[str]]
+    conflicts: Optional[list[str]]
 
 
 class CSize(BaseModel):
@@ -127,12 +127,12 @@ class Depends(BaseModel):
 
     Attributes
     ----------
-    depends: Optional[List[str]]
+    depends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %DEPENDS% identifier in a 'desc' file, which
         identifies what other package(s) a package depends on
     """
 
-    depends: Optional[List[str]]
+    depends: Optional[list[str]]
 
 
 class Desc(BaseModel):
@@ -166,15 +166,15 @@ class FileList(BaseModel):
 
     Attributes
     ----------
-    files: Optional[List[str]]
+    files: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %FILES% identifier in a 'files' file, which
         identifies which file(s) belong to a package
     """
 
-    files: Optional[List[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
+    files: Optional[list[constr(regex=f"^{RELATIVE_PATH}$")]]  # type: ignore[valid-type]  # noqa: F722
 
     @validator("files")
-    def validate_no_file_in_home(cls, files: List[str]) -> Optional[List[str]]:
+    def validate_no_file_in_home(cls, files: list[str]) -> Optional[list[str]]:
         if files:
             for file in files:
                 if re.search("^(home/).+$", file):
@@ -188,12 +188,12 @@ class Groups(BaseModel):
 
     Attributes
     ----------
-    groups: Optional[List[str]]
+    groups: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %GROUPS% identifier in a 'desc' file, which
         identifies a package's groups
     """
 
-    groups: Optional[List[constr(regex=f"^{PACKAGE_NAME}$")]]  # type: ignore[valid-type]  # noqa: F722
+    groups: Optional[list[constr(regex=f"^{PACKAGE_NAME}$")]]  # type: ignore[valid-type]  # noqa: F722
 
 
 class ISize(BaseModel):
@@ -214,12 +214,12 @@ class License(BaseModel):
 
     Attributes
     ----------
-    license: List[str]
+    license: list[str]
         The attribute can be used to describe the (required) data below a %LICENSE% identifier in a 'desc' file, which
         identifies a package's license(s)
     """
 
-    license: List[str]
+    license: list[str]
 
 
 class MakeDepends(BaseModel):
@@ -227,12 +227,12 @@ class MakeDepends(BaseModel):
 
     Attributes
     ----------
-    makedepends: Optional[List[str]]
+    makedepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %MAKEDEPENDS% identifier in a 'desc' file,
         which identifies a package's makedepends
     """
 
-    makedepends: Optional[List[str]]
+    makedepends: Optional[list[str]]
 
 
 class Md5Sum(BaseModel):
@@ -303,12 +303,12 @@ class Provides(BaseModel):
 
     Attributes
     ----------
-    provides: Optional[List[str]]
+    provides: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %PROVIDES% identifier in a 'desc' file, which
         identifies what other package(s) a package provides
     """
 
-    provides: Optional[List[str]]
+    provides: Optional[list[str]]
 
 
 class Replaces(BaseModel):
@@ -316,12 +316,12 @@ class Replaces(BaseModel):
 
     Attributes
     ----------
-    replaces: Optional[List[str]]
+    replaces: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %REPLACES% identifier in a 'desc' file, which
         identifies what other package(s) a package replaces
     """
 
-    replaces: Optional[List[str]]
+    replaces: Optional[list[str]]
 
 
 class SchemaVersionV1(BaseModel):
@@ -366,12 +366,12 @@ class OptDepends(BaseModel):
 
     Attributes
     ----------
-    optdepends: Optional[List[str]]
+    optdepends: Optional[list[str]]
         The attribute can be used to describe the (optional) data below a %OPTDEPENDS% identifier in a 'desc' file,
         which identifies what other package(s) a package optionally depends on
     """
 
-    optdepends: Optional[List[str]]
+    optdepends: Optional[list[str]]
 
 
 class Url(BaseModel):
@@ -429,14 +429,14 @@ class PkgRel(BaseModel):
 
     pkgrel: constr(regex=rf"^{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
 
-    def as_list(self) -> List[str]:
+    def as_list(self) -> list[str]:
         """Return the pkgrel components as list
 
         The version string is split by "."
 
         Returns
         -------
-        List[str]
+        list[str]
             A list of strings representing the components of the pkgrel
         """
 
@@ -471,14 +471,14 @@ class PkgVer(BaseModel):
 
     pkgver: constr(regex=rf"^({VERSION})$")  # type: ignore[valid-type]  # noqa: F722
 
-    def as_list(self) -> List[str]:
+    def as_list(self) -> list[str]:
         """Return the pkgver components as list
 
         The version string is split on none alpanum characters
 
         Returns
         -------
-        List[str]
+        list[str]
             A list of strings representing the components of the pkgver
         """
 

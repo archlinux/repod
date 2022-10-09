@@ -11,3 +11,4 @@ Authors
 * Jan Alexander Steffens <heftig@archlinux.org>
 * Maxim Baz <maximbaz@archlinux.org>
 * Morten Linderud <foxboron@archlinux.org>
+* Jörg Behrmann <behrmann@physik.fu-berlin.de>

@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from tarfile import TarFile
-from typing import ContextManager, List, Optional, Set, Tuple, Union
+from typing import ContextManager, Optional, Union
 from unittest.mock import patch
 
 from pytest import mark, raises
@@ -61,8 +61,8 @@ def test_open_tarfile(
 
 
 def test_open_tarfile_sync_db_file(
-    default_sync_db_file: Tuple[Path, Path],
-    files_sync_db_file: Tuple[Path, Path],
+    default_sync_db_file: tuple[Path, Path],
+    files_sync_db_file: tuple[Path, Path],
 ) -> None:
     for path in default_sync_db_file + files_sync_db_file:
         with common.open_tarfile(
@@ -98,7 +98,7 @@ async def test_extract_file_from_tarfile(
     as_stringio: bool,
     gzip_compressed: bool,
     expectation: ContextManager[str],
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
 ) -> None:
     with common.open_tarfile(path=default_package_file[0], compression=None, mode="r") as tarfile:
         with expectation:
@@ -173,9 +173,9 @@ def test_compression_type_of_tarfile(
     ],
 )
 def test_names_in_tarfile(
-    names: Union[List[str], Set[str]],
+    names: Union[list[str], set[str]],
     expectation: bool,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
 ) -> None:
     with common.open_tarfile(path=default_package_file[0], compression=None, mode="r") as tarfile:
         assert common.names_in_tarfile(tarfile=tarfile, names=names) is expectation

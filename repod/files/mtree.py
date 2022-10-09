@@ -4,7 +4,7 @@ import io
 import re
 from logging import debug
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -295,11 +295,11 @@ class MTree(BaseModel):
 
     Attributes
     ----------
-    files: List[File]
+    files: list[File]
         A list of File instances, representing the entries in an mtree file
     """
 
-    entries: List[MTreeEntry]
+    entries: list[MTreeEntry]
 
     @classmethod
     def from_file(cls, data: io.StringIO) -> MTree:
@@ -322,16 +322,16 @@ class MTree(BaseModel):
         """
 
         def sanitize_mtree_pairs(
-            settings_list: List[List[str]],
-            settings_dict: Dict[str, Union[float, int, str]],
+            settings_list: list[list[str]],
+            settings_dict: dict[str, Union[float, int, str]],
         ) -> None:
             """Sanitize mtree pairs in a list and add them to a dict
 
             Parameters
             ----------
-            settings_list: List[List[str]]
+            settings_list: list[list[str]]
                 A list of string lists, that represent mtree key-value pairs
-            settings_dict: Dict[str, Union[float, int, str]]
+            settings_dict: dict[str, Union[float, int, str]]
                 A dict to which sanitized mtree key-value pairs are added
             """
 
@@ -355,8 +355,8 @@ class MTree(BaseModel):
                     case _:
                         settings_dict[settings_key] = setting_value
 
-        base_settings: Dict[str, Union[float, int, str]] = {}
-        entries: List[MTreeEntry] = []
+        base_settings: dict[str, Union[float, int, str]] = {}
+        entries: list[MTreeEntry] = []
 
         for line in data:
             if line.startswith("/set"):
@@ -364,7 +364,7 @@ class MTree(BaseModel):
                 sanitize_mtree_pairs(settings_list=settings_list, settings_dict=base_settings)
 
             elif line.startswith("."):
-                file_settings: Dict[str, Union[float, int, str]] = {}
+                file_settings: dict[str, Union[float, int, str]] = {}
                 file_settings["name"] = line.split()[0][1:]
 
                 # provide a list of all settings in an entry line (skip empty assigments due to multiple whitespace)
@@ -398,7 +398,7 @@ class MTree(BaseModel):
 
         return MTree(entries=entries)
 
-    def get_paths(self, show_all: bool = False) -> List[Path]:
+    def get_paths(self, show_all: bool = False) -> list[Path]:
         """Return the list of Paths described by the entries of the MTree
 
         Parameters
@@ -408,11 +408,11 @@ class MTree(BaseModel):
 
         Returns
         -------
-        List[Path]
+        list[Path]
             A list of Paths
         """
 
-        path_list: List[Path] = []
+        path_list: list[Path] = []
 
         for entry in self.entries:
             path = entry.get_file_path()

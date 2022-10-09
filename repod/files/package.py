@@ -4,7 +4,7 @@ from base64 import b64encode
 from hashlib import md5, sha256
 from logging import debug, info
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel
 
@@ -127,18 +127,18 @@ class Package(BaseModel):
                         f"The provided file {package} does not match any known package versions!"
                     )
 
-    def top_level_dict(self) -> Dict[str, Any]:
+    def top_level_dict(self) -> dict[str, Any]:
         """Flatten the keys and values tracked by Package (one level deep) and return them in a dict
 
         NOTE: Duplicate entries are merged!
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             A flattened dict representation of Package
         """
 
-        top_level: Dict[str, Any] = {}
+        top_level: dict[str, Any] = {}
         for key, value in self.dict().items():
             if isinstance(value, dict):
                 top_level.update(value)

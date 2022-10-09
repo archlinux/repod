@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from subprocess import CalledProcessError
-from typing import ContextManager, Dict, List, Optional, Union
+from typing import ContextManager, Optional, Union
 
 from pytest import mark, raises
 
@@ -9,7 +9,7 @@ from repod import commands
 
 
 @mark.parametrize("env", [(None), ({"FOO": "BAR"})])
-def test__print_env(env: Optional[Dict[str, str]]) -> None:
+def test__print_env(env: Optional[dict[str, str]]) -> None:
     commands._print_env(env)
 
 
@@ -23,8 +23,8 @@ def test__print_env(env: Optional[Dict[str, str]]) -> None:
 )
 @mark.asyncio
 def test_run_command(
-    cmd: Union[str, List[str]],
-    env: Optional[Dict[str, str]],
+    cmd: Union[str, list[str]],
+    env: Optional[dict[str, str]],
     debug: bool,
     echo: bool,
     quiet: bool,

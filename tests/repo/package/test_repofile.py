@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, Dict, Tuple
+from typing import ContextManager
 
 from pytest import LogCaptureFixture, mark, raises
 
@@ -64,7 +64,7 @@ from repod.repo.package import repofile
         ),
     ],
 )
-def test_filename_parts(file: Path, output: Dict[str, str], expectation: ContextManager[str]) -> None:
+def test_filename_parts(file: Path, output: dict[str, str], expectation: ContextManager[str]) -> None:
 
     with expectation:
         assert repofile.filename_parts(file=file) == output
@@ -122,7 +122,7 @@ def test_repofile(
     wrong_file_type: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -162,7 +162,7 @@ def test_repofile_check_file_path_exists(
     exists: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -194,7 +194,7 @@ def test_repofile_check_symlink_path_exists(
     exists: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -217,7 +217,7 @@ def test_repofile_copy_from(
     source_exists: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -246,7 +246,7 @@ def test_repofile_move_from(
     source_exists: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -284,7 +284,7 @@ def test_repofile_link(
     check: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -320,7 +320,7 @@ def test_repofile_unlink(
     check: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -361,7 +361,7 @@ def test_repofile_remove(
     unlink: bool,
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     empty_dir: Path,
 ) -> None:
     caplog.set_level(DEBUG)

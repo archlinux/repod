@@ -4,7 +4,7 @@ from pathlib import Path
 from random import sample
 from re import Match, fullmatch
 from tempfile import TemporaryDirectory
-from typing import Optional, Tuple
+from typing import Optional
 from unittest.mock import Mock, patch
 
 from pytest import LogCaptureFixture, mark, raises
@@ -62,7 +62,7 @@ def test_exit_on_error(exit_mock: Mock, message: str, argparser: Optional[Argume
 def test_repod_file_package(
     exit_on_error_mock: Mock,
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     tmp_path: Path,
     args: Namespace,
     calls_exit_on_error: bool,
@@ -115,9 +115,9 @@ def test_repod_file_repo(
     exit_on_error_mock: Mock,
     repod_file_repo_importpkg_mock: Mock,
     caplog: LogCaptureFixture,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     outputpackagebasev1_json_files_in_dir: Path,
-    default_sync_db_file: Tuple[Path, Path],
+    default_sync_db_file: tuple[Path, Path],
     tmp_path: Path,
     args: Namespace,
     calls_exit_on_error: bool,

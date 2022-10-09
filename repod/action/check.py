@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from logging import debug, info
 from pathlib import Path
-from typing import List
 
 from repod.common.enums import ActionStateEnum, ArchitectureEnum, PkgTypeEnum
 from repod.files import Package
@@ -49,16 +48,16 @@ class PacmanKeyPackagesSignatureVerificationCheck(Check):
 
     Attributes
     ----------
-    packages: List[List[Path]]
+    packages: list[list[Path]]
         A list of Path lists, that should contain a package and a corresponding signature Path each
     """
 
-    def __init__(self, packages: List[List[Path]]):
+    def __init__(self, packages: list[list[Path]]):
         """Initialize an instance of PacmanKeyPackagesSignatureVerificationCheck
 
         Parameters
         ----------
-        package: List[List[Path]]
+        package: list[list[Path]]
             A list of lists, containing up to two Paths each
         """
 
@@ -110,18 +109,18 @@ class DebugPackagesCheck(Check):
 
     Attributes
     ----------
-    packages: List[Package]
+    packages: list[Package]
         A list of Package instances to check
     debug: bool
         A boolean value indicating whether all Package instances should be debug packages or not
     """
 
-    def __init__(self, packages: List[Package], debug: bool):
+    def __init__(self, packages: list[Package], debug: bool):
         """Initialize an instance of DebugPackagesCheck
 
         Parameters
         ----------
-        packages: List[Package]
+        packages: list[Package]
             A list of Package instances to check
         debug: bool
             A boolean value indicating whether all Package instances should be either debug packages or not
@@ -185,18 +184,18 @@ class MatchingArchitectureCheck(Check):
     ----------
     architecture: ArchitectureEnum
         An instance of ArchitectureEnum which identifies the target CPU architecture
-    packages: List[Package]
+    packages: list[Package]
         A list of Package instances to check
     """
 
-    def __init__(self, architecture: ArchitectureEnum, packages: List[Package]):
+    def __init__(self, architecture: ArchitectureEnum, packages: list[Package]):
         """Initialize an instance of DebugPackagesCheck
 
         Parameters
         ----------
         architecture: ArchitectureEnum
             An instance of ArchitectureEnum which identifies the target CPU architecture
-        packages: List[Package]
+        packages: list[Package]
             A list of Package instances to check
         """
 
@@ -217,7 +216,7 @@ class MatchingArchitectureCheck(Check):
 
         debug("Running check to test whether all packages match the target architecture...")
 
-        non_matching: List[str] = []
+        non_matching: list[str] = []
 
         for package in self.packages:
             if (

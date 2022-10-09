@@ -1,5 +1,5 @@
 from contextlib import nullcontext as does_not_raise
-from typing import ContextManager, List, Optional, Union
+from typing import ContextManager, Optional, Union
 from unittest.mock import patch
 
 from pydantic import ValidationError
@@ -75,7 +75,7 @@ def test_epoch_vercmp(subj: Union[int, str], obj: Union[int, str], expectation: 
         (["home/foo"], raises(ValidationError)),
     ],
 )
-def test_file_list(file_list: Optional[List[str]], expectation: ContextManager[str]) -> None:
+def test_file_list(file_list: Optional[list[str]], expectation: ContextManager[str]) -> None:
     with expectation:
         models.FileList(files=file_list)
 
@@ -139,7 +139,7 @@ def test_pkgrel(value: str, expectation: ContextManager[str]) -> None:
         (1.1, ["1", "1"]),
     ],
 )
-def test_pkgrel_as_list(value: str, expectation: List[str]) -> None:
+def test_pkgrel_as_list(value: str, expectation: list[str]) -> None:
     assert models.PkgRel(pkgrel=value).as_list() == expectation
 
 
@@ -195,7 +195,7 @@ def test_pkgver(value: str, expectation: ContextManager[str]) -> None:
         (1.1, ["1", "1"]),
     ],
 )
-def test_pkgver_as_list(value: str, expectation: List[str]) -> None:
+def test_pkgver_as_list(value: str, expectation: list[str]) -> None:
     assert models.PkgVer(pkgver=value).as_list() == expectation
 
 

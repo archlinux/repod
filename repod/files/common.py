@@ -5,7 +5,7 @@ from logging import debug
 from pathlib import Path
 from tarfile import ReadError, TarFile
 from tarfile import open as tarfile_open
-from typing import IO, Dict, List, Literal, Optional, Set, Union
+from typing import IO, Literal, Optional, Union
 
 import magic
 from pyzstd import CParameter, ZstdDict, ZstdFile
@@ -21,7 +21,7 @@ class ZstdTarFile(TarFile):
         self,
         name: Union[str, Path],
         mode: Literal["r", "a", "w", "x"] = "r",
-        level_or_option: Union[None, int, Dict[CParameter, int]] = None,
+        level_or_option: Union[None, int, dict[CParameter, int]] = None,
         zstd_dict: Optional[ZstdDict] = None,
         **kwargs,
     ) -> None:
@@ -216,14 +216,14 @@ async def extract_file_from_tarfile(
             return extracted
 
 
-def names_in_tarfile(tarfile: TarFile, names: Union[List[str], Set[str]]) -> bool:
+def names_in_tarfile(tarfile: TarFile, names: Union[list[str], set[str]]) -> bool:
     """Check whether a list of names is found in the list of names of a TarFile
 
     Parameters
     ----------
     tarfile: TarFile
         A TarFile to lookup names in
-    names: Union[List[str], Set[str]]
+    names: Union[list[str], set[str]]
         A list or set of names to lookup
 
     Returns

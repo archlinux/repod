@@ -1,7 +1,7 @@
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
-from typing import ContextManager, List, Optional, Tuple
+from typing import ContextManager, Optional
 from unittest.mock import Mock, patch
 
 from orjson import JSONEncodeError
@@ -82,7 +82,7 @@ def test_createoutputpackagebasestask(
     package_verification: Optional[PkgVerificationTypeEnum],
     with_signature: bool,
     add_dependencies: bool,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -126,7 +126,7 @@ def test_createoutputpackagebasestask_do(
     package_from_file_raises: bool,
     outputpackagebase_from_package_raises: bool,
     return_value: ActionStateEnum,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -153,7 +153,7 @@ def test_createoutputpackagebasestask_do(
 
 
 def test_createoutputpackagebasestask_undo(
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -745,7 +745,7 @@ def test_movetmpfilestask_undo(
 def test_filestorepodirtask(
     file_type: RepoFileEnum,
     add_dependencies: bool,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
@@ -791,7 +791,7 @@ def test_filestorepodirtask_do(
     get_repo_path_raises: bool,
     repofile_copy_from_raises: bool,
     return_value: ActionStateEnum,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
@@ -835,13 +835,13 @@ def test_filestorepodirtask_do(
 def test_filestorepodirtask_undo(
     file_type: RepoFileEnum,
     do: bool,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
 
-    files_to_check: List[Path] = []
+    files_to_check: list[Path] = []
 
     file = default_package_file[0] if file_type == RepoFileEnum.PACKAGE else default_package_file[1]
 

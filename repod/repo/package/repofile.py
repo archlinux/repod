@@ -3,7 +3,7 @@ from logging import debug, info
 from pathlib import Path
 from re import Match, fullmatch
 from shutil import copy2
-from typing import Any, Dict, List
+from typing import Any
 
 from pydantic import BaseModel, root_validator
 
@@ -12,7 +12,7 @@ from repod.common.regex import PACKAGE_PATH, PACKAGE_SIGNATURE_PATH
 from repod.errors import RepoManagementFileError
 
 
-def filename_parts(file: Path) -> Dict[str, str]:
+def filename_parts(file: Path) -> dict[str, str]:
     """Split a package name and return its specific metadata in a dict
 
     Parameters
@@ -28,7 +28,7 @@ def filename_parts(file: Path) -> Dict[str, str]:
 
     Returns
     -------
-    Dict[str, str]
+    dict[str, str]
         A dict carrying data, derived from the package filename:
         - arch: CPU architecture
         - suffix: The package compression
@@ -41,7 +41,7 @@ def filename_parts(file: Path) -> Dict[str, str]:
 
     debug(f"Retrieving data from filename {file}")
     name = file.name
-    output_dict: Dict[str, str] = {}
+    output_dict: dict[str, str] = {}
 
     arch_suffix_split = name.split("-")[-1].split(".")
     if len(arch_suffix_split) != 4 and len(arch_suffix_split) != 3:
@@ -89,7 +89,7 @@ def shared_base_path(path_a: Path, path_b: Path) -> Path:
         if not path.is_absolute():
             raise ValueError(f"The path {path} is not absolute!")
 
-    output_list: List[str] = []
+    output_list: list[str] = []
     # NOTE: we skip branch check here, because coveragepy does not detect that we can never have any of the Path objects
     # return an empty list of parts, as they are ensured to be absolute
     for part_a, part_b in zip_longest(path_a.parts, path_b.parts, fillvalue=None):  # pragma: no branch
@@ -196,12 +196,12 @@ class RepoFile(BaseModel):
                 raise RuntimeError(f"Invalid RepoFile.file_type encountered: {file_type}")
 
     @root_validator
-    def validate_paths(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_paths(cls, values: dict[str, Any]) -> dict[str, Any]:
         """Validator for absolute Paths
 
         Parameters
         ----------
-        values: Dict[str, Any]
+        values: dict[str, Any]
             A dict with all values of the RepoFile instance
 
         Raises
@@ -219,7 +219,7 @@ class RepoFile(BaseModel):
         file_type = values.get("file_type")
         regex = RepoFile.get_file_type_regex(file_type=file_type)
 
-        paths: List[Path] = []
+        paths: list[Path] = []
         paths.append(values.get("file_path"))  # type: ignore[arg-type]
         paths.append(values.get("symlink_path"))  # type: ignore[arg-type]
 

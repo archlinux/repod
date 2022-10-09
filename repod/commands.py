@@ -1,16 +1,16 @@
 from pathlib import Path
 from subprocess import PIPE, STDOUT, CalledProcessError
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from subprocess_tee import CompletedProcess, run
 
 
-def _print_env(env: Optional[Dict[str, str]]) -> None:
+def _print_env(env: Optional[dict[str, str]]) -> None:
     """Print the environment variables from a dict
 
     Parameters
     ----------
-    env: Optional[Dict[str, str]]
+    env: Optional[dict[str, str]]
         An optional dict with environment variables and their values
     """
 
@@ -20,8 +20,8 @@ def _print_env(env: Optional[Dict[str, str]]) -> None:
 
 
 def run_command(
-    cmd: Union[str, List[str]],
-    env: Optional[Dict[str, str]] = None,
+    cmd: Union[str, list[str]],
+    env: Optional[dict[str, str]] = None,
     debug: bool = False,
     echo: bool = False,
     quiet: bool = False,
@@ -32,9 +32,9 @@ def run_command(
 
     Parameters
     ----------
-    cmd: Union[str, List[str]]
+    cmd: Union[str, list[str]]
         A string or list of strings that will be passed to subprocess.run()
-    env: Optional[Dict[str, str]]
+    env: Optional[dict[str, str]]
         A dict of environment variables and their respective values (defaults to None)
     debug: bool
         Whether to run in debug mode, which prints environment variables and command output (defaults to False)

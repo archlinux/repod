@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from logging import debug
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import tomli
 from pydantic import (
@@ -344,7 +344,7 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
                 )
 
         allowed_chars = ["_", "-"]
-        remaining_chars: List[str] = []
+        remaining_chars: list[str] = []
         for char in name.name:
             if (
                 not char.isalnum() or (not char.isdigit() and not char.islower()) or char.isspace()
@@ -380,12 +380,12 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         return name
 
     @root_validator(skip_on_failure=True)
-    def validate_unique_repository_dirs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_unique_repository_dirs(cls, values: dict[str, Any]) -> dict[str, Any]:
         """A root validator for the optional debug, staging and testing attributes ensuring all are not the same string
 
         Parameters
         ----------
-        values: Dict[str, Any]
+        values: dict[str, Any]
             A dict with all values of the PackageRepo instance
 
         Raises
@@ -395,7 +395,7 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
 
         Returns
         -------
-        values: Dict[str, Any]
+        values: dict[str, Any]
             The unmodified dict with all values of the PackageRepo instance
         """
 
@@ -504,7 +504,7 @@ def raise_on_path_in_other(path: Path, path_name: str, other: Path, other_name: 
         raise ValueError(f"The {path_name} directory '{path}' can not reside in the {other_name} directory '{other}'.")
 
 
-def raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: List[Path], other_name: str) -> None:
+def raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: list[Path], other_name: str) -> None:
     """Raise when a Path instance is in a list of Path instances
 
     Parameters
@@ -530,7 +530,7 @@ def raise_on_path_in_list_of_paths(path: Path, path_name: str, path_list: List[P
         raise_on_path_in_other(path=path, path_name=path_name, other=test_path, other_name=other_name)
 
 
-def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
+def read_toml_configuration_settings(settings: BaseSettings) -> dict[str, Any]:
     """Read the configuration file(s)
 
     Parameters
@@ -540,12 +540,12 @@ def read_toml_configuration_settings(settings: BaseSettings) -> Dict[str, Any]:
 
     Returns
     -------
-    Dict[str, Any]
+    dict[str, Any]
         A dict containing the data from the read out configuration file(s)
     """
 
-    output_dict: Dict[str, Any] = {}
-    config_files: List[Path] = []
+    output_dict: dict[str, Any] = {}
+    config_files: list[Path] = []
     if CUSTOM_CONFIG:
         debug("Detected custom config location...")
         config_files += [CUSTOM_CONFIG]
@@ -603,7 +603,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     package_verification: Optional[PkgVerificationTypeEnum]
         An optional member of PkgVerificationTypeEnum, which defines which verification scheme to apply for the detached
         package signatures.
-    repositories: List[PackageRepo]
+    repositories: list[PackageRepo]
         A list of PackageRepos that each define a binary package repository (with optional debug, staging and testing
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
         If no repository is defined, a default one is created during validation.
@@ -640,7 +640,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     architecture: ArchitectureEnum = DEFAULT_ARCHITECTURE
     database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
     management_repo: Optional[ManagementRepo]
-    repositories: List[PackageRepo] = []
+    repositories: list[PackageRepo] = []
     package_verification: Optional[PkgVerificationTypeEnum]
     syncdb_settings: SyncDbSettings = SyncDbSettings()
 
@@ -653,7 +653,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             init_settings: SettingsSourceCallable,
             env_settings: SettingsSourceCallable,
             file_secret_settings: SettingsSourceCallable,
-        ) -> Tuple[SettingsSourceCallable, ...]:
+        ) -> tuple[SettingsSourceCallable, ...]:
             return (
                 init_settings,
                 read_toml_configuration_settings,
@@ -685,7 +685,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         return management_repo
 
     @validator("repositories")
-    def validate_repositories(cls, repositories: List[PackageRepo]) -> List[PackageRepo]:
+    def validate_repositories(cls, repositories: list[PackageRepo]) -> list[PackageRepo]:
         """Validator for the repositories attribute
 
         If the attribute is not set or is an empty list, it will be populated with a default generated by
@@ -693,12 +693,12 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         Parameters
         ----------
-        repositories:  List[PackageRepo]
+        repositories:  list[PackageRepo]
             A list of PackageRepo instances to validate
 
         Returns
         -------
-        List[PackageRepo]
+        list[PackageRepo]
             A validated list of PackageRepo instances
         """
 
@@ -711,8 +711,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     @root_validator
     def consolidate_and_create_repositories(
         cls,
-        values: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        values: dict[str, Any],
+    ) -> dict[str, Any]:
         """Consolidate repositories with global data and create respective directories
 
         Private attributes of each PackageRepo are consolidated with the global defaults provided by the Settings
@@ -722,12 +722,12 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         Parameters
         ----------
-        values: Dict[str, Any]
+        values: dict[str, Any]
             A dict representing the keys and values of the Settings object
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             A dict of validated keys and values of the Settings object
         """
 
@@ -760,9 +760,9 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         database_compression: CompressionTypeEnum,
         management_repo: ManagementRepo,
         package_pool: Path,
-        repositories: List[PackageRepo],
+        repositories: list[PackageRepo],
         source_pool: Path,
-    ) -> List[PackageRepo]:
+    ) -> list[PackageRepo]:
         """Consolidate each repository with global defaults
 
         The settings-wide defaults are used if a repository does not define the respective attribute.
@@ -779,14 +779,14 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             The settings-wide default management repo
         package_pool: Path
             The settings-wide default package_pool
-        repositories: List[PackageRepo]
+        repositories: list[PackageRepo]
             The list of package repositories
         source_pool: Path
             The settings-wide default source_pool
 
         Returns
         -------
-        List[PackageRepo]
+        list[PackageRepo]
             The validated and consolidated list of PackageRepo objects
         """
 
@@ -892,14 +892,14 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         return repositories
 
     @classmethod
-    def create_repository_directories(cls, repositories: List[PackageRepo]) -> None:
+    def create_repository_directories(cls, repositories: list[PackageRepo]) -> None:
         """Create the directories associated with package repositories
 
         Create directories only if the do not exist yet and validate that the directories are writeable.
 
         Parameters
         ----------
-        repositories: List[PackageRepo]
+        repositories: list[PackageRepo]
             A list of package repositories for which to create directories
         """
 
@@ -928,7 +928,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             create_and_validate_directory(directory=repo._source_pool_dir)
 
     @classmethod
-    def ensure_non_overlapping_repositories(cls, repositories: List[PackageRepo]) -> None:  # noqa: C901
+    def ensure_non_overlapping_repositories(cls, repositories: list[PackageRepo]) -> None:  # noqa: C901
         """Ensure that all repositories do not have overlapping directories
 
         Ensure that
@@ -952,7 +952,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         Parameters
         ----------
-        repositories: List[PackageRepo]
+        repositories: list[PackageRepo]
             A list of package repositories for which to create directories
         """
 
@@ -1484,7 +1484,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 "exist, would yield ambivalent results."
             )
 
-        names: List[Path] = []
+        names: list[Path] = []
         for repo in self.repositories:
             names.append(repo.name)
             if (architecture is not None and repo.name == name and repo.architecture == architecture) or (
@@ -1552,7 +1552,7 @@ class UserSettings(Settings):
         An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
         which does not define one itself.
         If unset, a default one is created during validation.
-    repositories: List[PackageRepo]
+    repositories: list[PackageRepo]
         A list of PackageRepos that each define a binary package repository (with optional staging and testing
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
         If no repository is defined, a default one is created during validation.
@@ -1613,7 +1613,7 @@ class SystemSettings(Settings):
         An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
         which does not define one itself.
         If unset, a default one is created during validation.
-    repositories: List[PackageRepo]
+    repositories: list[PackageRepo]
         A list of PackageRepos that each define a binary package repository (with optional staging and testing
         locations). Each may define optional overrides for Architecture, ManagementRepo, PackagePool and SourcePool
         If no repository is defined, a default one is created during validation.

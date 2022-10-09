@@ -1,6 +1,5 @@
 from logging import DEBUG
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import patch
 
 from pytest import LogCaptureFixture, mark
@@ -24,7 +23,7 @@ def test_pacmankeypackagessignatureverificationcheck(
     with_signature: bool,
     verifies: bool,
     return_value: ActionStateEnum,
-    default_package_file: Tuple[Path, ...],
+    default_package_file: tuple[Path, ...],
 ) -> None:
     check_ = check.PacmanKeyPackagesSignatureVerificationCheck(
         packages=[[default_package_file[0], default_package_file[1]]]
