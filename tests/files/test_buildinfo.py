@@ -28,11 +28,21 @@ def test_builddate(number: int, expectation: ContextManager[str]) -> None:
         buildinfo.BuildDate(builddate=number)
 
 
-def test_builddir(absolute_dir: str, invalid_absolute_dir: str) -> None:
-    with does_not_raise():
-        buildinfo.BuildDir(builddir=absolute_dir)
-    with raises(ValidationError):
-        buildinfo.BuildDir(builddir=invalid_absolute_dir)
+@mark.parametrize(
+    "path, expectation",
+    [
+        ("/", does_not_raise()),
+        ("/foo", does_not_raise()),
+        ("foo", raises(ValidationError)),
+        ("", raises(ValidationError)),
+    ],
+)
+def test_builddir(
+    path: str,
+    expectation: ContextManager[str],
+) -> None:
+    with expectation:
+        buildinfo.BuildDir(builddir=path)
 
 
 def test_buildenv(default_buildenv: str, default_invalid_buildenv: str) -> None:
@@ -144,11 +154,18 @@ def test_pkgver(default_full_version: str, default_invalid_full_version: str) ->
         buildinfo.PkgVer(pkgver=default_invalid_full_version)
 
 
-def test_startdir(absolute_dir: str, invalid_absolute_dir: str) -> None:
-    with does_not_raise():
-        buildinfo.StartDir(startdir=absolute_dir)
-    with raises(ValidationError):
-        buildinfo.StartDir(startdir=invalid_absolute_dir)
+@mark.parametrize(
+    "path, expectation",
+    [
+        ("/", does_not_raise()),
+        ("/foo", does_not_raise()),
+        ("foo", raises(ValidationError)),
+        ("", raises(ValidationError)),
+    ],
+)
+def test_startdir(path: str, expectation: ContextManager[str]) -> None:
+    with expectation:
+        buildinfo.StartDir(startdir=path)
 
 
 def test_buildinfo_from_file(

@@ -5,12 +5,18 @@ from pathlib import Path
 from re import fullmatch
 from typing import Any
 
-from pydantic import BaseModel, NonNegativeInt, conint, constr, root_validator
+from pydantic import (
+    BaseModel,
+    NonNegativeInt,
+    conint,
+    constr,
+    root_validator,
+    validator,
+)
 
 from repod.common.enums import FieldTypeEnum
 from repod.common.models import Packager
 from repod.common.regex import (
-    ABSOLUTE_PATH,
     ARCHITECTURE,
     BUILDENVS,
     EPOCH,
@@ -62,7 +68,30 @@ class BuildDir(BaseModel):
         A string representing an absolute directory
     """
 
-    builddir: constr(regex=rf"^{ABSOLUTE_PATH}$")  # type: ignore[valid-type]  # noqa: F722
+    builddir: str
+
+    @validator("builddir")
+    def validate_builddir(cls, builddir: str) -> str:
+        """Validate the builddir attribute
+
+        The builddir attribute may not contain strings that represent absolute Paths or Paths in the home directory
+
+        Parameters
+        ----------
+        builddir: str
+            A string, representing a path
+
+        Returns
+        -------
+        str
+            A validated string, representing an absolute Path
+        """
+
+        path = Path(builddir)
+        if not path.is_absolute():
+            raise ValueError(f"A relative path as builddir is not valid: {path}")
+
+        return builddir
 
 
 class BuildEnv(BaseModel):
@@ -236,7 +265,30 @@ class StartDir(BaseModel):
         A string representing the absolute startdir directory of a package
     """
 
-    startdir: constr(regex=rf"^{ABSOLUTE_PATH}$")  # type: ignore[valid-type]  # noqa: F722
+    startdir: str
+
+    @validator("startdir")
+    def validate_startdir(cls, startdir: str) -> str:
+        """Validate the startdir attribute
+
+        The startdir attribute may not contain strings that represent absolute Paths or Paths in the home directory
+
+        Parameters
+        ----------
+        startdir: str
+            A string, representing a path
+
+        Returns
+        -------
+        str
+            A validated string, representing an absolute Path
+        """
+
+        path = Path(startdir)
+        if not path.is_absolute():
+            raise ValueError(f"A relative path as startdir is not valid: {path}")
+
+        return startdir
 
 
 class BuildInfo(BaseModel):
