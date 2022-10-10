@@ -43,6 +43,10 @@ Changed
   ``set`` and ``tuple`` instead of the imports from ``typing``.
 * Type hints now use the union operator ``|`` instead of ``Union`` and
   ``Optional``.
+* The validation for package and signature filenames relied on regular
+  expressions which proved too cumbersome to maintain and extend. The
+  validation now relies on regular expressions only for the actual filenames
+  and validation for absolute vs. relative paths relies on ``pathlib.Path``.
 
 Fixed
 ^^^^^
