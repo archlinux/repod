@@ -233,23 +233,6 @@ def default_invalid_version() -> str:
     return "-1.0.0"
 
 
-@fixture(scope="session")
-def absolute_dir() -> str:
-    return "/foo"
-
-
-@fixture(
-    scope="session",
-    params=[
-        "/",
-        "foo",
-        "",
-    ],
-)
-def invalid_absolute_dir(request: Any) -> str:
-    return str(request.param)
-
-
 @fixture(
     scope="session",
     params=[arch.value for arch in ArchitectureEnum],

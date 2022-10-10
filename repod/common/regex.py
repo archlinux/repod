@@ -19,8 +19,6 @@ OPTIONS = r"(!|)[\w\-.]+"
 PKGREL = r"[1-9]+[0-9]*(|[.]{1}[1-9]+[0-9]*)"
 PACKAGE_NAME = r"[a-z\d_@+]+[a-z\d\-._@+]*"
 PACKAGER_NAME = r"[\w\s\-().]+"
-RELATIVE_PATH = r"[^/][\w\d\s.,:;/_=#()@\\&$?!+%~{}<>*\-\"\'\[\]\`^]+"
-ABSOLUTE_PATH = rf"/{RELATIVE_PATH}"
 SHA256 = r"^[a-f0-9]{64}$"
 VERSION = r"([A-Za-z\d]+)[_+.]?[A-Za-z\d_+.]*"
 PACKAGE_FILENAME = (
@@ -28,5 +26,3 @@ PACKAGE_FILENAME = (
     rf"(.pkg.tar)({tar_compression_types_for_filename_regex()})"
 )
 SIGNATURE_FILENAME = rf"{PACKAGE_FILENAME}(.sig)"
-PACKAGE_PATH = rf"{ABSOLUTE_PATH}/{PACKAGE_FILENAME}"
-PACKAGE_SIGNATURE_PATH = rf"{ABSOLUTE_PATH}/{PACKAGE_FILENAME}(.sig)"

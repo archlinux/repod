@@ -6,16 +6,6 @@ from repod.common import regex
 
 
 @mark.regex
-def test_absolute_path(absolute_dir: str) -> None:
-    assert isinstance(fullmatch(regex.ABSOLUTE_PATH, absolute_dir), Match)
-
-
-@mark.regex
-def test_invalid_absolute_path(invalid_absolute_dir: str) -> None:
-    assert not isinstance(fullmatch(regex.ABSOLUTE_PATH, invalid_absolute_dir), Match)
-
-
-@mark.regex
 def test_architectures(arch: str) -> None:
     assert isinstance(fullmatch(regex.ARCHITECTURE, arch), Match)
 
@@ -134,16 +124,6 @@ def test_pkgrel(pkgrel: str) -> None:
 @mark.regex
 def test_invalid_pkgrel(invalid_pkgrel: str) -> None:
     assert not isinstance(fullmatch(regex.PKGREL, invalid_pkgrel), Match)
-
-
-@mark.regex
-def test_relative_path() -> None:
-    assert isinstance(fullmatch(regex.RELATIVE_PATH, "foo"), Match)
-
-
-@mark.regex
-def test_invalid_relative_path(absolute_dir: str) -> None:
-    assert not isinstance(fullmatch(regex.RELATIVE_PATH, absolute_dir), Match)
 
 
 @mark.regex
