@@ -143,9 +143,41 @@ def test_repofile(
             assert repofile.RepoFile(file_type=file_type, file_path=file_path, symlink_path=symlink_path)
 
 
-def test_repofile_get_file_type_regex_raises_on_invalid() -> None:
-    with raises(RuntimeError):
-        repofile.RepoFile.get_file_type_regex(file_type=None)
+@mark.parametrize(
+    "path_absolute, filename_matches, file_type, expectation",
+    [
+        (True, True, RepoFileEnum.PACKAGE, does_not_raise()),
+        (True, True, RepoFileEnum.PACKAGE_SIGNATURE, does_not_raise()),
+        (False, True, RepoFileEnum.PACKAGE, raises(ValueError)),
+        (False, True, RepoFileEnum.PACKAGE_SIGNATURE, raises(ValueError)),
+        (True, False, RepoFileEnum.PACKAGE, raises(ValueError)),
+        (True, False, RepoFileEnum.PACKAGE_SIGNATURE, raises(ValueError)),
+    ],
+)
+def test_repofile_validate_path(
+    path_absolute: bool,
+    filename_matches: bool,
+    file_type: RepoFileEnum,
+    expectation: ContextManager[str],
+    default_filename: str,
+    tmp_path: Path,
+) -> None:
+    if path_absolute:
+        base_path = tmp_path
+    else:
+        base_path = Path("foo")
+
+    if filename_matches:
+        match file_type:
+            case RepoFileEnum.PACKAGE:
+                path = base_path / Path(default_filename)
+            case RepoFileEnum.PACKAGE_SIGNATURE:
+                path = base_path / Path(f"{default_filename}.sig")
+    else:
+        path = base_path / "foo"
+
+    with expectation:
+        repofile.RepoFile.validate_path(path=path, file_type=file_type)
 
 
 @mark.parametrize(

@@ -18,8 +18,8 @@ from repod.common.regex import (
     ARCHITECTURE,
     BASE64,
     EPOCH,
-    FILENAME,
     MD5,
+    PACKAGE_FILENAME,
     PACKAGE_NAME,
     PACKAGER_NAME,
     PKGREL,
@@ -187,7 +187,7 @@ class FileName(BaseModel):
         identifies a package's file name
     """
 
-    filename: constr(regex=f"^{FILENAME}$")  # type: ignore[valid-type]  # noqa: F722
+    filename: constr(regex=f"^{PACKAGE_FILENAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class FileList(BaseModel):

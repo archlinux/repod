@@ -503,6 +503,16 @@ def sha256sum() -> str:
     return create_sha256sum()
 
 
+@fixture(scope="session")
+def signature() -> str:
+    return ".sig"
+
+
+@fixture(scope="session")
+def invalid_signature() -> str:
+    return ".foo"
+
+
 @fixture(
     scope="session",
     params=[

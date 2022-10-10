@@ -23,9 +23,10 @@ RELATIVE_PATH = r"[^/][\w\d\s.,:;/_=#()@\\&$?!+%~{}<>*\-\"\'\[\]\`^]+"
 ABSOLUTE_PATH = rf"/{RELATIVE_PATH}"
 SHA256 = r"^[a-f0-9]{64}$"
 VERSION = r"([A-Za-z\d]+)[_+.]?[A-Za-z\d_+.]*"
-FILENAME = (
+PACKAGE_FILENAME = (
     rf"{PACKAGE_NAME}-({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}"
     rf"(.pkg.tar)({tar_compression_types_for_filename_regex()})"
 )
-PACKAGE_PATH = rf"{ABSOLUTE_PATH}/{FILENAME}"
-PACKAGE_SIGNATURE_PATH = rf"{ABSOLUTE_PATH}/{FILENAME}(.sig)"
+SIGNATURE_FILENAME = rf"{PACKAGE_FILENAME}(.sig)"
+PACKAGE_PATH = rf"{ABSOLUTE_PATH}/{PACKAGE_FILENAME}"
+PACKAGE_SIGNATURE_PATH = rf"{ABSOLUTE_PATH}/{PACKAGE_FILENAME}(.sig)"

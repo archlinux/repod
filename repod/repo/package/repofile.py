@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import BaseModel, root_validator
 
 from repod.common.enums import RepoFileEnum
-from repod.common.regex import PACKAGE_PATH, PACKAGE_SIGNATURE_PATH
+from repod.common.regex import PACKAGE_FILENAME, SIGNATURE_FILENAME
 from repod.errors import RepoManagementFileError
 
 
@@ -153,47 +153,38 @@ class RepoFile(BaseModel):
     symlink_path: Path
 
     @classmethod
-    def validate_path(cls, path: Path, regex: str) -> None:
+    def validate_path(cls, path: Path, file_type: RepoFileEnum) -> None:
         """Validate path to match regex
 
         Parameters
         ----------
         path: Path
             A path to match
-        regex: str
-            A regular expression to match path against
+        file_type: RepoFileEnum
+            A member of RepoFileEnum identifying which type of RepoFile to validate
 
         Raises
         ------
         ValueError
-            If path does not match regex
-        """
-
-        if not isinstance(fullmatch(regex, str(path)), Match):
-            raise ValueError(f"The path {path} does not match the regular expression {regex}.")
-
-    @classmethod
-    def get_file_type_regex(cls, file_type: RepoFileEnum) -> str:
-        """Return the regular expression associated with a given RepodFileEnum member
-
-        Parameters
-        ----------
-        file_type: RepoFileEnum
-            A member of RepoFileEnum
-
-        Returns
-        -------
-        str
-            The regular expression string associated with file_type
+            If path can not be validated
         """
 
         match file_type:
             case RepoFileEnum.PACKAGE:
-                return rf"^{PACKAGE_PATH}$"
+                if not path.is_absolute():
+                    raise ValueError(f"The path {path} must be absolute!")
+                if not isinstance(fullmatch(PACKAGE_FILENAME, path.name), Match):
+                    raise ValueError(f"The path {path} does not match the regular expression {PACKAGE_FILENAME}.")
+                return
+
             case RepoFileEnum.PACKAGE_SIGNATURE:
-                return rf"^{PACKAGE_SIGNATURE_PATH}$"
+                if not path.is_absolute():
+                    raise ValueError(f"The path {path} must be absolute!")
+                if not isinstance(fullmatch(SIGNATURE_FILENAME, path.name), Match):
+                    raise ValueError(f"The path {path} does not match the regular expression {SIGNATURE_FILENAME}.")
+                return
             case _:
-                raise RuntimeError(f"Invalid RepoFile.file_type encountered: {file_type}")
+                raise RuntimeError(f"Unknown repository file type: {file_type}")
 
     @root_validator
     def validate_paths(cls, values: dict[str, Any]) -> dict[str, Any]:
@@ -208,7 +199,7 @@ class RepoFile(BaseModel):
         ------
         ValueError
             If file_path and symlink_path are equal.
-            If path does not match the PACKAGE_PATH regular expression
+            If the path can not be validated using RepoFile.validate_path()
 
         Returns
         -------
@@ -217,7 +208,6 @@ class RepoFile(BaseModel):
         """
 
         file_type = values.get("file_type")
-        regex = RepoFile.get_file_type_regex(file_type=file_type)
 
         paths: list[Path] = []
         paths.append(values.get("file_path"))  # type: ignore[arg-type]
@@ -229,7 +219,7 @@ class RepoFile(BaseModel):
             )
 
         for path in paths:
-            RepoFile.validate_path(regex=regex, path=path)
+            RepoFile.validate_path(path=path, file_type=file_type)
 
         return values
 
@@ -300,7 +290,7 @@ class RepoFile(BaseModel):
         """
 
         info(f"Copy {self.file_path} from {path}...")
-        RepoFile.validate_path(path=path, regex=RepoFile.get_file_type_regex(file_type=self.file_type))
+        RepoFile.validate_path(path=path, file_type=self.file_type)
         if not path.exists():
             raise RepoManagementFileError(f"Error on trying to move file: The input file {path} does not exist!")
 
@@ -324,7 +314,7 @@ class RepoFile(BaseModel):
         """
 
         info(f"Move {self.file_path} from {path}...")
-        RepoFile.validate_path(path=path, regex=RepoFile.get_file_type_regex(file_type=self.file_type))
+        RepoFile.validate_path(path=path, file_type=self.file_type)
         if not path.exists():
             raise RepoManagementFileError(f"Error on trying to move file: The input file {path} does not exist!")
 
