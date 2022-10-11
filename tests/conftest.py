@@ -1515,52 +1515,17 @@ def default_package_file(
 
 @fixture(scope="function")
 def outputpackagebasev1_json_files_in_dir(
-    base64_pgpsig: str,
-    default_description: str,
-    default_filename: str,
-    default_license: str,
-    default_packager: str,
-    default_full_version: str,
-    filesv1: Files,
-    md5sum: str,
-    sha256sum: str,
     tmp_path: Path,
-    url: str,
+    outputpackagebasev1: OutputPackageBase,
 ) -> Path:
-    for name, files in [
-        ("foo", filesv1),
-        ("bar", filesv1),
-        ("baz", None),
-    ]:
-        model = OutputPackageBaseV1(
-            base=name,
-            packager=default_packager,
-            version=default_full_version,
-            packages=[
-                OutputPackageV1(
-                    arch="any",
-                    builddate=1,
-                    csize=0,
-                    desc=default_description.replace("foo", name),
-                    filename=default_filename,
-                    files=files,
-                    isize=1,
-                    license=[default_license],
-                    md5sum=md5sum,
-                    name=name,
-                    pgpsig=base64_pgpsig,
-                    sha256sum=sha256sum,
-                    url=url,
-                )
-            ],
-        )
-
-        with open(tmp_path / f"{name}.json", "wb") as output_file:
-            output_file.write(
-                orjson.dumps(
-                    model.dict(), option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE | orjson.OPT_SORT_KEYS
-                )
+    outputpackagebasev1.packages[0].files = None  # type: ignore[attr-defined]
+    with open(tmp_path / f"{outputpackagebasev1.base}.json", "wb") as output_file:  # type: ignore[attr-defined]
+        output_file.write(
+            orjson.dumps(
+                outputpackagebasev1.dict(),
+                option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE | orjson.OPT_SORT_KEYS,
             )
+        )
 
     return tmp_path
 
