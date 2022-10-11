@@ -1,11 +1,15 @@
+import asyncio
 from abc import ABCMeta, abstractmethod
 from logging import debug, info
 from pathlib import Path
 
 from repod.common.enums import ActionStateEnum, ArchitectureEnum, PkgTypeEnum
+from repod.errors import RepoManagementFileError
 from repod.files import Package
 from repod.files.pkginfo import PkgInfoV2, PkgType
+from repod.repo.management import OutputPackageBase
 from repod.verification import PacmanKeyVerifier
+from repod.version.alpm import pkg_vercmp
 
 
 class Check(metaclass=ABCMeta):
@@ -234,4 +238,205 @@ class MatchingArchitectureCheck(Check):
         else:
             self.state = ActionStateEnum.SUCCESS
 
+        return self.state
+
+
+class PkgbasesVersionUpdateCheck(Check):
+    """A Check to ensure, that pkgbases are updated, not downgraded
+
+    Attributes
+    ----------
+    new_pkgbases: list[OutputPackageBase]
+        A list of updated OutputPackageBase instances
+    current_pkgbases: list[OutputPackageBase]
+        A list of current OutputPackageBase instances
+    """
+
+    def __init__(self, new_pkgbases: list[OutputPackageBase], current_pkgbases: list[OutputPackageBase]):
+        """Initialize an instance of PkgbasesVersionUpdateCheck
+
+        Parameters
+        ----------
+        new_pkgbases: list[OutputPackageBase]
+            A list of updated OutputPackageBase instances
+        current_pkgbases: list[OutputPackageBase]
+            A list of current OutputPackageBase instances
+        """
+
+        self.new_pkgbases = new_pkgbases
+        self.current_pkgbases = current_pkgbases
+
+    def __call__(self) -> ActionStateEnum:
+        """Check, that pkgbases are updated, not downgraded
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check passed successfully,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        debug("Running check to test whether all pkgbases are being upgraded, not downgraded...")
+
+        current_names_versions = [
+            {"name": c_pkgbase.base, "version": c_pkgbase.version}  # type: ignore[attr-defined]
+            for c_pkgbase in self.current_pkgbases
+        ]
+
+        for pkgbase in self.new_pkgbases:
+            name = pkgbase.base  # type: ignore[attr-defined]
+            version = pkgbase.version  # type: ignore[attr-defined]
+            if name in [c_dict.get("name") for c_dict in current_names_versions]:
+                c_version = [
+                    str(c_dict.get("version")) for c_dict in current_names_versions if str(c_dict.get("name")) == name
+                ][0]
+                if (
+                    pkg_vercmp(
+                        c_version,
+                        version,
+                    )
+                    >= 0
+                ):
+                    info(
+                        f"The version of {name} currently "
+                        f"in the repository is newer than the provided one: {c_version} vs. {version}"
+                    )
+                    self.state = ActionStateEnum.FAILED
+                    return self.state
+
+        self.state = ActionStateEnum.SUCCESS
+        return self.state
+
+
+class PackagesNewOrUpdatedCheck(Check):
+    """A Check to ensure, that packages are new or updated
+
+    Attributes
+    ----------
+    directory: Path
+        A Path to the directory in a management repository where to look for OutputPackageBases
+    new_pkgbases: list[OutputPackageBase]
+        A list of updated OutputPackageBase instances
+    current_pkgbases: list[OutputPackageBase]
+        A list of current OutputPackageBase instances
+    """
+
+    def __init__(
+        self,
+        directory: Path,
+        new_pkgbases: list[OutputPackageBase],
+        current_pkgbases: list[OutputPackageBase],
+    ):
+        """Initialize an instance of PackagesNewOrUpdatedCheck
+
+        Parameters
+        ----------
+        directory: Path
+            A Path to the directory in a management repository where to look for OutputPackageBases
+        new_pkgbases: list[OutputPackageBase]
+            A list of updated OutputPackageBase instances
+        current_pkgbases: list[OutputPackageBase]
+            A list of current OutputPackageBase instances
+        """
+
+        self.directory = directory
+        self.new_pkgbases = new_pkgbases
+        self.current_pkgbases = current_pkgbases
+
+    def __call__(self) -> ActionStateEnum:
+        """Check, that packages are new or updated
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check passed successfully,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        debug("Running check to test that all packages are either new or updated...")
+
+        current_pkgbases = [
+            {
+                "name": c_pkgbase.base,  # type: ignore[attr-defined]
+                "packages": [pkg.name for pkg in c_pkgbase.packages],  # type: ignore[attr-defined]
+                "version": c_pkgbase.version,  # type: ignore[attr-defined]
+            }
+            for c_pkgbase in self.current_pkgbases
+        ]
+        new_pkgbases = [
+            {
+                "name": pkgbase.base,  # type: ignore[attr-defined]
+                "packages": [pkg.name for pkg in pkgbase.packages],  # type: ignore[attr-defined]
+                "version": pkgbase.version,  # type: ignore[attr-defined]
+            }
+            for pkgbase in self.new_pkgbases
+        ]
+
+        for pkgbase in new_pkgbases:
+            target_pkgbase_file = self.directory / Path(str(pkgbase.get("name")) + ".json")
+
+            for package in pkgbase.get("packages", []):
+                target_package_file = self.directory / "pkgnames" / Path(package + ".json")
+                target_package_pkgbase = target_package_file.resolve().name.replace(".json", "")
+                original_pkgbase_in_new_pkgbases = any(
+                    True for pkgbase in new_pkgbases if pkgbase.get("name") == target_package_pkgbase
+                )
+                original_pkgbase_provides_package = any(
+                    [
+                        True
+                        for pkgbase in new_pkgbases
+                        if pkgbase.get("name") == target_package_pkgbase and package in str(pkgbase.get("packages"))
+                    ]
+                )
+
+                # the pkgbase of the new package does not match an existing pkgbase (in current_pkgbases or
+                # new_pkgbases), but a file exists and provides a version newer than the one added
+                if (
+                    target_package_file.is_symlink()
+                    and target_package_file.resolve() != target_pkgbase_file
+                    and pkgbase.get("name") not in [pkgbase.get("name") for pkgbase in current_pkgbases]
+                ):
+                    try:
+                        old_pkgbase = asyncio.run(OutputPackageBase.from_file(target_package_file.resolve()))
+                    except RepoManagementFileError as e:
+                        info(e)
+                        self.state = ActionStateEnum.FAILED
+                        return self.state
+
+                    old_version = old_pkgbase.get_version()
+                    new_version = str(pkgbase.get("version"))
+
+                    if pkg_vercmp(old_version, new_version) >= 0:
+                        info(
+                            f"The version of the added {package} (provided by pkgbase {pkgbase.get('name')}) "
+                            "is newer or equal to the one already in the repository (provided by pkgbase "
+                            f"{target_package_pkgbase}): {old_version} (old) vs. {new_version} (new)"
+                        )
+                        self.state = ActionStateEnum.FAILED
+                        return self.state
+
+                # the pkgbase of the new package does not match an existing pkgbase and the update also does not
+                # remove the package from the previous pkgbase
+                if (
+                    target_package_file.is_symlink()
+                    and target_package_file.resolve() != target_pkgbase_file
+                    and (
+                        not original_pkgbase_in_new_pkgbases
+                        or (original_pkgbase_in_new_pkgbases and original_pkgbase_provides_package)
+                    )
+                ):
+                    info(
+                        f"The package {package} is currently provided by "
+                        f"pkgbase {target_package_pkgbase}, but the new pkgbase "
+                        f"{pkgbase.get('name')} now tries to provide it, "
+                        f"without removing the package from the pkgbase {target_package_pkgbase}."
+                    )
+                    self.state = ActionStateEnum.FAILED
+                    return self.state
+
+        self.state = ActionStateEnum.SUCCESS
         return self.state

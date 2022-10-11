@@ -1,3 +1,4 @@
+from copy import deepcopy
 from logging import DEBUG
 from pathlib import Path
 from unittest.mock import patch
@@ -6,8 +7,10 @@ from pytest import LogCaptureFixture, mark
 
 from repod.action import check
 from repod.common.enums import ActionStateEnum, ArchitectureEnum
+from repod.errors import RepoManagementFileError
 from repod.files.package import Package
 from repod.files.pkginfo import PkgType
+from repod.repo.management import OutputPackageBase
 
 
 @mark.parametrize(
@@ -97,3 +100,79 @@ def test_matchingarchitecturecheck(
 
     check_ = check.MatchingArchitectureCheck(architecture=architecture, packages=[packagev1])
     assert check_() == return_value
+
+
+@mark.parametrize(
+    "increase_version, return_value",
+    [
+        (True, ActionStateEnum.SUCCESS),
+        (False, ActionStateEnum.FAILED),
+    ],
+)
+def test_pkgbasesversionupdatecheck(
+    increase_version: bool,
+    return_value: ActionStateEnum,
+    outputpackagebasev1: OutputPackageBase,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    new_outputpackagebase1 = deepcopy(outputpackagebasev1)
+    new_outputpackagebase2 = deepcopy(outputpackagebasev1)
+    if increase_version:
+        new_outputpackagebase1.version = "2:1.0.0-1"  # type: ignore[attr-defined]
+        new_outputpackagebase2.version = "2:1.0.0-1"  # type: ignore[attr-defined]
+        new_outputpackagebase2.base = "baz"  # type: ignore[attr-defined]
+
+    check_ = check.PkgbasesVersionUpdateCheck(
+        new_pkgbases=[new_outputpackagebase1, new_outputpackagebase2],
+        current_pkgbases=[outputpackagebasev1],
+    )
+    assert check_() == return_value
+
+
+@mark.parametrize(
+    "change_new_base, increase_version, create_symlink, from_file_raises, return_value",
+    [
+        (False, False, True, False, ActionStateEnum.SUCCESS),
+        (False, False, False, False, ActionStateEnum.SUCCESS),
+        (True, False, False, False, ActionStateEnum.SUCCESS),
+        (True, False, True, False, ActionStateEnum.FAILED),
+        (True, False, True, True, ActionStateEnum.FAILED),
+        (True, True, True, False, ActionStateEnum.FAILED),
+    ],
+)
+def test_packagesneworupdatedcheck(
+    change_new_base: bool,
+    increase_version: bool,
+    create_symlink: bool,
+    from_file_raises: bool,
+    return_value: ActionStateEnum,
+    outputpackagebasev1: OutputPackageBase,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    if change_new_base:
+        outputpackagebasev1.base = "beh"  # type: ignore[attr-defined]
+
+    if increase_version:
+        outputpackagebasev1.version = "2:1.0.0-1"  # type: ignore[attr-defined]
+
+    if create_symlink:
+        (outputpackagebasev1_json_files_in_dir / "pkgnames").mkdir()
+        for name in ["foo", "bar"]:
+            (outputpackagebasev1_json_files_in_dir / "pkgnames" / f"{name}.json").symlink_to("../foo.json")
+
+    check_ = check.PackagesNewOrUpdatedCheck(
+        directory=outputpackagebasev1_json_files_in_dir,
+        new_pkgbases=[outputpackagebasev1],
+        current_pkgbases=[],
+    )
+    if from_file_raises:
+        with patch("repod.action.check.OutputPackageBase.from_file", side_effect=RepoManagementFileError):
+            assert check_() == return_value
+    else:
+        assert check_() == return_value
