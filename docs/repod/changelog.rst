@@ -24,6 +24,11 @@ Added
   in a subdirectory of a repository's management repository from each package
   name to their respective ``pkgbase``. This allows for easier search by
   package name.
+* Checks now ensure that when adding packages (update or new additions) their
+  versions will be greater than already existing packages. The checks also
+  consider changes to the pkgbase of a package (e.g. ensuring, that a
+  previously existing pkgbase providing a package must be updated if a
+  package's pkgbase changes).
 
 Changed
 ^^^^^^^
