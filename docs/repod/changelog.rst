@@ -52,6 +52,8 @@ Changed
   expressions which proved too cumbersome to maintain and extend. The
   validation now relies on regular expressions only for the actual filenames
   and validation for absolute vs. relative paths relies on ``pathlib.Path``.
+* The command ``repod-file repo writedb`` now allows writing empty sync databases
+  from empty management repositories.
 
 Fixed
 ^^^^^

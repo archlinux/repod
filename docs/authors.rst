@@ -12,3 +12,4 @@ Authors
 * Maxim Baz <maximbaz@archlinux.org>
 * Morten Linderud <foxboron@archlinux.org>
 * Jörg Behrmann <behrmann@physik.fu-berlin.de>
+* InsanePrawn <insane.prawny@gmail.com>
