@@ -9,25 +9,15 @@ from unittest.mock import Mock, patch
 from pytest import LogCaptureFixture, mark, raises
 
 from repod import commands
-from repod.action.task import (
-    AddToRepoTask,
-    MoveTmpFilesTask,
-    PrintOutputPackageBasesTask,
-)
 from repod.cli import cli
 from repod.common.enums import (
-    ActionStateEnum,
     ArchitectureEnum,
     FilesVersionEnum,
     PackageDescVersionEnum,
     tar_compression_types_for_filename_regex,
 )
 from repod.config import UserSettings
-from repod.config.defaults import (
-    DEFAULT_ARCHITECTURE,
-    DEFAULT_DATABASE_COMPRESSION,
-    DEFAULT_NAME,
-)
+from repod.config.defaults import DEFAULT_DATABASE_COMPRESSION
 
 
 @mark.parametrize(
@@ -109,9 +99,11 @@ def test_repod_file_package(
     ],
 )
 @patch("repod.cli.cli.repod_file_repo_importpkg")
+@patch("repod.cli.cli.write_sync_databases")
 @patch("repod.cli.cli.exit_on_error")
 def test_repod_file_repo(
     exit_on_error_mock: Mock,
+    write_sync_databases_mock: Mock,
     repod_file_repo_importpkg_mock: Mock,
     caplog: LogCaptureFixture,
     default_package_file: tuple[Path, ...],
@@ -140,107 +132,63 @@ def test_repod_file_repo(
     cli.repod_file_repo(args=args, settings=settings_mock)
     if args.repo == "importpkg":
         repod_file_repo_importpkg_mock.assert_called_once()
+    if args.repo == "writedb":
+        write_sync_databases_mock.assert_called_once()
     if calls_exit_on_error:
         exit_on_error_mock.assert_called_once()
 
 
-@mark.parametrize(
-    "print_outputpackagebases_task_return",
-    [
-        (ActionStateEnum.SUCCESS),
-        (ActionStateEnum.FAILED),
-    ],
-)
-@patch("repod.cli.cli.exit_on_error")
-def test_repod_file_repo_importpkg_dryrun(
-    exit_on_error_mock: Mock,
-    print_outputpackagebases_task_return: ActionStateEnum,
-    usersettings: UserSettings,
-    caplog: LogCaptureFixture,
-) -> None:
-    caplog.set_level(DEBUG)
-
-    print_outputpackagebases_task_mock = Mock(
-        spec=PrintOutputPackageBasesTask,
-        return_value=Mock(return_value=print_outputpackagebases_task_return),
-    )
-
-    with patch("repod.cli.cli.PrintOutputPackageBasesTask", return_value=print_outputpackagebases_task_mock):
-        cli.repod_file_repo_importpkg(
-            args=Namespace(
-                dry_run=True,
-                with_signature=True,
-                architecture=None,
-                name=usersettings.repositories[0].name,
-                pretty=True,
-                debug=False,
-                file=[Path("foo")],
-            ),
-            settings=usersettings,
-        )
-    print_outputpackagebases_task_mock.assert_called_once()
-
-    if print_outputpackagebases_task_return != ActionStateEnum.SUCCESS:
-        exit_on_error_mock.assert_called_once()
-        print_outputpackagebases_task_mock.undo.assert_called_once()
-
-
-@mark.parametrize(
-    "with_signature, add_to_repo_task_return",
-    [
-        (True, ActionStateEnum.SUCCESS),
-        (False, ActionStateEnum.SUCCESS),
-        (True, ActionStateEnum.FAILED),
-        (False, ActionStateEnum.FAILED),
-    ],
-)
-@patch("repod.cli.cli.exit_on_error")
+@mark.parametrize("dry_run", [(True), (False)])
+@patch("repod.cli.cli.add_packages_dryrun")
+@patch("repod.cli.cli.add_packages")
 def test_repod_file_repo_importpkg(
-    exit_on_error_mock: Mock,
-    with_signature: bool,
-    add_to_repo_task_return: ActionStateEnum,
+    add_packages_mock: Mock,
+    add_packages_dryrun_mock: Mock,
+    dry_run: bool,
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
-    tmp_path: Path,
 ) -> None:
     caplog.set_level(DEBUG)
 
-    tmp_file = tmp_path / "foo.tmp"
-    file = tmp_path / "foo"
-    backup_file = tmp_path / "foo.bkp"
-    backup_file.touch()
-    movetmpfiles_task = MoveTmpFilesTask(paths=[[tmp_file, file]])
-    movetmpfiles_task.state = ActionStateEnum.SUCCESS
-
-    add_to_repo_task_mock = Mock(
-        spec=AddToRepoTask,
-        return_value=add_to_repo_task_return,
-        dependencies=[movetmpfiles_task],
+    file: list[Path] = []
+    name = Path("foo")
+    architecture = ArchitectureEnum.ANY
+    debug_bool = False
+    staging_bool = False
+    testing_bool = False
+    with_signature = True
+    namespace = Namespace(
+        file=file,
+        name=name,
+        architecture=architecture,
+        debug=debug_bool,
+        staging=staging_bool,
+        testing=testing_bool,
+        with_signature=with_signature,
+        dry_run=dry_run,
     )
 
-    with patch("repod.cli.cli.AddToRepoTask", return_value=add_to_repo_task_mock):
-        cli.repod_file_repo_importpkg(
-            args=Namespace(
-                architecture=DEFAULT_ARCHITECTURE,
-                debug=False,
-                dry_run=False,
-                file=[Path("foo")],
-                name=Path(DEFAULT_NAME),
-                pretty=True,
-                staging=False,
-                testing=False,
-                with_signature=with_signature,
-            ),
+    cli.repod_file_repo_importpkg(args=namespace, settings=usersettings)
+    if dry_run:
+        add_packages_dryrun_mock.assert_called_once_with(
             settings=usersettings,
+            files=file,
+            repo_name=name,
+            repo_architecture=architecture,
+            debug_repo=debug_bool,
+            with_signature=with_signature,
         )
-    add_to_repo_task_mock.assert_called_once()
-
-    if add_to_repo_task_return == ActionStateEnum.SUCCESS:
-        assert not backup_file.exists()
     else:
-        exit_on_error_mock.assert_called_once()
-        add_to_repo_task_mock.undo.assert_called_once()
-        assert backup_file.exists()
+        add_packages_mock.assert_called_once_with(
+            settings=usersettings,
+            files=file,
+            repo_name=name,
+            repo_architecture=architecture,
+            debug_repo=debug_bool,
+            staging_repo=staging_bool,
+            testing_repo=testing_bool,
+            with_signature=with_signature,
+        )
 
 
 @mark.parametrize(

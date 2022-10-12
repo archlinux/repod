@@ -5,27 +5,20 @@ from pathlib import Path
 from sys import exit, stderr, stdout
 from unittest.mock import patch
 
-from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
+from orjson import dumps
 
 from repod import export_schemas
-from repod.action.task import (
-    AddToRepoTask,
-    ConsolidateOutputPackageBasesTask,
-    CreateOutputPackageBasesTask,
-    FilesToRepoDirTask,
-    MoveTmpFilesTask,
-    PrintOutputPackageBasesTask,
-    RemoveBackupFilesTask,
-    WriteOutputPackageBasesToTmpFileInDirTask,
-    WriteSyncDbsToTmpFilesInDirTask,
+from repod.action.workflow import (
+    add_packages,
+    add_packages_dryrun,
+    write_sync_databases,
 )
 from repod.cli import argparse
-from repod.common.enums import ActionStateEnum, RepoDirTypeEnum, RepoFileEnum
+from repod.common.enums import RepoDirTypeEnum
 from repod.config import SystemSettings, UserSettings
+from repod.config.defaults import ORJSON_OPTION
 from repod.files import Package
 from repod.repo import SyncDatabase
-
-ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
 
 
 def exit_on_error(message: str, argparser: ArgumentParser | None = None) -> None:
@@ -98,137 +91,29 @@ def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSe
         The options used for repo related actions
     settings: SystemSettings | UserSettings
         A Settings instance that is used for deriving repository directories from
-
-    Raises
-    ------
-    RuntimeError
-        If an invalid subcommand is provided.
     """
 
     if args.dry_run:
-        print_task = PrintOutputPackageBasesTask(
-            dumps_option=ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0,
-            dependencies=[
-                CreateOutputPackageBasesTask(
-                    architecture=settings.get_repo_architecture(name=args.name, architecture=args.architecture),
-                    package_paths=args.file,
-                    with_signature=args.with_signature,
-                    debug_repo=args.debug,
-                    package_verification=settings.package_verification,
-                )
-            ],
-        )
-        if print_task() != ActionStateEnum.SUCCESS:
-            print_task.undo()
-            exit_on_error("An error occured while trying to add packages to a repository in a dry-run!")
-            return
-
-        return  # pragma: no cover
-
-    outputpackagebasestask = CreateOutputPackageBasesTask(
-        architecture=settings.get_repo_architecture(name=args.name, architecture=args.architecture),
-        package_paths=args.file,
-        with_signature=args.with_signature,
-        debug_repo=args.debug,
-        package_verification=settings.package_verification,
-    )
-    add_to_repo_dependencies = [
-        MoveTmpFilesTask(
-            dependencies=[
-                ConsolidateOutputPackageBasesTask(
-                    directory=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.MANAGEMENT,
-                        name=args.name,
-                        architecture=args.architecture,
-                        debug=args.debug,
-                        staging=args.staging,
-                        testing=args.testing,
-                    ),
-                    dependencies=[
-                        outputpackagebasestask,
-                    ],
-                ),
-                WriteOutputPackageBasesToTmpFileInDirTask(
-                    directory=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.MANAGEMENT,
-                        name=args.name,
-                        architecture=args.architecture,
-                        debug=args.debug,
-                        staging=args.staging,
-                        testing=args.testing,
-                    ),
-                    dependencies=[
-                        outputpackagebasestask,
-                    ],
-                ),
-            ]
-        ),
-        FilesToRepoDirTask(
-            files=args.file,
-            file_type=RepoFileEnum.PACKAGE,
+        add_packages_dryrun(
             settings=settings,
-            name=args.name,
-            architecture=args.architecture,
+            files=args.file,
+            repo_name=args.name,
+            repo_architecture=args.architecture,
             debug_repo=args.debug,
-            staging_repo=args.staging,
-            testing_repo=args.testing,
-        ),
-    ]
-
-    if args.with_signature:
-        add_to_repo_dependencies.append(
-            FilesToRepoDirTask(
-                files=[Path(str(file) + ".sig") for file in args.file],
-                file_type=RepoFileEnum.PACKAGE_SIGNATURE,
-                settings=settings,
-                name=args.name,
-                architecture=args.architecture,
-                debug_repo=args.debug,
-                staging_repo=args.staging,
-                testing_repo=args.testing,
-            )
+            with_signature=args.with_signature,
         )
-
-    add_to_repo_dependencies.append(
-        MoveTmpFilesTask(
-            dependencies=[
-                WriteSyncDbsToTmpFilesInDirTask(
-                    compression=settings.get_repo_database_compression(name=args.name, architecture=args.architecture),
-                    desc_version=settings.syncdb_settings.desc_version,
-                    files_version=settings.syncdb_settings.files_version,
-                    management_repo_dir=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.MANAGEMENT,
-                        name=args.name,
-                        architecture=args.architecture,
-                        debug=args.debug,
-                        staging=args.staging,
-                        testing=args.testing,
-                    ),
-                    package_repo_dir=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.PACKAGE,
-                        name=args.name,
-                        architecture=args.architecture,
-                        debug=args.debug,
-                        staging=args.staging,
-                        testing=args.testing,
-                    ),
-                ),
-            ],
-        ),
-    )
-
-    add_to_repo_task = AddToRepoTask(dependencies=add_to_repo_dependencies)
-    if add_to_repo_task() != ActionStateEnum.SUCCESS:
-        add_to_repo_task.undo()
-        exit_on_error("An error occured while trying to add packages to a repository!")
         return
 
-    remove_backup_files_task = RemoveBackupFilesTask(
-        dependencies=[task for task in add_to_repo_task.dependencies if isinstance(task, MoveTmpFilesTask)]
+    add_packages(
+        settings=settings,
+        files=args.file,
+        repo_name=args.name,
+        repo_architecture=args.architecture,
+        debug_repo=args.debug,
+        staging_repo=args.staging,
+        testing_repo=args.testing,
+        with_signature=args.with_signature,
     )
-    remove_backup_files_task()
-
-    return
 
 
 def repod_file_repo(args: Namespace, settings: SystemSettings | UserSettings) -> None:
@@ -269,38 +154,14 @@ def repod_file_repo(args: Namespace, settings: SystemSettings | UserSettings) ->
         case "importpkg":
             repod_file_repo_importpkg(args=args, settings=settings)
         case "writedb":
-            remove_backup_files_task = RemoveBackupFilesTask(
-                dependencies=[
-                    MoveTmpFilesTask(
-                        dependencies=[
-                            WriteSyncDbsToTmpFilesInDirTask(
-                                compression=settings.get_repo_database_compression(
-                                    name=args.name, architecture=args.architecture
-                                ),
-                                desc_version=settings.syncdb_settings.desc_version,
-                                files_version=settings.syncdb_settings.files_version,
-                                management_repo_dir=settings.get_repo_path(
-                                    repo_type=RepoDirTypeEnum.MANAGEMENT,
-                                    name=args.name,
-                                    architecture=args.architecture,
-                                    debug=args.debug,
-                                    staging=args.staging,
-                                    testing=args.testing,
-                                ),
-                                package_repo_dir=settings.get_repo_path(
-                                    repo_type=RepoDirTypeEnum.PACKAGE,
-                                    name=args.name,
-                                    architecture=args.architecture,
-                                    debug=args.debug,
-                                    staging=args.staging,
-                                    testing=args.testing,
-                                ),
-                            ),
-                        ],
-                    )
-                ]
+            write_sync_databases(
+                settings=settings,
+                repo_name=args.name,
+                repo_architecture=args.architecture,
+                debug_repo=args.debug,
+                staging_repo=args.staging,
+                testing_repo=args.testing,
             )
-            remove_backup_files_task()
         case _:
             exit_on_error(
                 message="No subcommand provided to the 'repo' command!\n",
