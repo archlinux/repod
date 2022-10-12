@@ -96,7 +96,10 @@ def test_matchingarchitecturecheck(
     if matching_arch:
         architecture = ArchitectureEnum(packagev1.pkginfo.arch)  # type: ignore[attr-defined]
     else:
-        architecture = ArchitectureEnum.ANY
+        for arch in ArchitectureEnum:
+            if not arch == packagev1.pkginfo.arch:  # type: ignore[attr-defined]
+                architecture = arch
+                break
 
     check_ = check.MatchingArchitectureCheck(architecture=architecture, packages=[packagev1])
     assert check_() == return_value
