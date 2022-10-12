@@ -16,7 +16,9 @@ from repod.action.check import (
     Check,
     DebugPackagesCheck,
     MatchingArchitectureCheck,
+    PackagesNewOrUpdatedCheck,
     PacmanKeyPackagesSignatureVerificationCheck,
+    PkgbasesVersionUpdateCheck,
 )
 from repod.common.enums import (
     ActionStateEnum,
@@ -1344,6 +1346,141 @@ class RemoveBackupFilesTask(Task):
 
         if self.input_from_dependency:
             self.paths.clear()
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
+        return self.state
+
+
+class ConsolidateOutputPackageBasesTask(Task):
+    """Task to compare OutputPackageBase instances with those in a management repository
+
+    Attributes
+    ----------
+    pkgbases: list[OutputPackageBase]
+        A list of OutputPackageBase instances to compare to those in a management repository directory
+    directory: Path
+        A Path to the directory in a management repository where to look for OutputPackageBases
+    """
+
+    pkgbases: list[OutputPackageBase] = []
+    input_from_dependency = False
+
+    def __init__(
+        self,
+        directory: Path,
+        pkgbases: list[OutputPackageBase] | None = None,
+        dependencies: list[Task] | None = None,
+    ):
+        """Initialize an instance of ConsolidateOutputPackageBasesTask
+
+        If instances of CreateOutputPackageBasesTask are provided in dependencies, pkgbases is populated from them.
+
+        Parameters
+        ----------
+        directory: Path
+            A Path to the directory in a management repository where to look for OutputPackageBases
+        pkgbases: list[OutputPackageBase] | None
+            An optional list of OutputPackageBase instances to compare to those in a management repository directory
+        dependencies: list[Task] | None
+            An optional list of Task instances that are run before this task (defaults to None)
+        """
+
+        self.directory = directory
+        if not self.directory or not self.directory.exists():
+            raise RuntimeError("The provided directory must exist!")
+
+        if dependencies:
+            self.dependencies = dependencies
+            for dependency in self.dependencies:
+                if isinstance(dependency, CreateOutputPackageBasesTask):
+                    self.input_from_dependency = True
+
+        if self.input_from_dependency:
+            debug("Creating Task to compare OutputPackageBases, using output from another Task...")
+        else:
+            if not pkgbases:
+                raise RuntimeError("Pkgbases must be provided if not depending on another Task for input!")
+
+            debug(
+                "Creating Task to compare pkgbases "
+                f"{[pkgbase.base for pkgbase in pkgbases]}..."  # type: ignore[attr-defined]
+            )
+            self.pkgbases = pkgbases
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to compare OutputPackageBase instances with those in a management repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        if self.input_from_dependency and len(self.dependencies) > 0:
+            debug("Getting pkgbases from the output of another Task...")
+            for dependency in self.dependencies:  # pragma: no branch
+                if isinstance(dependency, CreateOutputPackageBasesTask):
+                    if dependency.state == ActionStateEnum.SUCCESS:
+                        self.pkgbases = dependency.pkgbases
+                    else:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
+
+        pkgbase_names = [pkgbase.base for pkgbase in self.pkgbases]  # type: ignore[attr-defined]
+        debug(f"Running Task to consolidate pkgbases {pkgbase_names}...")
+        self.state = ActionStateEnum.STARTED_TASK
+
+        current_pkgbases: list[OutputPackageBase] = []
+
+        for name in pkgbase_names:
+            current_pkgbase_file = self.directory / Path(name + ".json")
+            if current_pkgbase_file.exists():
+                try:
+                    current_pkgbases.append(asyncio.run(OutputPackageBase.from_file(current_pkgbase_file)))
+                except RepoManagementFileError as e:
+                    info(e)
+                    self.state = ActionStateEnum.FAILED_TASK
+                    return self.state
+
+        self.post_checks.append(
+            PkgbasesVersionUpdateCheck(new_pkgbases=self.pkgbases, current_pkgbases=current_pkgbases),
+        )
+        self.post_checks.append(
+            PackagesNewOrUpdatedCheck(
+                directory=self.directory,
+                new_pkgbases=self.pkgbases,
+                current_pkgbases=current_pkgbases,
+            ),
+        )
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo Task to consolidate OutputPackageBase instances with those from a management repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(
+                "Can not undo consolidation of OutputPackageBases "
+                f"{[pkgbase.base for pkgbase in self.pkgbases]} "  # type: ignore[attr-defined]
+                "as it has not happened yet!"
+            )
+            self.dependency_undo()
+            return self.state
+
+        if self.input_from_dependency:
+            self.pkgbases.clear()
 
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()

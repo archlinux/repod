@@ -1,4 +1,5 @@
 from contextlib import nullcontext as does_not_raise
+from copy import deepcopy
 from logging import DEBUG
 from pathlib import Path
 from typing import ContextManager
@@ -1187,6 +1188,171 @@ def test_removebackupfilestask_undo(
 
     task_ = task.RemoveBackupFilesTask(
         paths=paths if add_paths else None, dependencies=dependencies if add_dependencies else None
+    )
+    if do:
+        task_.do()
+
+    assert task_.undo() == return_value
+
+
+@mark.parametrize(
+    "dir_exists, add_dir, add_pkgbases, add_dependencies, expectation",
+    [
+        (True, True, True, False, does_not_raise()),
+        (True, True, False, True, does_not_raise()),
+        (True, True, False, False, raises(RuntimeError)),
+        (False, True, False, False, raises(RuntimeError)),
+        (False, True, True, False, raises(RuntimeError)),
+        (True, False, True, False, raises(RuntimeError)),
+    ],
+)
+def test_consolidateoutputpackagebasestask(
+    dir_exists: bool,
+    add_dir: bool,
+    add_pkgbases: bool,
+    add_dependencies: bool,
+    expectation: ContextManager[str],
+    outputpackagebasev1: OutputPackageBase,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    directory = tmp_path / "foo"
+    if dir_exists:
+        directory = tmp_path
+
+    pkgbases = [outputpackagebasev1]
+
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.CreateOutputPackageBasesTask,
+            pkgbases=[Mock(pkgbases=pkgbases)],
+        ),
+    ]
+
+    with expectation:
+        task_ = task.ConsolidateOutputPackageBasesTask(
+            directory=directory if add_dir else None,
+            dependencies=dependencies if add_dependencies else None,
+            pkgbases=pkgbases if add_pkgbases else None,
+        )
+
+    if dir_exists and add_dir:
+        if add_dependencies:
+            assert task_.input_from_dependency
+            assert task_.pkgbases == []
+        else:
+            if add_pkgbases:
+                assert not task_.input_from_dependency
+                assert task_.pkgbases == pkgbases
+
+
+@mark.parametrize(
+    (
+        "pkgbase_without_file, add_pkgbases, add_required_dep, required_dep_state, "
+        "add_dependencies, from_file_raises, return_value"
+    ),
+    [
+        (False, True, False, ActionStateEnum.SUCCESS, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, False, ActionStateEnum.SUCCESS, False, True, ActionStateEnum.FAILED_TASK),
+        (False, False, True, ActionStateEnum.SUCCESS, True, False, ActionStateEnum.SUCCESS_TASK),
+        (False, False, True, ActionStateEnum.SUCCESS, True, True, ActionStateEnum.FAILED_TASK),
+        (False, False, True, ActionStateEnum.FAILED, True, False, ActionStateEnum.FAILED_DEPENDENCY),
+        (True, True, False, ActionStateEnum.SUCCESS, False, False, ActionStateEnum.SUCCESS_TASK),
+        (True, True, False, ActionStateEnum.SUCCESS, False, True, ActionStateEnum.FAILED_TASK),
+        (True, False, True, ActionStateEnum.SUCCESS, True, False, ActionStateEnum.SUCCESS_TASK),
+        (True, False, True, ActionStateEnum.SUCCESS, True, True, ActionStateEnum.FAILED_TASK),
+        (True, False, True, ActionStateEnum.FAILED, True, False, ActionStateEnum.FAILED_DEPENDENCY),
+    ],
+)
+def test_consolidateoutputpackagebasestask_do(
+    pkgbase_without_file: bool,
+    add_pkgbases: bool,
+    add_required_dep: bool,
+    required_dep_state: ActionStateEnum,
+    add_dependencies: bool,
+    from_file_raises: bool,
+    return_value: ActionStateEnum,
+    outputpackagebasev1: OutputPackageBase,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    pkgbases = [outputpackagebasev1]
+    if pkgbase_without_file:
+        other_pkgbase = deepcopy(outputpackagebasev1)
+        other_pkgbase.base = "beh"  # type: ignore[attr-defined]
+        pkgbases.append(other_pkgbase)
+
+    dependencies = [
+        Mock(),
+    ]
+    if add_required_dep:
+        dependencies.append(
+            Mock(
+                spec=task.CreateOutputPackageBasesTask,
+                pkgbases=pkgbases,
+                state=required_dep_state,
+            )
+        )
+
+    task_ = task.ConsolidateOutputPackageBasesTask(
+        directory=outputpackagebasev1_json_files_in_dir,
+        dependencies=dependencies if add_dependencies else None,
+        pkgbases=pkgbases if add_pkgbases else None,
+    )
+    if from_file_raises:
+        with patch("repod.action.task.OutputPackageBase.from_file", side_effect=RepoManagementFileError):
+            assert task_.do() == return_value
+    else:
+        assert task_.do() == return_value
+
+
+@mark.parametrize(
+    "dep_undo_success, add_dependencies, add_pkgbases, do, return_value",
+    [
+        (True, True, False, True, ActionStateEnum.NOT_STARTED),
+        (True, True, False, False, ActionStateEnum.NOT_STARTED),
+        (False, False, True, True, ActionStateEnum.NOT_STARTED),
+        (False, False, True, False, ActionStateEnum.NOT_STARTED),
+    ],
+)
+def test_consolidateoutputpackagebasestask_undo(
+    dep_undo_success: bool,
+    add_dependencies: bool,
+    add_pkgbases: bool,
+    do: bool,
+    return_value: ActionStateEnum,
+    tmp_path: Path,
+    outputpackagebasev1: OutputPackageBase,
+    outputpackagebasev1_json_files_in_dir: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    pkgbases = [outputpackagebasev1]
+    dependencies = [
+        Mock(
+            undo=Mock(return_value=ActionStateEnum.NOT_STARTED),
+        ),
+        Mock(
+            spec=task.CreateOutputPackageBasesTask,
+            pkgbases=pkgbases,
+            state=ActionStateEnum.SUCCESS,
+            undo=Mock(
+                return_value=ActionStateEnum.NOT_STARTED if dep_undo_success else ActionStateEnum.FAILED_UNDO_TASK,
+            ),
+        ),
+    ]
+
+    task_ = task.ConsolidateOutputPackageBasesTask(
+        directory=outputpackagebasev1_json_files_in_dir,
+        dependencies=dependencies if add_dependencies else None,
+        pkgbases=pkgbases if add_pkgbases else None,
     )
     if do:
         task_.do()
