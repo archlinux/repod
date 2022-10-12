@@ -10,6 +10,7 @@ from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS, dumps
 from repod import export_schemas
 from repod.action.task import (
     AddToRepoTask,
+    ConsolidateOutputPackageBasesTask,
     CreateOutputPackageBasesTask,
     FilesToRepoDirTask,
     MoveTmpFilesTask,
@@ -124,9 +125,29 @@ def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSe
 
         return  # pragma: no cover
 
+    outputpackagebasestask = CreateOutputPackageBasesTask(
+        architecture=settings.get_repo_architecture(name=args.name, architecture=args.architecture),
+        package_paths=args.file,
+        with_signature=args.with_signature,
+        debug_repo=args.debug,
+        package_verification=settings.package_verification,
+    )
     add_to_repo_dependencies = [
         MoveTmpFilesTask(
             dependencies=[
+                ConsolidateOutputPackageBasesTask(
+                    directory=settings.get_repo_path(
+                        repo_type=RepoDirTypeEnum.MANAGEMENT,
+                        name=args.name,
+                        architecture=args.architecture,
+                        debug=args.debug,
+                        staging=args.staging,
+                        testing=args.testing,
+                    ),
+                    dependencies=[
+                        outputpackagebasestask,
+                    ],
+                ),
                 WriteOutputPackageBasesToTmpFileInDirTask(
                     directory=settings.get_repo_path(
                         repo_type=RepoDirTypeEnum.MANAGEMENT,
@@ -137,15 +158,9 @@ def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSe
                         testing=args.testing,
                     ),
                     dependencies=[
-                        CreateOutputPackageBasesTask(
-                            architecture=settings.get_repo_architecture(name=args.name, architecture=args.architecture),
-                            package_paths=args.file,
-                            with_signature=args.with_signature,
-                            debug_repo=args.debug,
-                            package_verification=settings.package_verification,
-                        )
+                        outputpackagebasestask,
                     ],
-                )
+                ),
             ]
         ),
         FilesToRepoDirTask(
