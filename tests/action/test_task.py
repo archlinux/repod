@@ -955,14 +955,14 @@ def test_writesyncdbstotmpfilesindirtask(
         (
             True,
             PackageDescVersionEnum.DEFAULT,
-            ActionStateEnum.FAILED_TASK,
+            ActionStateEnum.SUCCESS_TASK,
             False,
             False,
         ),
         (
             False,
             PackageDescVersionEnum.DEFAULT,
-            ActionStateEnum.FAILED_TASK,
+            ActionStateEnum.SUCCESS_TASK,
             False,
             False,
         ),

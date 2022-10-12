@@ -1172,21 +1172,20 @@ async def test_syncdatabase_stream_management_repo(
 
 @mark.parametrize("database_type", [(syncdb.RepoDbTypeEnum.DEFAULT), (syncdb.RepoDbTypeEnum.FILES)])
 @mark.asyncio
-async def test_syncdatabase_stream_management_repo_raises_on_empty_dir(
+async def test_syncdatabase_stream_management_repo_empty_dir(
     caplog: LogCaptureFixture,
     database_type: syncdb.RepoDbTypeEnum,
     default_sync_db_file: tuple[Path, Path],
     tmp_path: Path,
 ) -> None:
     caplog.set_level(DEBUG)
-    with raises(RepoManagementFileNotFoundError):
-        await syncdb.SyncDatabase(
-            database=default_sync_db_file[0],
-            database_type=database_type,
-            compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
-            desc_version=PackageDescVersionEnum.DEFAULT,
-            files_version=FilesVersionEnum.DEFAULT,
-        ).stream_management_repo(path=tmp_path)
+    await syncdb.SyncDatabase(
+        database=default_sync_db_file[0],
+        database_type=database_type,
+        compression_type=compression_type_of_tarfile(default_sync_db_file[0]),
+        desc_version=PackageDescVersionEnum.DEFAULT,
+        files_version=FilesVersionEnum.DEFAULT,
+    ).stream_management_repo(path=tmp_path)
 
 
 @mark.asyncio

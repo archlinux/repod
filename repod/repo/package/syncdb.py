@@ -497,16 +497,11 @@ class SyncDatabase(BaseModel):
         ----------
         path: Path
             The directory containing the files of the management repository
-
-        Raises
-        ------
-        RepoManagementFileNotFoundError
-            If no JSON files are found in path
         """
 
         file_list = sorted(path.glob("*.json"))
         if not file_list:
-            raise RepoManagementFileNotFoundError(f"There are no JSON files in {path}!")
+            debug(f"There are no JSON files in {path}! Creating empty sync db.")
 
         with open_tarfile(self.database, compression=self.compression_type, mode="w") as database_file:
             for json_file in file_list:
