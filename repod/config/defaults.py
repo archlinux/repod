@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS
 from xdg.BaseDirectory import xdg_config_home, xdg_state_home
 
 from repod.common.enums import ArchitectureEnum, CompressionTypeEnum, SettingsTypeEnum
@@ -7,6 +8,8 @@ from repod.common.enums import ArchitectureEnum, CompressionTypeEnum, SettingsTy
 DEFAULT_ARCHITECTURE = ArchitectureEnum.ANY
 DEFAULT_DATABASE_COMPRESSION = CompressionTypeEnum.GZIP
 DEFAULT_NAME = "default"
+
+ORJSON_OPTION = OPT_INDENT_2 | OPT_APPEND_NEWLINE | OPT_SORT_KEYS
 
 SETTINGS_LOCATION = {
     SettingsTypeEnum.SYSTEM: Path("/etc/repod.conf"),
