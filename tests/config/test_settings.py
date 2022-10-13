@@ -7,7 +7,12 @@ from unittest.mock import Mock, call, patch
 
 from pytest import LogCaptureFixture, mark, raises
 
-from repod.common.enums import ArchitectureEnum, RepoDirTypeEnum, SettingsTypeEnum
+from repod.common.enums import (
+    ArchitectureEnum,
+    CompressionTypeEnum,
+    RepoDirTypeEnum,
+    SettingsTypeEnum,
+)
 from repod.config import settings
 
 
@@ -1204,7 +1209,7 @@ def test_create_and_validate_directory(
         (False, False, False, None, raises(RuntimeError)),
     ],
 )
-def test_settings_get_repo_architecture(
+def test_settings_get_repo(
     has_repo: bool,
     has_namesake_repo: bool,
     reuse_first_repo_name: bool,
@@ -1225,87 +1230,52 @@ def test_settings_get_repo_architecture(
             usersettings.repositories.append(namesake)
 
     with expectation:
-        architecture = usersettings.get_repo_architecture(name=name, architecture=architecture)
-        if has_namesake_repo and reuse_first_repo_name and architecture == ArchitectureEnum.ARM:
-            assert architecture == usersettings.repositories[1].architecture
-        else:
-            assert architecture == usersettings.repositories[0].architecture
+        usersettings.get_repo(name=name, architecture=architecture)
+
+
+def test_settings_get_repo_management_repo(usersettings: settings.UserSettings) -> None:
+    assert isinstance(
+        usersettings.get_repo_management_repo(
+            name=Path(settings.DEFAULT_NAME),
+            architecture=settings.DEFAULT_ARCHITECTURE,
+        ),
+        settings.ManagementRepo,
+    )
+
+
+def test_settings_get_repo_architecture(usersettings: settings.UserSettings) -> None:
+    assert isinstance(
+        usersettings.get_repo_architecture(
+            name=Path(settings.DEFAULT_NAME),
+            architecture=settings.DEFAULT_ARCHITECTURE,
+        ),
+        ArchitectureEnum,
+    )
+
+
+def test_settings_get_repo_database_compression(usersettings: settings.UserSettings) -> None:
+    assert isinstance(
+        usersettings.get_repo_database_compression(
+            name=Path(settings.DEFAULT_NAME),
+            architecture=settings.DEFAULT_ARCHITECTURE,
+        ),
+        CompressionTypeEnum,
+    )
 
 
 @mark.parametrize(
-    "has_repo, has_namesake_repo, reuse_first_repo_name, architecture, expectation",
+    ("repo_type, debug_exists, staging_exists, " "testing_exists, debug, staging, testing, expectation"),
     [
-        (True, False, True, settings.DEFAULT_ARCHITECTURE, does_not_raise()),
-        (True, True, True, settings.DEFAULT_ARCHITECTURE, does_not_raise()),
-        (True, True, True, ArchitectureEnum.ARM, does_not_raise()),
-        (True, True, True, None, raises(RuntimeError)),
-        (True, True, False, ArchitectureEnum.ARM, raises(RuntimeError)),
-        (False, False, True, settings.DEFAULT_ARCHITECTURE, raises(RuntimeError)),
-        (False, False, False, None, raises(RuntimeError)),
-    ],
-)
-def test_settings_get_repo_database_compression(
-    has_repo: bool,
-    has_namesake_repo: bool,
-    reuse_first_repo_name: bool,
-    architecture: ArchitectureEnum | None,
-    expectation: ContextManager[str],
-    usersettings: settings.UserSettings,
-) -> None:
-    name = Path("foo")
-
-    if reuse_first_repo_name:
-        name = usersettings.repositories[0].name
-    if not has_repo:
-        usersettings.repositories = []
-    else:
-        if has_namesake_repo:
-            namesake = deepcopy(usersettings.repositories[0])
-            namesake.architecture = ArchitectureEnum.ARM
-            usersettings.repositories.append(namesake)
-
-    with expectation:
-        compression = usersettings.get_repo_database_compression(name=name, architecture=architecture)
-        if has_namesake_repo and reuse_first_repo_name and architecture == ArchitectureEnum.ARM:
-            assert compression == usersettings.repositories[1].database_compression
-        else:
-            assert compression == usersettings.repositories[0].database_compression
-
-
-@mark.parametrize(
-    (
-        "repo_type, has_repo, has_namesake_repo, name_exists, architecture_exists, debug_exists, staging_exists, "
-        "testing_exists, debug, staging, testing, expectation"
-    ),
-    [
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, False, False, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, True, False, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, False, True, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, True, True, True, True, False, False, True, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, False, False, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, True, False, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, False, True, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, True, False, True, True, True, False, False, True, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, False, False, False, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, False, False, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, False, True, False, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, False, False, True, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, False, False, False, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, False, False, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, False, True, False, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, False, False, True, does_not_raise()),
         (
             RepoDirTypeEnum.MANAGEMENT,
-            True,
-            True,
-            True,
-            False,
-            True,
-            True,
-            True,
-            False,
-            False,
-            False,
-            raises(RuntimeError),
-        ),
-        (
-            RepoDirTypeEnum.MANAGEMENT,
-            True,
-            False,
-            True,
-            True,
             False,
             True,
             True,
@@ -1319,10 +1289,6 @@ def test_settings_get_repo_database_compression(
             True,
             False,
             True,
-            True,
-            True,
-            False,
-            True,
             False,
             True,
             False,
@@ -1330,10 +1296,6 @@ def test_settings_get_repo_database_compression(
         ),
         (
             RepoDirTypeEnum.MANAGEMENT,
-            True,
-            False,
-            True,
-            True,
             True,
             True,
             False,
@@ -1345,24 +1307,6 @@ def test_settings_get_repo_database_compression(
         (
             RepoDirTypeEnum.MANAGEMENT,
             True,
-            False,
-            False,
-            True,
-            True,
-            True,
-            True,
-            False,
-            False,
-            False,
-            raises(RuntimeError),
-        ),
-        (
-            RepoDirTypeEnum.MANAGEMENT,
-            True,
-            False,
-            True,
-            True,
-            True,
             True,
             True,
             False,
@@ -1370,70 +1314,23 @@ def test_settings_get_repo_database_compression(
             True,
             raises(RuntimeError),
         ),
-        (
-            RepoDirTypeEnum.MANAGEMENT,
-            False,
-            False,
-            False,
-            True,
-            True,
-            False,
-            False,
-            False,
-            False,
-            False,
-            raises(RuntimeError),
-        ),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, False, False, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, True, True, True, True, False, False, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, True, False, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, False, True, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, False, True, True, True, False, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, True, False, True, False, True, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, True, True, False, False, False, True, raises(RuntimeError)),
-        (
-            RepoDirTypeEnum.PACKAGE,
-            True,
-            False,
-            False,
-            True,
-            True,
-            True,
-            True,
-            False,
-            False,
-            False,
-            raises(RuntimeError),
-        ),
-        (RepoDirTypeEnum.PACKAGE, True, False, True, True, True, True, True, False, True, True, raises(RuntimeError)),
-        (
-            RepoDirTypeEnum.PACKAGE,
-            False,
-            False,
-            False,
-            True,
-            True,
-            False,
-            False,
-            False,
-            False,
-            False,
-            raises(RuntimeError),
-        ),
-        (RepoDirTypeEnum.POOL, True, False, True, True, False, False, False, False, False, False, does_not_raise()),
-        (RepoDirTypeEnum.POOL, True, False, True, True, False, False, False, True, False, False, does_not_raise()),
-        (RepoDirTypeEnum.POOL, True, False, True, True, False, False, False, False, True, False, does_not_raise()),
-        (RepoDirTypeEnum.POOL, True, False, True, True, False, False, False, False, False, True, does_not_raise()),
-        (None, True, False, True, True, True, True, True, False, False, False, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, False, False, False, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, False, False, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, False, True, False, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, False, False, True, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, False, True, True, True, False, False, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, False, True, False, True, False, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, False, False, False, True, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, False, True, True, raises(RuntimeError)),
+        (RepoDirTypeEnum.POOL, False, False, False, False, False, False, does_not_raise()),
+        (RepoDirTypeEnum.POOL, False, False, False, True, False, False, does_not_raise()),
+        (RepoDirTypeEnum.POOL, False, False, False, False, True, False, does_not_raise()),
+        (RepoDirTypeEnum.POOL, False, False, False, False, False, True, does_not_raise()),
+        (None, True, True, True, False, False, False, raises(RuntimeError)),
     ],
 )
 def test_settings_get_repo_path(
-    usersettings: settings.UserSettings,
     repo_type: RepoDirTypeEnum,
-    has_repo: bool,
-    has_namesake_repo: bool,
-    name_exists: bool,
-    architecture_exists: bool,
     debug_exists: bool,
     staging_exists: bool,
     testing_exists: bool,
@@ -1441,15 +1338,10 @@ def test_settings_get_repo_path(
     staging: bool,
     testing: bool,
     expectation: ContextManager[str],
+    usersettings: settings.UserSettings,
+    caplog: LogCaptureFixture,
 ) -> None:
-    name = Path("foo")
-    architecture = None
-
-    if name_exists:
-        name = usersettings.repositories[0].name
-
-    if architecture_exists:
-        architecture = usersettings.repositories[0].architecture
+    caplog.set_level(DEBUG)
 
     if not debug_exists:
         usersettings.repositories[0].debug = None
@@ -1460,17 +1352,14 @@ def test_settings_get_repo_path(
     if not testing_exists:
         usersettings.repositories[0].testing = None
 
-    if not has_repo:
-        usersettings.repositories = []
-    else:
-        if has_namesake_repo:
-            namesake = deepcopy(usersettings.repositories[0])
-            namesake.architecture = ArchitectureEnum.ARM
-            usersettings.repositories.append(namesake)
-
     with expectation:
         path = usersettings.get_repo_path(
-            repo_type=repo_type, name=name, architecture=architecture, debug=debug, staging=staging, testing=testing
+            repo_type=repo_type,
+            name=Path(settings.DEFAULT_NAME),
+            architecture=settings.DEFAULT_ARCHITECTURE,
+            debug=debug,
+            staging=staging,
+            testing=testing,
         )
 
         match repo_type, debug, staging, testing:

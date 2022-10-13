@@ -30,6 +30,7 @@ from repod.config.defaults import (
     DEFAULT_DATABASE_COMPRESSION,
     DEFAULT_NAME,
     MANAGEMENT_REPO_BASE,
+    ORJSON_OPTION,
     PACKAGE_POOL_BASE,
     PACKAGE_REPO_BASE,
     SETTINGS_LOCATION,
@@ -173,10 +174,13 @@ class ManagementRepo(BaseModel):
         A Path instance describing the location of the management repository
     url: AnyUrl | None
         A URL describing the VCS upstream of the management repository
+    json_dumps_option: int
+        An option for orjson (see https://github.com/ijl/orjson#option) on how to serialize data
     """
 
     directory: Path
     url: AnyUrl | None
+    json_dumps_option: int = ORJSON_OPTION
 
     @validator("url")
     def validate_url(cls, url: AnyUrl | None) -> AnyUrl | None:
@@ -1334,8 +1338,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 other_name="staging repository",
             )
 
-    def get_repo_architecture(self, name: Path, architecture: ArchitectureEnum | None) -> ArchitectureEnum:
-        """Get a repository's configured CPU architecture
+    def get_repo(self, name: Path, architecture: ArchitectureEnum | None) -> PackageRepo:
+        """Get a repository
 
         Parameters
         ----------
@@ -1352,15 +1356,15 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         Returns
         -------
-        ArchitectureEnum
-            A member of ArchitectureEnum, which represents the CPU architecture of the repository
+        PackageRepo
+            A package repository
         """
 
         names_arches = [(repo.name, repo.architecture) for repo in self.repositories]
         name_matches = [data for data in names_arches if data[0] == name]
         if not architecture and len(name_matches) > 1:
             raise RuntimeError(
-                "An error occured while trying to request the architecture for a repository: "
+                "An error occured while trying to get to a repository: "
                 f"Specifying only a name ({name}) but no architecture while several repositories of the same name "
                 f"({[str(data[0]) + ' (' + data[1].value + ')' for data in name_matches]}) "  # type: ignore[union-attr]
                 "exist, would yield ambivalent results."
@@ -1370,12 +1374,31 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             if (architecture is not None and repo.name == name and repo.architecture == architecture) or (
                 architecture is None and repo.name == name
             ):
-                return repo.architecture
+                return repo
 
         raise RuntimeError(
             f"Unable to find '{name}' {'(' + architecture.value + ')' if architecture else ''} in the available "
             f"repositories ({[str(name_) for name_ in [repo.name for repo in self.repositories]]})"
         )
+
+    def get_repo_architecture(self, name: Path, architecture: ArchitectureEnum | None) -> ArchitectureEnum:
+        """Get a repository's configured CPU architecture
+
+        Parameters
+        ----------
+        name: Path
+            The name of the repository
+        architecture: ArchitectureEnum | None
+            The optional architecture of the repository
+
+        Returns
+        -------
+        ArchitectureEnum
+            A member of ArchitectureEnum, which represents the CPU architecture of the repository
+        """
+
+        repo = self.get_repo(name=name, architecture=architecture)
+        return repo.architecture
 
     def get_repo_database_compression(
         self,
@@ -1391,43 +1414,14 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         architecture: ArchitectureEnum | None
             An optional member of ArchitectureEnum to define the CPU architecture of the repository
 
-        Raises
-        ------
-        RuntimeError
-            If more than one non-stable repository is targetted.
-            If no repository matching the name can be found.
-
         Returns
         -------
         CompressionTypeEnum
             The database compression type of the repository identified by name and architecture
         """
 
-        names_arches = [(repo.name, repo.architecture) for repo in self.repositories]
-        name_matches = [data for data in names_arches if data[0] == name]
-        if not architecture and len(name_matches) > 1:
-            raise RuntimeError(
-                f"An error occured while trying to request a repository directory: "
-                f"Specifying only a name ({name}) but no architecture while several repositories of the same name "
-                f"({[str(data[0]) + ' (' + data[1].value + ')' for data in name_matches]}) "  # type: ignore[union-attr]
-                "exist, would yield ambivalent results."
-            )
-
-        for repo in self.repositories:
-            if (architecture is not None and repo.name == name and repo.architecture == architecture) or (
-                architecture is None and repo.name == name
-            ):
-                return repo.database_compression
-
-        raise RuntimeError(
-            f"Unable to find '{name}' {'(' + architecture.value + ')' if architecture else ''} in the available "
-            "repositories ({})".format(
-                [
-                    str(repo.name) + " (" + repo.architecture.value + ")"  # type: ignore[union-attr]
-                    for repo in self.repositories
-                ]
-            )
-        )
+        repo = self.get_repo(name=name, architecture=architecture)
+        return repo.database_compression
 
     def get_repo_path(
         self,
@@ -1474,67 +1468,69 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 f"debug ({debug}), staging ({staging}) and testing ({testing})!"
             )
 
-        names_arches = [(repo.name, repo.architecture) for repo in self.repositories]
-        name_matches = [data for data in names_arches if data[0] == name]
-        if not architecture and len(name_matches) > 1:
-            raise RuntimeError(
-                f"An error occured while trying to request a repository directory: "
-                f"Specifying only a name ({name}) but no architecture while several repositories of the same name "
-                f"({[str(data[0]) + ' (' + data[1].value + ')' for data in name_matches]}) "  # type: ignore[union-attr]
-                "exist, would yield ambivalent results."
-            )
+        repo = self.get_repo(name=name, architecture=architecture)
 
-        names: list[Path] = []
-        for repo in self.repositories:
-            names.append(repo.name)
-            if (architecture is not None and repo.name == name and repo.architecture == architecture) or (
-                architecture is None and repo.name == name
+        match repo_type, debug, staging, testing:
+            case RepoDirTypeEnum.MANAGEMENT, False, False, False:
+                return repo._stable_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, True, False, False:
+                if not repo.debug:
+                    raise RuntimeError(f"The repository {name} does not have a debug repository!")
+                return repo._debug_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, False, True, False:
+                if not repo.staging:
+                    raise RuntimeError(f"The repository {name} does not have a staging repository!")
+                return repo._staging_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, False, False, True:
+                if not repo.testing:
+                    raise RuntimeError(f"The repository {name} does not have a testing repository!")
+                return repo._testing_management_repo_dir
+            case RepoDirTypeEnum.PACKAGE, False, False, False:
+                return repo._stable_repo_dir
+            case RepoDirTypeEnum.PACKAGE, True, False, False:
+                if not repo.debug:
+                    raise RuntimeError(f"The repository {name} does not have a debug repository!")
+                return repo._debug_repo_dir
+            case RepoDirTypeEnum.PACKAGE, False, True, False:
+                if not repo.staging:
+                    raise RuntimeError(f"The repository {name} does not have a staging repository!")
+                return repo._staging_repo_dir
+            case RepoDirTypeEnum.PACKAGE, False, False, True:
+                if not repo.testing:
+                    raise RuntimeError(f"The repository {name} does not have a testing repository!")
+                return repo._testing_repo_dir
+            case (
+                (RepoDirTypeEnum.POOL, False, False, False)
+                | (RepoDirTypeEnum.POOL, True, False, False)
+                | (RepoDirTypeEnum.POOL, False, True, False)
+                | (RepoDirTypeEnum.POOL, False, False, True)
             ):
-                match repo_type, debug, staging, testing:
-                    case RepoDirTypeEnum.MANAGEMENT, False, False, False:
-                        return repo._stable_management_repo_dir
-                    case RepoDirTypeEnum.MANAGEMENT, True, False, False:
-                        if not repo.debug:
-                            raise RuntimeError(f"The repository {name} does not have a debug repository!")
-                        return repo._debug_management_repo_dir
-                    case RepoDirTypeEnum.MANAGEMENT, False, True, False:
-                        if not repo.staging:
-                            raise RuntimeError(f"The repository {name} does not have a staging repository!")
-                        return repo._staging_management_repo_dir
-                    case RepoDirTypeEnum.MANAGEMENT, False, False, True:
-                        if not repo.testing:
-                            raise RuntimeError(f"The repository {name} does not have a testing repository!")
-                        return repo._testing_management_repo_dir
-                    case RepoDirTypeEnum.PACKAGE, False, False, False:
-                        return repo._stable_repo_dir
-                    case RepoDirTypeEnum.PACKAGE, True, False, False:
-                        if not repo.debug:
-                            raise RuntimeError(f"The repository {name} does not have a debug repository!")
-                        return repo._debug_repo_dir
-                    case RepoDirTypeEnum.PACKAGE, False, True, False:
-                        if not repo.staging:
-                            raise RuntimeError(f"The repository {name} does not have a staging repository!")
-                        return repo._staging_repo_dir
-                    case RepoDirTypeEnum.PACKAGE, False, False, True:
-                        if not repo.testing:
-                            raise RuntimeError(f"The repository {name} does not have a testing repository!")
-                        return repo._testing_repo_dir
-                    case (
-                        (RepoDirTypeEnum.POOL, False, False, False)
-                        | (RepoDirTypeEnum.POOL, True, False, False)
-                        | (RepoDirTypeEnum.POOL, False, True, False)
-                        | (RepoDirTypeEnum.POOL, False, False, True)
-                    ):
-                        return repo._package_pool_dir
-                    case _:
-                        raise RuntimeError(
-                            f"An unknown error occurred while trying to retrieve a repository path for {name}!"
-                        )
+                return repo._package_pool_dir
+            case _:
+                raise RuntimeError(f"An unknown error occurred while trying to retrieve a repository path for {name}!")
 
-        raise RuntimeError(
-            f"Unable to find '{name}' {'(' + architecture.value + ')' if architecture else ''} in the available "
-            f"repositories ({[str(name_) for name_ in names]})"
-        )
+    def get_repo_management_repo(
+        self,
+        name: Path,
+        architecture: ArchitectureEnum | None,
+    ) -> ManagementRepo:
+        """Get the ManagementRepo of a PackageRepo
+
+        Parameters
+        ----------
+        name: Path
+            The name of the repository
+        architecture: ArchitectureEnum
+            The architecture of the repository
+
+        Returns
+        -------
+        ManagementRepo
+            The ManagementRepo of the repository identified by name and architecture
+        """
+
+        repo = self.get_repo(name=name, architecture=architecture)
+        return repo.management_repo  # type: ignore[return-value]
 
 
 class UserSettings(Settings):
