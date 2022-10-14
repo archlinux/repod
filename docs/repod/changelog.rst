@@ -56,6 +56,8 @@ Changed
   from empty management repositories.
 * The definition of workflows (e.g. adding packages, writing sync databases) is
   now done in a separate module and is decoupled from the CLI.
+* The ``repod.conf`` man page now covers the ``management_repo`` configuration
+  in greater detail.
 
 Fixed
 ^^^^^
