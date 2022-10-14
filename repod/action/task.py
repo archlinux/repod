@@ -31,10 +31,10 @@ from repod.common.enums import (
     RepoFileEnum,
 )
 from repod.config import SystemSettings, UserSettings
+from repod.config.defaults import ORJSON_OPTION
 from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundError
 from repod.files import Package
 from repod.repo import OutputPackageBase, SyncDatabase
-from repod.repo.management import ORJSON_OPTION
 from repod.repo.package import RepoDbTypeEnum, RepoFile
 from repod.repo.package.repofile import relative_to_shared_base
 
@@ -546,6 +546,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
     def __init__(
         self,
         directory: Path,
+        dumps_option: int = ORJSON_OPTION,
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
     ):
@@ -555,6 +556,8 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
         ----------
         directory: Path
             A directory Path to write the files to
+        dumps_option: int
+            An option parameter for orjson's dumps method (defaults to repod.config.defaults.ORJSON_OPTION)
         pkgbases: list[OutputPackageBase] | None
             A list of OutputPackageBase instances to write to files
         dependencies: list[Task] | None
@@ -572,6 +575,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
 
         self.filenames: list[Path] = []
         self.directory = directory
+        self.dumps_option = dumps_option
 
         if self.input_from_dependency:
             debug(
@@ -623,7 +627,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
 
             try:
                 with open(filename, "wb") as output_file:
-                    output_file.write(dumps(outputpackagebase.dict(), option=ORJSON_OPTION))
+                    output_file.write(dumps(outputpackagebase.dict(), option=self.dumps_option))
             except (OSError, BlockingIOError, JSONEncodeError) as e:
                 info(e)
                 self.state = ActionStateEnum.FAILED_TASK
