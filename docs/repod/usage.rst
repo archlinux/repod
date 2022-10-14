@@ -101,17 +101,15 @@ database` files for it and create the following directory structure:
 Writing sync databases
 ======================
 
-For a repository to be usable by pacman, it requires :ref:`sync database`
-files, which are written automatically when :ref:`importing packages`, but can
-also be written manually.
+The writing of :ref:`sync database` files (as is done when :ref:`importing
+packages`), can also be triggered manually.
 
 .. code:: bash
 
   repod-file repo writedb default
 
-
-The above command creates the following directory structure (assuming the
-example from :ref:`importing packages`), rewriting the database files:
+The above command creates the following directory structure (assuming no
+packages are present):
 
 .. code::
 
@@ -120,7 +118,6 @@ example from :ref:`importing packages`), rewriting the database files:
   │   ├── pool
   │   │   ├── package
   │   │   │   └── default
-  │   │   │       └── package_a-1.0.0-1-any.pkg.tar.zst
   │   │   └── source
   │   │       └── default
   │   └── repo
@@ -130,8 +127,7 @@ example from :ref:`importing packages`), rewriting the database files:
   │       │           ├── default.db -> default.db.tar.gz
   │       │           ├── default.db.tar.gz
   │       │           ├── default.files -> default.files.tar.gz
-  │       │           ├── default.files.tar.gz
-  │       │           └── package_a-1.0.0-1-any.pkg.tar.zst -> ../../../../pool/package/default/package_a-1.0.0-1-any.pkg.tar.zst
+  │       │           └── default.files.tar.gz
   │       └── source
   │           └── default
   │               └── any
@@ -139,7 +135,6 @@ example from :ref:`importing packages`), rewriting the database files:
       └── default
           └── any
               └── default
-                  └── package_a.json
 
 .. _using repositories:
 
