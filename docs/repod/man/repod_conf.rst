@@ -58,11 +58,24 @@ them. For any undefined option defaults are assumed (see
 
   .. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
 
-* *management_repo*: A table setting a *directory* and an optional upstream
-  *url* string which serves as the *management repository* for any repository,
-  which does not define it. Each configured repository is represented as a
-  subdirectory structure in the management repository. Many repositories can
-  share the same *management_repo*.
+* *management_repo*: A table providing configuration for the *management
+  repository* for any repository, which does not define one explicitly.
+  As each configured binary package repository is represented as a subdirectory
+  structure in the management repository, several repositories can share the
+  same *management_repo*.
+
+  * *directory*: The name of the management repository in the *management
+    repository base directory* (see *DEFAULT DIRECTORIES*), below which per
+    binary package repository directories are created. If the string denotes an
+    absolute directory it is used directly and the default base directory is
+    disregarded.
+
+  * *json_dumps*: An integer, defining the option for orjson's dumps() method
+    (see https://github.com/ijl/orjson#option). Defaults to:
+
+    .. program-output:: python -c "from repod.config.defaults import ORJSON_OPTION; print(ORJSON_OPTION)"
+
+  * *url*: An optional url string, for the upstream repository of the management repository (currently not used)
 
 * *package_pool*: A string setting a directory that serves as the package pool
   for any repository, which does not define it.
@@ -119,11 +132,24 @@ or defaults (see :ref:`repod.conf_default_options`) are assumed.
 
   .. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
 
-* *management_repo* (optional): A table setting a *directory* and an optional
-  upstream *url* string which serves as the *management repository* for the
-  repository. Each configured repository is represented as a subdirectory
-  structure in the management repository. Many repositories can share the same
-  *management_repo*.
+* *management_repo* (optional): A table providing configuration for the
+  *management repository* of the repository. If it is provided, it has
+  precedence over a globally defined *management_repo*. As each configured
+  repository is represented as a subdirectory structure in the management
+  repository, several repositories can share the same *management_repo*.
+
+  * *directory*: The name of the management repository in the *management
+    repository base directory* (see *DEFAULT DIRECTORIES*), below which per
+    binary package repository directories are created. If the string denotes an
+    absolute directory it is used directly and the default base directory is
+    disregarded.
+
+  * *json_dumps*: An integer, defining the option for orjson's dumps() method
+    (see https://github.com/ijl/orjson#option). Defaults to:
+
+    .. program-output:: python -c "from repod.config.defaults import ORJSON_OPTION; print(ORJSON_OPTION)"
+
+  * *url*: An optional url string, for the upstream repository of the management repository (currently not used)
 
 * *name*: A string setting the name of the repository. It is used as the
   location to store stable package data of the repository.
