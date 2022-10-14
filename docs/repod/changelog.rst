@@ -54,6 +54,8 @@ Changed
   and validation for absolute vs. relative paths relies on ``pathlib.Path``.
 * The command ``repod-file repo writedb`` now allows writing empty sync databases
   from empty management repositories.
+* The definition of workflows (e.g. adding packages, writing sync databases) is
+  now done in a separate module and is decoupled from the CLI.
 
 Fixed
 ^^^^^
