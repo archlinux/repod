@@ -335,6 +335,7 @@ def transform_databases(repo_name: str, base_path: Path) -> None:
     custom_config = f"""
     [[repositories]]
 
+    architecture = "x86_64"
     name = "{base_path}/data/repo/package/{repo_name}"
     debug = "{base_path}/data/repo/package/{repo_name}-debug"
     staging = "{base_path}/data/repo/package/{repo_name}-staging"
@@ -379,8 +380,8 @@ def transform_databases(repo_name: str, base_path: Path) -> None:
     )
 
 
-def list_database(repo_name: str, base_path: Path) -> None:
-    syncdb_path = Path(f"{base_path}/data/repo/package/{repo_name}/any/")
+def list_database(repo_name: str, base_path: Path, architecture: str) -> None:
+    syncdb_path = Path(f"{base_path}/data/repo/package/{repo_name}/{architecture}/")
     with TemporaryDirectory(prefix="pacman_", dir=base_path) as dbpath:
         (Path(dbpath) / "sync").symlink_to(syncdb_path)
         cache_path = base_path / "cache"
@@ -438,10 +439,10 @@ def list_database(repo_name: str, base_path: Path) -> None:
     not Path("/var/lib/pacman/sync/core.files").exists(),
     reason="/var/lib/pacman/sync/core.files does not exist",
 )
-def test_transform_core_databases(empty_dir: Path, tmp_path: Path) -> None:
+def test_transform_core_databases(tmp_path: Path) -> None:
     name = "core"
     transform_databases(repo_name=name, base_path=tmp_path)
-    list_database(repo_name=name, base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
 
 
 @mark.integration
@@ -449,10 +450,10 @@ def test_transform_core_databases(empty_dir: Path, tmp_path: Path) -> None:
     not Path("/var/lib/pacman/sync/extra.files").exists(),
     reason="/var/lib/pacman/sync/extra.files does not exist",
 )
-def test_transform_extra_databases(empty_dir: Path, tmp_path: Path) -> None:
+def test_transform_extra_databases(tmp_path: Path) -> None:
     name = "extra"
     transform_databases(repo_name=name, base_path=tmp_path)
-    list_database(repo_name=name, base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
 
 
 @mark.integration
@@ -460,10 +461,10 @@ def test_transform_extra_databases(empty_dir: Path, tmp_path: Path) -> None:
     not Path("/var/lib/pacman/sync/community.files").exists(),
     reason="/var/lib/pacman/sync/community.files does not exist",
 )
-def test_transform_community_databases(empty_dir: Path, tmp_path: Path) -> None:
+def test_transform_community_databases(tmp_path: Path) -> None:
     name = "community"
     transform_databases(repo_name="community", base_path=tmp_path)
-    list_database(repo_name=name, base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
 
 
 @mark.integration
@@ -471,10 +472,10 @@ def test_transform_community_databases(empty_dir: Path, tmp_path: Path) -> None:
     not Path("/var/lib/pacman/sync/multilib.files").exists(),
     reason="/var/lib/pacman/sync/multilib.files does not exist",
 )
-def test_transform_multilib_databases(empty_dir: Path, tmp_path: Path) -> None:
+def test_transform_multilib_databases(tmp_path: Path) -> None:
     name = "multilib"
     transform_databases(repo_name=name, base_path=tmp_path)
-    list_database(repo_name=name, base_path=tmp_path)
+    list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
 
 
 @mark.integration
@@ -485,7 +486,7 @@ def test_transform_multilib_databases(empty_dir: Path, tmp_path: Path) -> None:
 def test_import_into_default_repo(tmp_path: Path) -> None:
     packages = sorted(
         [
-            path
+            str(path)
             for path in list(Path("/var/cache/pacman/pkg/").iterdir())
             if isinstance(fullmatch(rf"^.*\.pkg\.tar({tar_compression_types_for_filename_regex()})$", str(path)), Match)
         ]
@@ -512,22 +513,42 @@ def test_import_into_default_repo(tmp_path: Path) -> None:
     with open(config_path, "w") as file:
         file.write(custom_config)
 
-    for package in packages:
-        commands.run_command(
-            cmd=[
-                "repod-file",
-                "-d",
-                "-c",
-                f"{config_path}",
-                "repo",
-                "importpkg",
-                "-s",
-                f"{package}",
-                f"{tmp_path}/data/repo/package/default/",
-            ],
-            debug=True,
-            check=True,
-        )
+    commands.run_command(
+        cmd=[
+            "repod-file",
+            "-d",
+            "-c",
+            f"{config_path}",
+            "repo",
+            "importpkg",
+            "-s",
+        ]
+        + packages
+        + [f"{tmp_path}/data/repo/package/default/"],
+    )
+    list_database(repo_name="default", base_path=tmp_path, architecture="x86_64")
+
+
+@mark.integration
+def test_write_empty_sync_db(tmp_path: Path) -> None:
+    custom_config = f"""
+    [[repositories]]
+
+    architecture = "x86_64"
+    name = "{tmp_path}/data/repo/package/default/"
+    debug = "{tmp_path}/data/repo/package/default-debug/"
+    staging = "{tmp_path}/data/repo/package/default-staging/"
+    testing = "{tmp_path}/data/repo/package/default-testing/"
+    package_pool = "{tmp_path}/data/pool/package/default/"
+    source_pool = "{tmp_path}/data/pool/source/default/"
+
+    [repositories.management_repo]
+    directory = "{tmp_path}/management/default/"
+    """
+
+    config_path = tmp_path / "repod.conf"
+    with open(config_path, "w") as file:
+        file.write(custom_config)
 
     commands.run_command(
         cmd=[
@@ -542,3 +563,4 @@ def test_import_into_default_repo(tmp_path: Path) -> None:
         debug=True,
         check=True,
     )
+    list_database(repo_name="default", base_path=tmp_path, architecture="x86_64")
