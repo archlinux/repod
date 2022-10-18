@@ -437,6 +437,18 @@ class Url(BaseModel):
     url: HttpUrl
 
 
+class SourceUrl(BaseModel):
+    """A URL pointing at sources
+
+    Attributes
+    ----------
+    source_url: HttpUrl | None
+        An optional url that points at sources (defaults to None)
+    """
+
+    source_url: HttpUrl | None = None
+
+
 class Epoch(BaseModel):
     """A model dscribing a single 'epoch' attribute
 

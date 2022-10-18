@@ -39,6 +39,7 @@ from repod.common.models import (
     SchemaVersionV1,
     SchemaVersionV2,
     Sha256Sum,
+    SourceUrl,
     Url,
     Version,
 )
@@ -815,6 +816,7 @@ class OutputPackageBaseV1(
     MakeDepends,
     Packager,
     SchemaVersionV1,
+    SourceUrl,
     Version,
 ):
     """A model describing all required attributes for an output file, that describes a list of packages based upon a
@@ -838,6 +840,8 @@ class OutputPackageBaseV1(
         A list of OutputPackage instances that belong to the pkgbase identified by base
     schema_version: PositiveInt
         A positive integer - 1 - identifying the schema version of the object
+    source_url: HttpUrl | None
+        An optional url that points at sources (defaults to None)
     version: str
         The attribute can be used to describe the (required) data below a %VERSION% identifier in a 'desc' file, which
         identifies a package's version (this is the accumulation of epoch, pkgver and pkgrel)
