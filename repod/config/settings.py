@@ -10,6 +10,7 @@ from pydantic import (
     AnyUrl,
     BaseModel,
     BaseSettings,
+    HttpUrl,
     PrivateAttr,
     root_validator,
     validator,
@@ -164,6 +165,75 @@ class SyncDbSettings(BaseModel):
     files_version: FilesVersionEnum = FilesVersionEnum.DEFAULT
 
 
+class UrlValidationSettings(BaseModel):
+    """Settings for URL validation
+
+    Attributes
+    ----------
+    urls: list[HttpUrl]
+        A list of HttpUrl objects to be used for validation
+    tls_required: bool
+        A boolean value indicating whether the urls (and those validated against) require TLS
+    """
+
+    urls: list[HttpUrl]
+    tls_required: bool
+
+    @root_validator
+    def validate_urls(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """Validate the URLs
+
+        Parameters
+        ----------
+        values: dict[str, Any]
+            A dict with all values of the UrlValidationSettings instance
+
+        Raises
+        ------
+        ValueError
+            If tls_required is True, but any of the urls does not use TLS.
+
+        Returns
+        -------
+        values: dict[str, Any]
+            The unmodified dict with all values of the UrlValidationSettings instance
+        """
+
+        urls: list[HttpUrl] = values.get("urls")  # type: ignore[assignment]
+        tls_required: bool = values.get("tls_required")  # type: ignore[assignment]
+
+        for url in urls:
+            if tls_required and url.scheme != "https":
+                raise ValueError(f"The url {url} requires TLS, but its scheme is {url.scheme}!")
+
+        return values
+
+    def validate_url(self, url: AnyUrl) -> bool:
+        """Validate a URL
+
+        Parameters
+        ----------
+        url: AnyUrl
+            A URL to validate
+
+        Returns
+        -------
+        bool
+            True if the URL validates against the UrlValidationSettings object, False otherwise
+        """
+
+        if self.tls_required and url.scheme != "https":
+            debug(f"The URL {url} does not provide TLS!")
+            return False
+
+        url_strings = [str(_url) for _url in self.urls]
+        if not any(True for url_string in url_strings if str(url).startswith(url_string)):
+            debug(f"The URL {url} does not match any of the URLs {url_strings}!")
+            return False
+
+        return True
+
+
 class ManagementRepo(BaseModel):
     """A model describing all required attributes to describe a repository used for managing one or more package
     repositories
@@ -244,6 +314,8 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         An optional instance of ManagementRepo, that serves as an override to the application-wide management_repo
         The attribute defines the directory and upstream VCS repository that is used to track changes to a package
         repository
+    package_url_validation: UrlValidationSettings | None
+        An optional instance of UrlValidationSettings for validating the source_url of packages in the PackageRepo
 
     PrivateAttributes
     -----------------
@@ -313,6 +385,7 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
     staging: Path | None
     testing: Path | None
     management_repo: ManagementRepo | None
+    package_url_validation: UrlValidationSettings | None
 
     @validator("name", pre=True)
     def validate_repo_name(cls, name: Path | str) -> Path:

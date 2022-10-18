@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import ContextManager
 from unittest.mock import Mock, call, patch
 
+from pydantic import AnyUrl
 from pytest import LogCaptureFixture, mark, raises
 
 from repod.common.enums import (
@@ -1381,3 +1382,56 @@ def test_settings_get_repo_path(
                 assert path == usersettings.repositories[0]._stable_repo_dir
             case RepoDirTypeEnum.POOL, False, False, False:
                 assert path == usersettings.repositories[0]._package_pool_dir
+
+
+@mark.parametrize(
+    "urls, tls_required, expectation",
+    [
+        (["https://foobar.io/some/where"], True, does_not_raise()),
+        (["http://foobar.io/some/where"], False, does_not_raise()),
+        (["http://foobar.io/some/where"], True, raises(ValueError)),
+        (["foo"], True, raises(ValueError)),
+        (["foo"], False, raises(ValueError)),
+    ],
+)
+def test_urlvalidationsettings(
+    urls: list[str],
+    tls_required: bool,
+    expectation: ContextManager[str],
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    with expectation:
+        settings.UrlValidationSettings(urls=urls, tls_required=tls_required)
+
+
+@mark.parametrize(
+    "validator, url, return_value",
+    [
+        (
+            settings.UrlValidationSettings(urls=["https://foobar.io/"], tls_required=True),
+            AnyUrl(url="https://foobar.io/bar/baz", scheme="https"),
+            True,
+        ),
+        (
+            settings.UrlValidationSettings(urls=["https://foobar.io/"], tls_required=True),
+            AnyUrl(url="http://foobar.io/bar/baz", scheme="http"),
+            False,
+        ),
+        (
+            settings.UrlValidationSettings(urls=["https://foobar.io/beh/"], tls_required=True),
+            AnyUrl(url="https://foobar.io/bar/baz", scheme="https"),
+            False,
+        ),
+    ],
+)
+def test_urlvalidationsettings_validate_url(
+    validator: settings.UrlValidationSettings,
+    url: AnyUrl,
+    return_value: bool,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    assert validator.validate_url(url=url) == return_value
