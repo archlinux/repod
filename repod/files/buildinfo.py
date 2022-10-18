@@ -5,17 +5,10 @@ from pathlib import Path
 from re import fullmatch
 from typing import Any
 
-from pydantic import (
-    BaseModel,
-    NonNegativeInt,
-    conint,
-    constr,
-    root_validator,
-    validator,
-)
+from pydantic import BaseModel, NonNegativeInt, constr, root_validator, validator
 
 from repod.common.enums import FieldTypeEnum
-from repod.common.models import Packager
+from repod.common.models import Packager, SchemaVersionV1, SchemaVersionV2
 from repod.common.regex import (
     ARCHITECTURE,
     BUILDENVS,
@@ -34,7 +27,7 @@ BUILDINFO_ASSIGNMENTS: dict[str, tuple[str, FieldTypeEnum]] = {
     "buildenv": ("buildenv", FieldTypeEnum.STRING_LIST),
     "buildtool": ("buildtool", FieldTypeEnum.STRING),
     "buildtoolver": ("buildtoolver", FieldTypeEnum.STRING),
-    "format": ("format_", FieldTypeEnum.INT),
+    "format": ("schema_version", FieldTypeEnum.INT),
     "installed": ("installed", FieldTypeEnum.STRING_LIST),
     "options": ("options", FieldTypeEnum.STRING_LIST),
     "packager": ("packager", FieldTypeEnum.STRING),
@@ -130,30 +123,6 @@ class BuildToolVer(BaseModel):
     """
 
     buildtoolver: str
-
-
-class FormatV1(BaseModel):
-    """The format version of a .BUILDINFO file (version 1)
-
-    Attributes
-    ----------
-    format_: int
-        1 - representing version 1
-    """
-
-    format_: conint(ge=1, le=1) = 1  # type: ignore[valid-type]
-
-
-class FormatV2(BaseModel):
-    """The format version of a .BUILDINFO file (version 2)
-
-    Attributes
-    ----------
-    format_: int
-        2 - representing version 2
-    """
-
-    format_: conint(ge=2, le=2) = 2  # type: ignore[valid-type]
 
 
 class Installed(BaseModel):
@@ -334,13 +303,15 @@ class BuildInfo(BaseModel):
                     case _:  # pragma: no cover
                         continue
 
-        match entries.get("format_"):
+        match entries.get("schema_version"):
             case 1:
                 return BuildInfoV1(**entries)
             case 2:
                 return BuildInfoV2(**entries)
             case _:
-                raise RepoManagementError(f"Encountered unhandled .BUILDINFO format {entries.get('format')}!")
+                raise RepoManagementError(
+                    f"Encountered unhandled .BUILDINFO schema_version {entries.get('schema_version')}!"
+                )
 
 
 class BuildInfoV1(
@@ -348,7 +319,6 @@ class BuildInfoV1(
     BuildDir,
     BuildEnv,
     BuildInfo,
-    FormatV1,
     Installed,
     Options,
     Packager,
@@ -357,6 +327,7 @@ class BuildInfoV1(
     PkgBuildSha256Sum,
     PkgName,
     PkgVer,
+    SchemaVersionV1,
 ):
     """The representation of a .BUILDINFO file (version 1)
 
@@ -368,8 +339,6 @@ class BuildInfoV1(
         A string representing an absolute directory
     buildenv: list[str]
         A list of strings as described by makepkg.conf's BUILDENV option
-    format_: int
-        1 - representing version 1
     installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
@@ -387,6 +356,8 @@ class BuildInfoV1(
         A string representing a valid pkgname of a package
     pkgver: str
         A valid package version string which includes epoch, version and pkgrel
+    schema_version: int
+        1 - representing `format = 1` in the .BUILDINFO file; schema_version is chosen for uniformity
     """
 
     pass
@@ -399,7 +370,6 @@ class BuildInfoV2(
     BuildInfo,
     BuildTool,
     BuildToolVer,
-    FormatV2,
     Installed,
     Options,
     Packager,
@@ -408,6 +378,7 @@ class BuildInfoV2(
     PkgBuildSha256Sum,
     PkgName,
     PkgVer,
+    SchemaVersionV2,
     StartDir,
 ):
     """The representation of a .BUILDINFO file (version 2)
@@ -424,8 +395,6 @@ class BuildInfoV2(
         The package name of the build tool used to create a package
     buildtoolver: str
         The version of the build tool used to create a package
-    format_: int
-        2 - representing version 2
     installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
@@ -443,6 +412,8 @@ class BuildInfoV2(
         A string representing a valid pkgname of a package
     pkgver: str
         A valid package version string which includes epoch, version and pkgrel
+    schema_version: int
+        2 - representing `format = 2` in the .BUILDINFO file; schema_version is chosen for uniformity
     startdir: str
         A string representing the absolute startdir directory of a package
     """

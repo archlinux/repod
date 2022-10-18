@@ -63,32 +63,6 @@ def test_buildtoolver() -> None:
     assert buildinfo.BuildToolVer(buildtoolver="foo")
 
 
-@mark.parametrize(
-    "format_, expectation",
-    [
-        (1, does_not_raise()),
-        (0, raises(ValidationError)),
-        (2, raises(ValidationError)),
-    ],
-)
-def test_formatv1(format_: int, expectation: ContextManager[str]) -> None:
-    with expectation:
-        buildinfo.FormatV1(format_=format_)
-
-
-@mark.parametrize(
-    "format_, expectation",
-    [
-        (2, does_not_raise()),
-        (1, raises(ValidationError)),
-        (3, raises(ValidationError)),
-    ],
-)
-def test_formatv2(format_: int, expectation: ContextManager[str]) -> None:
-    with expectation:
-        buildinfo.FormatV2(format_=format_)
-
-
 def test_installed(default_package_name: str, default_full_version: str, default_arch: str) -> None:
     with does_not_raise():
         buildinfo.Installed(installed=[f"{default_package_name}-{default_full_version}-{default_arch}"])

@@ -37,6 +37,7 @@ from repod.common.models import (
     Provides,
     Replaces,
     SchemaVersionV1,
+    SchemaVersionV2,
     Sha256Sum,
     Url,
     Version,
@@ -50,8 +51,6 @@ from repod.files.buildinfo import (
     BuildInfoV2,
     BuildTool,
     BuildToolVer,
-    FormatV1,
-    FormatV2,
     Installed,
     Options,
     PkgBuildSha256Sum,
@@ -140,10 +139,10 @@ class OutputBuildInfo(BaseModel):
             return OutputBuildInfoV1(
                 builddir=buildinfo.builddir,
                 buildenv=buildinfo.buildenv,
-                format_=buildinfo.format_,
                 installed=buildinfo.installed,
                 options=buildinfo.options,
                 pkgbuild_sha256sum=buildinfo.pkgbuild_sha256sum,
+                schema_version=buildinfo.schema_version,
             )
         elif isinstance(buildinfo, BuildInfoV2):
             return OutputBuildInfoV2(
@@ -151,10 +150,10 @@ class OutputBuildInfo(BaseModel):
                 buildenv=buildinfo.buildenv,
                 buildtool=buildinfo.buildtool,
                 buildtoolver=buildinfo.buildtoolver,
-                format_=buildinfo.format_,
                 installed=buildinfo.installed,
                 options=buildinfo.options,
                 pkgbuild_sha256sum=buildinfo.pkgbuild_sha256sum,
+                schema_version=buildinfo.schema_version,
                 startdir=buildinfo.startdir,
             )
         else:
@@ -167,11 +166,11 @@ class OutputBuildInfo(BaseModel):
 class OutputBuildInfoV1(
     BuildDir,
     BuildEnv,
-    FormatV1,
     Installed,
     Options,
     OutputBuildInfo,
     PkgBuildSha256Sum,
+    SchemaVersionV1,
 ):
     """OutputBuildInfo version 1
 
@@ -184,8 +183,6 @@ class OutputBuildInfoV1(
         A string representing an absolute directory
     buildenv: list[str]
         A list of strings as described by makepkg.conf's BUILDENV option
-    format_: int
-        An integer describing a BuildInfo format version
     installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
@@ -193,6 +190,8 @@ class OutputBuildInfoV1(
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     pkgbuild_sha256sum: str
         A string representing a SHA-256 checksum for a PKGBUILD of a package
+    schema_version: int
+        An integer describing a BuildInfo format version
     """
 
     pass
@@ -203,11 +202,11 @@ class OutputBuildInfoV2(
     BuildEnv,
     BuildTool,
     BuildToolVer,
-    FormatV2,
     Installed,
     Options,
     OutputBuildInfo,
     PkgBuildSha256Sum,
+    SchemaVersionV2,
     StartDir,
 ):
     """OutputBuildInfo version 2
@@ -225,8 +224,6 @@ class OutputBuildInfoV2(
         The package name of the build tool used to create a package
     buildtoolver: str
         The version of the build tool used to create a package
-    format_: int
-        An integer describing a BuildInfo format version
     installed: list[str]
         A list of strings representing <package_name>-<epoch><version>-<pkgrel>-<architecture> of packages installed
         during the creation of a package
@@ -234,6 +231,8 @@ class OutputBuildInfoV2(
         A list of strings representing makepkg.conf OPTIONS used during the creation of a package
     pkgbuild_sha256sum: str
         A string representing a SHA-256 checksum for a PKGBUILD of a package
+    schema_version: int
+        An integer describing a BuildInfo format version
     startdir: str
         A string representing the absolute startdir directory of a package
     """

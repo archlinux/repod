@@ -965,7 +965,6 @@ def valid_buildinfov1(
         builddate=1,
         builddir="/build",
         buildenv=[default_buildenv],
-        format_=1,
         installed=["bar-1:1.0.1-1-any", "baz-1:1.0.1-1-any"],
         options=[default_option],
         packager=default_packager,
@@ -974,6 +973,7 @@ def valid_buildinfov1(
         pkgbuild_sha256sum=sha256sum,
         pkgname="foo",
         pkgver=default_full_version,
+        schema_version=1,
     )
 
 
@@ -993,7 +993,6 @@ def valid_buildinfov2(
         buildenv=[default_buildenv],
         buildtool="buildtool",
         buildtoolver=default_full_version,
-        format_=2,
         installed=["bar-1:1.0.1-1-any", "baz-1:1.0.1-1-any"],
         options=[default_option],
         packager=default_packager,
@@ -1002,6 +1001,7 @@ def valid_buildinfov2(
         pkgbuild_sha256sum=sha256sum,
         pkgname="foo",
         pkgver=default_full_version,
+        schema_version=2,
         startdir="/startdir",
     )
 

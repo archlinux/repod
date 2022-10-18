@@ -13,3 +13,4 @@ Authors
 * Morten Linderud <foxboron@archlinux.org>
 * Jörg Behrmann <behrmann@physik.fu-berlin.de>
 * InsanePrawn <insane.prawny@gmail.com>
+* Isaac Good <archlinux@isaacgood.com>

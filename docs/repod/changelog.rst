@@ -58,6 +58,9 @@ Changed
   now done in a separate module and is decoupled from the CLI.
 * The ``repod.conf`` man page now covers the ``management_repo`` configuration
   in greater detail.
+* The ``format`` field in ``.BUILDINFO`` files maps to a ``SchemaVersionV1`` or
+  ``SchemaVersionV2`` rather than a ``FormatV1`` or ``FormatV2``. This provides
+  a uniform approach to versioning objects across object types.
 
 Fixed
 ^^^^^
