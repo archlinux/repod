@@ -2,6 +2,8 @@ from logging import debug
 from pathlib import Path
 from sys import exit, stderr
 
+from pydantic import AnyUrl
+
 from repod.action.task import (
     AddToRepoTask,
     ConsolidateOutputPackageBasesTask,
@@ -43,6 +45,7 @@ def add_packages_dryrun(
     repo_architecture: ArchitectureEnum,
     debug_repo: bool,
     with_signature: bool,
+    pkgbase_urls: dict[str, AnyUrl] | None,
 ) -> None:
     """Print output of package representation in the management repository if packages were added
 
@@ -60,6 +63,8 @@ def add_packages_dryrun(
         A boolean value indicating whether the packages target a debug repository
     with_signature: bool
         A boolean value indicating whether the signatures of the packages are also added
+    pkgbase_urls: dict[str, AnyUrl] | None
+        An optional dict, providing pkgbases and their source URLs
     """
 
     debug(f"Adding packages in a dry-run: {files}")
@@ -74,6 +79,7 @@ def add_packages_dryrun(
                 with_signature=with_signature,
                 debug_repo=debug_repo,
                 package_verification=settings.package_verification,
+                pkgbase_urls=pkgbase_urls,
             )
         ],
     )
@@ -94,6 +100,7 @@ def add_packages(
     staging_repo: bool,
     testing_repo: bool,
     with_signature: bool,
+    pkgbase_urls: dict[str, AnyUrl] | None,
 ) -> None:
     """Add packages to a repository
 
@@ -115,15 +122,19 @@ def add_packages(
         A boolean value indicating whether the packages target a testing repository
     with_signature: bool
         A boolean value indicating whether the signatures of the packages are also added
+    pkgbase_urls: dict[str, AnyUrl] | None
+        An optional dict, providing pkgbases and their source URLs
     """
 
     debug(f"Adding packages: {files}")
+    debug(f"Provided urls: {pkgbase_urls}")
 
     outputpackagebasestask = CreateOutputPackageBasesTask(
         architecture=settings.get_repo_architecture(name=repo_name, architecture=repo_architecture),
         package_paths=files,
         with_signature=with_signature,
         debug_repo=debug_repo,
+        pkgbase_urls=pkgbase_urls,
         package_verification=settings.package_verification,
     )
     add_to_repo_dependencies = [
@@ -138,6 +149,10 @@ def add_packages(
                         staging=staging_repo,
                         testing=testing_repo,
                     ),
+                    url_validation_settings=settings.get_repo(
+                        name=repo_name,
+                        architecture=repo_architecture,
+                    ).package_url_validation,
                     dependencies=[
                         outputpackagebasestask,
                     ],

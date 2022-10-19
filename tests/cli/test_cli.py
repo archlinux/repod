@@ -166,6 +166,7 @@ def test_repod_file_repo_importpkg(
         testing=testing_bool,
         with_signature=with_signature,
         dry_run=dry_run,
+        source_url=[],
     )
 
     cli.repod_file_repo_importpkg(args=namespace, settings=usersettings)
@@ -177,6 +178,7 @@ def test_repod_file_repo_importpkg(
             repo_architecture=architecture,
             debug_repo=debug_bool,
             with_signature=with_signature,
+            pkgbase_urls={},
         )
     else:
         add_packages_mock.assert_called_once_with(
@@ -188,6 +190,7 @@ def test_repod_file_repo_importpkg(
             staging_repo=staging_bool,
             testing_repo=testing_bool,
             with_signature=with_signature,
+            pkgbase_urls={},
         )
 
 

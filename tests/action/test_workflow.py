@@ -39,6 +39,7 @@ def test_add_packages_dryrun(
         repo_architecture=usersettings.repositories[0].architecture,
         debug_repo=False,
         with_signature=True,
+        pkgbase_urls=None,
     )
 
     if task_return_value != ActionStateEnum.SUCCESS:
@@ -100,6 +101,7 @@ def test_add_packages(
         staging_repo=False,
         testing_repo=False,
         with_signature=with_signature,
+        pkgbase_urls=None,
     )
 
     if task_return_value != ActionStateEnum.SUCCESS:

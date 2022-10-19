@@ -96,6 +96,7 @@ def test_createoutputpackagebasestask(
         with_signature=with_signature,
         package_verification=package_verification,
         debug_repo=False,
+        pkgbase_urls={},
         dependencies=dependencies if add_dependencies else None,
     )
 
@@ -137,6 +138,7 @@ def test_createoutputpackagebasestask_do(
         package_paths=[default_package_file[0]],
         with_signature=with_signature,
         debug_repo=False,
+        pkgbase_urls={},
         package_verification=None,
     )
 
@@ -164,6 +166,7 @@ def test_createoutputpackagebasestask_undo(
         package_paths=[default_package_file[0]],
         with_signature=True,
         debug_repo=False,
+        pkgbase_urls={},
         package_verification=None,
     )
 

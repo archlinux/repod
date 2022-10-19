@@ -101,6 +101,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSe
             repo_architecture=args.architecture,
             debug_repo=args.debug,
             with_signature=args.with_signature,
+            pkgbase_urls=dict(args.source_url),
         )
         return
 
@@ -113,6 +114,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSe
         staging_repo=args.staging,
         testing_repo=args.testing,
         with_signature=args.with_signature,
+        pkgbase_urls=dict(args.source_url),
     )
 
 

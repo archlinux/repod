@@ -10,7 +10,7 @@ from re import sub
 from shutil import copy2
 
 from orjson import JSONEncodeError, dumps
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import AnyUrl, BaseModel, ValidationError, validator
 
 from repod.action.check import (
     Check,
@@ -19,6 +19,7 @@ from repod.action.check import (
     PackagesNewOrUpdatedCheck,
     PacmanKeyPackagesSignatureVerificationCheck,
     PkgbasesVersionUpdateCheck,
+    SourceUrlCheck,
 )
 from repod.common.enums import (
     ActionStateEnum,
@@ -32,6 +33,7 @@ from repod.common.enums import (
 )
 from repod.config import SystemSettings, UserSettings
 from repod.config.defaults import ORJSON_OPTION
+from repod.config.settings import UrlValidationSettings
 from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundError
 from repod.files import Package
 from repod.repo import OutputPackageBase, SyncDatabase
@@ -290,6 +292,9 @@ class Task(ABC):
 class CreateOutputPackageBasesTask(Task):
     """A Task to create a list of OutputPackageBase instances from a list of Paths
 
+    If a pkgbase_urls dict is provided, the AnyUrl instances in it, which match the created pkgbases, will be added to
+    the respective OutputPackageBase objects.
+
     Attributes
     ----------
     architecture: ArchitectureEnum
@@ -297,6 +302,8 @@ class CreateOutputPackageBasesTask(Task):
         must match
     pkgbases: list[OutputPackageBase]
         A list of OutputPackageBase instances created from the input of the task (defaults to [])
+    pkgbase_urls: dict[str, AnyUrl] | None
+        An optional dict, providing pkgbases and their source URLs (defaults to None)
     debug_repo: bool
         A boolean value indicating whether a debug repository is targetted
     """
@@ -309,6 +316,7 @@ class CreateOutputPackageBasesTask(Task):
         package_paths: list[Path],
         with_signature: bool,
         debug_repo: bool,
+        pkgbase_urls: dict[str, AnyUrl] | None = None,
         package_verification: PkgVerificationTypeEnum | None = None,
         dependencies: list[Task] | None = None,
     ):
@@ -325,6 +333,8 @@ class CreateOutputPackageBasesTask(Task):
             A boolean value indicating whether to also consider signature files
         debug_repo: bool
             A boolean value indicating whether a debug repository is targetted
+        pkgbase_urls: dict[str, AnyUrl] | None
+            An optional dict, providing pkgbases and their source URLs (defaults to None)
         package_verification: PkgVerificationTypeEnum | None
             The type of package verification to be run against the package (defaults to None)
         dependencies: list[Task] | None
@@ -352,6 +362,7 @@ class CreateOutputPackageBasesTask(Task):
                 debug(f"Adding pacman-key based verification of packages {self.package_paths} to Task...")
                 pre_checks.append(PacmanKeyPackagesSignatureVerificationCheck(packages=self.package_paths))
 
+        self.pkgbase_urls = pkgbase_urls or {}
         self.pre_checks = pre_checks
         self.post_checks = post_checks
 
@@ -386,9 +397,13 @@ class CreateOutputPackageBasesTask(Task):
                 return self.state
 
         for key, group in groupby(packages, attrgetter("pkginfo.base")):
-            debug(f"Create OutputPackageBase with name {key}")
+            debug(f"Create OutputPackageBase representing pkgbase {key}")
             try:
-                self.pkgbases.append(OutputPackageBase.from_package(packages=list(group)))
+                outputpackagebase = OutputPackageBase.from_package(packages=list(group))
+                outputpackagebase.source_url = self.pkgbase_urls.get(  # type: ignore[attr-defined]
+                    outputpackagebase.base,  # type: ignore[attr-defined]
+                )
+                self.pkgbases.append(outputpackagebase)
             except (ValueError, RuntimeError) as e:
                 info(e)
                 self.state = ActionStateEnum.FAILED_TASK
@@ -1365,6 +1380,9 @@ class ConsolidateOutputPackageBasesTask(Task):
         A list of OutputPackageBase instances to compare to those in a management repository directory
     directory: Path
         A Path to the directory in a management repository where to look for OutputPackageBases
+    url_validation_settings: UrlValidationSettings | None
+        An optional instance of UrlValidationSettings providing settings for validating the source URLs of pkgbases
+        (defaults to None)
     """
 
     pkgbases: list[OutputPackageBase] = []
@@ -1373,6 +1391,7 @@ class ConsolidateOutputPackageBasesTask(Task):
     def __init__(
         self,
         directory: Path,
+        url_validation_settings: UrlValidationSettings | None = None,
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
     ):
@@ -1386,6 +1405,9 @@ class ConsolidateOutputPackageBasesTask(Task):
             A Path to the directory in a management repository where to look for OutputPackageBases
         pkgbases: list[OutputPackageBase] | None
             An optional list of OutputPackageBase instances to compare to those in a management repository directory
+        url_validation_settings: UrlValidationSettings | None
+            An optional instance of UrlValidationSettings providing settings for validating the source URLs of pkgbases
+            (defaults to None)
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
@@ -1393,6 +1415,8 @@ class ConsolidateOutputPackageBasesTask(Task):
         self.directory = directory
         if not self.directory or not self.directory.exists():
             raise RuntimeError("The provided directory must exist!")
+
+        self.url_validation_settings = url_validation_settings
 
         if dependencies:
             self.dependencies = dependencies
@@ -1448,6 +1472,13 @@ class ConsolidateOutputPackageBasesTask(Task):
                     self.state = ActionStateEnum.FAILED_TASK
                     return self.state
 
+        self.post_checks.append(
+            SourceUrlCheck(
+                new_pkgbases=self.pkgbases,
+                current_pkgbases=current_pkgbases,
+                url_validation_settings=self.url_validation_settings,
+            )
+        )
         self.post_checks.append(
             PkgbasesVersionUpdateCheck(new_pkgbases=self.pkgbases, current_pkgbases=current_pkgbases),
         )
