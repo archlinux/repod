@@ -2,6 +2,9 @@ import os
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 
+from pydantic import AnyUrl, ValidationError
+from pydantic.tools import parse_obj_as
+
 from repod.common.enums import ArchitectureEnum
 
 
@@ -163,6 +166,14 @@ class ArgParseFactory:
             "--with-signature",
             action="store_true",
             help="locate and use a signature file for each provided package file",
+        )
+        repo_importpkg_parser.add_argument(
+            "-u",
+            "--source-url",
+            default=[],
+            nargs="+",
+            help="list of source URLs for added pkgbases (provided as one or more pkgbase=url strings)",
+            type=cls.string_to_tuple,
         )
         mutual_exclusive_repo_importpkg = repo_importpkg_parser.add_mutually_exclusive_group()
         mutual_exclusive_repo_importpkg.add_argument(
@@ -328,6 +339,45 @@ class ArgParseFactory:
         if not path.is_dir():
             raise ArgumentTypeError(f"not a directory: {input_}")
         return path
+
+    @classmethod
+    def string_to_tuple(cls, input_: str) -> tuple[str, AnyUrl]:
+        """Convert an input string into a tuple of string and AnyUrl
+
+        The input string is expected to be delimited by at least one "=" character to split on.
+
+        Parameters
+        ----------
+        input_: str
+            A string that is used to create a tuple
+
+        Raises
+        ------
+        ArgumentTypeError:
+            If input_ does not have at least one "=" to split on,
+            or if the resulting left-hand string contains a whitespace character after stripping,
+            or if the resulting right-hand string can not be validated as a URL.
+
+        Returns
+        -------
+        tuple[str, AnyUrl]
+            A tuple denoting a word and an instance of AnyUrl
+        """
+
+        try:
+            pkgbase, url_str = [str_.strip() for str_ in input_.split(sep="=", maxsplit=1)]
+        except ValueError:
+            raise ArgumentTypeError(f"There is no '=' in '{input_}'!")
+
+        if " " in pkgbase:
+            raise ArgumentTypeError(f"The string left of the '=' in '{input_}' must be a single word!")
+
+        try:
+            url = parse_obj_as(AnyUrl, url_str)
+        except ValidationError:
+            raise ArgumentTypeError(f"The URL string '{url_str}' found in '{input_}' is invalid!")
+
+        return tuple([pkgbase, url])  # type: ignore[return-value]
 
 
 def sphinx_repod_file() -> ArgumentParser:

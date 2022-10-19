@@ -1,6 +1,10 @@
+from contextlib import nullcontext as does_not_raise
+from typing import ContextManager
 from unittest.mock import Mock, patch
 
-from pytest import raises
+from pydantic import AnyUrl
+from pydantic.tools import parse_obj_as
+from pytest import mark, raises
 
 from repod.cli import argparse
 
@@ -63,3 +67,22 @@ def test_argparsefactory_string_to_dir_path() -> None:
     with raises(argparse.ArgumentTypeError):
         argparse.ArgParseFactory.string_to_dir_path("foo")
     assert argparse.ArgParseFactory.string_to_dir_path("foo")
+
+
+@mark.parametrize(
+    "input_string, expectation, return_value",
+    [
+        ("foo=https://foobar.com", does_not_raise(), tuple(["foo", parse_obj_as(AnyUrl, "https://foobar.com")])),
+        ("foo = https://foobar.com", does_not_raise(), tuple(["foo", parse_obj_as(AnyUrl, "https://foobar.com")])),
+        ("foo", raises(argparse.ArgumentTypeError), None),
+        ("foo bar = https://foobar.com", raises(argparse.ArgumentTypeError), None),
+        ("foo=https://foobar.com beh", raises(argparse.ArgumentTypeError), None),
+    ],
+)
+def test_argparsefactory_string_to_tuple(
+    input_string: str,
+    expectation: ContextManager[str],
+    return_value: tuple[str, AnyUrl],
+) -> None:
+    with expectation:
+        assert argparse.ArgParseFactory.string_to_tuple(input_=input_string) == return_value
