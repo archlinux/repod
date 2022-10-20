@@ -3,10 +3,13 @@ from logging import DEBUG
 from pathlib import Path
 from unittest.mock import patch
 
+from pydantic import AnyUrl
+from pydantic.tools import parse_obj_as
 from pytest import LogCaptureFixture, mark
 
 from repod.action import check
 from repod.common.enums import ActionStateEnum, ArchitectureEnum
+from repod.config.settings import UrlValidationSettings
 from repod.errors import RepoManagementFileError
 from repod.files.package import Package
 from repod.files.pkginfo import PkgType
@@ -176,3 +179,48 @@ def test_packagesneworupdatedcheck(
             assert check_() == return_value
     else:
         assert check_() == return_value
+
+
+@mark.parametrize(
+    "require_validation, new_pkgbase_provides_url, current_pkgbase_provides_url, url_matches, return_value",
+    [
+        (False, True, True, True, ActionStateEnum.SUCCESS),
+        (False, False, False, False, ActionStateEnum.SUCCESS),
+        (True, True, False, True, ActionStateEnum.SUCCESS),
+        (True, False, True, True, ActionStateEnum.SUCCESS),
+        (True, False, False, True, ActionStateEnum.FAILED),
+        (True, False, False, True, ActionStateEnum.FAILED),
+        (True, True, False, False, ActionStateEnum.FAILED),
+        (True, False, True, False, ActionStateEnum.FAILED),
+    ],
+)
+def test_sourceurlcheck(
+    require_validation: bool,
+    new_pkgbase_provides_url: bool,
+    current_pkgbase_provides_url: bool,
+    url_matches: bool,
+    return_value: ActionStateEnum,
+    outputpackagebasev1: OutputPackageBase,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    new_pkgbase = outputpackagebasev1
+    current_pkgbase = deepcopy(new_pkgbase)
+    if new_pkgbase_provides_url:
+        new_pkgbase.source_url = parse_obj_as(AnyUrl, "https://foobar.com/foo/bar")  # type: ignore[attr-defined]
+    if current_pkgbase_provides_url:
+        current_pkgbase.source_url = parse_obj_as(AnyUrl, "https://foobar.com/foo/bar")  # type: ignore[attr-defined]
+
+    check_ = check.SourceUrlCheck(
+        new_pkgbases=[new_pkgbase],
+        current_pkgbases=[current_pkgbase],
+        url_validation_settings=UrlValidationSettings(
+            urls=["https://foobar.com/foo/"] if url_matches else ["https://beh.com/foo/"],
+            tls_required=True,
+        )
+        if require_validation
+        else None,
+    )
+
+    assert check_() == return_value

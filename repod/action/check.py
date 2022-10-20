@@ -3,7 +3,10 @@ from abc import ABCMeta, abstractmethod
 from logging import debug, info
 from pathlib import Path
 
+from pydantic import HttpUrl
+
 from repod.common.enums import ActionStateEnum, ArchitectureEnum, PkgTypeEnum
+from repod.config.settings import UrlValidationSettings
 from repod.errors import RepoManagementFileError
 from repod.files import Package
 from repod.files.pkginfo import PkgInfoV2, PkgType
@@ -434,6 +437,87 @@ class PackagesNewOrUpdatedCheck(Check):
                         f"pkgbase {target_package_pkgbase}, but the new pkgbase "
                         f"{pkgbase.get('name')} now tries to provide it, "
                         f"without removing the package from the pkgbase {target_package_pkgbase}."
+                    )
+                    self.state = ActionStateEnum.FAILED
+                    return self.state
+
+        self.state = ActionStateEnum.SUCCESS
+        return self.state
+
+
+class SourceUrlCheck(Check):
+    """Check that pkgbases have a source url, if their repository validation settings require it
+
+    Attributes
+    ----------
+    new_pkgbases: dict[str, HttpUrl | None]
+        A dict representing new pkgbases and their respective optional upstream URL (to check)
+    current_pkgbase_urls: dict[str, HttpUrl | None]
+        A dict representing current pkgbases and their respective optional upstream URL
+    url_validation_settings: UrlValidationSettings | None
+        An optional UrlValidationSettings instance with which to validate source URLs of the provided new_pkgbases
+    """
+
+    def __init__(
+        self,
+        new_pkgbases: list[OutputPackageBase],
+        current_pkgbases: list[OutputPackageBase],
+        url_validation_settings: UrlValidationSettings | None,
+    ):
+        """Initialize an instance of SourceUrlCheck
+
+        Parameters
+        ----------
+        new_pkgbases: list[OutputPackageBase]
+            A list of OutputPackageBase instances representing new pkgbases to check
+        current_pkgbases: list[OutputPackageBase]
+            A list of current OutputPackageBase instances (a subset of new_pkgbases)
+        url_validation_settings: UrlValidationSettings | None
+            An optional UrlValidationSettings instance with which to validate source URLs of the provided new_pkgbases
+        """
+
+        self.new_pkgbase_urls: dict[str, HttpUrl | None] = dict(
+            [tuple([pkgbase.base, pkgbase.source_url]) for pkgbase in new_pkgbases]  # type: ignore[attr-defined,misc]
+        )
+        self.current_pkgbase_urls: dict[str, HttpUrl | None] = dict(
+            [
+                tuple([pkgbase.base, pkgbase.source_url])  # type: ignore[attr-defined,misc]
+                for pkgbase in current_pkgbases
+            ]
+        )
+        self.url_validation_settings = url_validation_settings
+
+    def __call__(self) -> ActionStateEnum:
+        """Check that pkgbases have a source url, if their repository validation settings require it
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check passed successfully,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        debug("Running check to validate the URLs of pkgbases... ")
+
+        if not self.url_validation_settings:
+            debug("No URL validation required, skipping check...")
+            self.state = ActionStateEnum.SUCCESS
+            return self.state
+
+        for pkgbase, url in self.new_pkgbase_urls.items():
+            url = url or self.current_pkgbase_urls.get(pkgbase)
+
+            if not url:
+                info(f"The pkgbase {pkgbase} does neither already have a source URL set nor is one provided for it!")
+                self.state = ActionStateEnum.FAILED
+                return self.state
+            else:
+                if not self.url_validation_settings.validate_url(url=url):
+                    info(
+                        f"The source URL of the pkgbase {pkgbase} ({url}) does not validate "
+                        "against the repository's settings!"
                     )
                     self.state = ActionStateEnum.FAILED
                     return self.state
