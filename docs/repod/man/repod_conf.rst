@@ -22,7 +22,7 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-A TOML based configuration file, which can be provided in a default
+A *TOML [1]* based configuration file, which can be provided in a default
 configuration file location and/ or override configuration file locations.
 Override configuration files are read and merged in alphabetically order and
 have higher precedence than the default configuration file location.
@@ -132,7 +132,7 @@ or defaults (see :ref:`repod.conf_default_options`) are assumed.
 
   .. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
 
-* *management_repo* (optional): A table providing configuration for the
+* *management_repo* (optional): An inline table providing configuration for the
   *management repository* of the repository. If it is provided, it has
   precedence over a globally defined *management_repo*. As each configured
   repository is represented as a subdirectory structure in the management
@@ -325,9 +325,7 @@ Example 3. One repository with custom management repo
   name = "repo1"
   staging = "repo-staging"
   testing = "repo-testing"
-  [management_repo]
-  directory = "custom_management"
-  url = "ssh://user@custom-upstream.tld/repository.git"
+  management_repo = {directory = "custom_management", url = "ssh://user@custom-upstream.tld/repository.git"}
 
 Example 4. One repository with non-standard directories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -339,8 +337,7 @@ Example 4. One repository with non-standard directories
   name = "/absolute/path/to/repo1"
   staging = "/absolute/path/to/repo-staging"
   testing = "/absolute/path/to/repo-testing"
-  [management_repo]
-  directory = "/absolute/path/to/management_repo"
+  management_repo = {directory = "/absolute/path/to/management_repo"}
 
 Example 5. One repository with pacman-key based signature verification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -360,3 +357,10 @@ SEE ALSO
 --------
 
 :manpage:`repod-file(1)`, :manpage:`pacman(8)`, :manpage:`pacman-key(8)`
+
+NOTES
+-----
+
+1. TOML specification
+
+   https://toml.io/en/v1.0.0
