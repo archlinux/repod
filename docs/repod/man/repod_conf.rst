@@ -151,6 +151,16 @@ or defaults (see :ref:`repod.conf_default_options`) are assumed.
 
   * *url*: An optional url string, for the upstream repository of the management repository (currently not used)
 
+* *package_url_validation* (optional): An inline table providing configuration
+  for the validation of source URLs. Source URLs are links, that may be
+  provided per pkgbase using *repod-file* and serve as reference to the source
+  files (e.g. PKGBUILD) for each package.
+
+  * *urls*: A list of URL strings, against which the source URLs provided to
+    *repod-file* must validate.
+  * *tls_required*: A boolean value, setting whether the URLS in the *urls*
+    list and any source URL provided to *repod-file* must use TLS or not.
+
 * *name*: A string setting the name of the repository. It is used as the
   location to store stable package data of the repository.
   The *name* and *architecture* combination **must be unique**.
@@ -353,10 +363,23 @@ Example 5. One repository with pacman-key based signature verification
   staging = "repo-staging"
   testing = "repo-testing"
 
+Example 6. One repository with source URL validation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: toml
+
+  [[repositories]]
+  architecture = "x86_64"
+  name = "repo1"
+  debug = "repo-debug"
+  staging = "repo-staging"
+  testing = "repo-testing"
+  package_url_validation = {urls = ["https://custom.tld"], tls_required = true}
+
 SEE ALSO
 --------
 
-:manpage:`repod-file(1)`, :manpage:`pacman(8)`, :manpage:`pacman-key(8)`
+:manpage:`repod-file(1)`, :manpage:`PKGBUILD(5)`, :manpage:`pacman(8)`, :manpage:`pacman-key(8)`
 
 NOTES
 -----
