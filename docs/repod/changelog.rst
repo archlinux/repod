@@ -29,6 +29,12 @@ Added
   consider changes to the pkgbase of a package (e.g. ensuring, that a
   previously existing pkgbase providing a package must be updated if a
   package's pkgbase changes).
+* Validation of source URLs per ``pkgbase`` against one or several allowed URLs
+  is now possible per repository and can be configured using ``repod.conf``.
+* The command ``repod-file repo importpkg`` learned a new parameter (``-u``/
+  ``--source-url``) with which users may provide lists of ``pkgbase=url``
+  strings, that - if matching - are combined with the data gained from consumed
+  packages and is used for source URL validation.
 
 Changed
 ^^^^^^^
@@ -68,6 +74,8 @@ Fixed
 * The parser for mtree files did not zerofill retrieved file modes and as mtree
   may return strings shorter than three chars as a file mode, this led to
   ValidationErrors when initializing MTree objects.
+* In the ``repod.conf`` man page, TOML inline tables had been used falsely as
+  tables.
 
 [0.2.2] - 2022-08-29
 --------------------
