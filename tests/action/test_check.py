@@ -78,31 +78,27 @@ def test_debugpackagescheck(
     assert check_() == return_value
 
 
-@mark.parametrize("matching_arch", [(True), (False)])
+@mark.parametrize(
+    "package_arch, repo_arch, return_value",
+    [
+        (ArchitectureEnum.AARCH64, ArchitectureEnum.AARCH64, ActionStateEnum.SUCCESS),
+        (ArchitectureEnum.ANY, ArchitectureEnum.AARCH64, ActionStateEnum.SUCCESS),
+        (ArchitectureEnum.ANY, ArchitectureEnum.ANY, ActionStateEnum.SUCCESS),
+        (ArchitectureEnum.AARCH64, ArchitectureEnum.ANY, ActionStateEnum.FAILED),
+        (ArchitectureEnum.AARCH64, ArchitectureEnum.X86_64, ActionStateEnum.FAILED),
+    ],
+)
 def test_matchingarchitecturecheck(
-    matching_arch: bool,
+    package_arch: ArchitectureEnum,
+    repo_arch: ArchitectureEnum,
+    return_value: ActionStateEnum,
     packagev1: Package,
     caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
 
-    package_arch = packagev1.pkginfo.arch  # type: ignore[attr-defined]
-
-    if matching_arch:
-        architecture = ArchitectureEnum(package_arch)
-        return_value = ActionStateEnum.SUCCESS
-    else:
-        for arch in ArchitectureEnum:
-            if arch != ArchitectureEnum(package_arch):
-                architecture = arch
-                break
-
-        return_value = ActionStateEnum.FAILED
-
-        if ArchitectureEnum(package_arch) == ArchitectureEnum.ANY:
-            return_value = ActionStateEnum.SUCCESS
-
-    check_ = check.MatchingArchitectureCheck(architecture=architecture, packages=[packagev1])
+    packagev1.pkginfo.arch = package_arch.value  # type: ignore[attr-defined]
+    check_ = check.MatchingArchitectureCheck(architecture=repo_arch, packages=[packagev1])
     assert check_() == return_value
 
 
