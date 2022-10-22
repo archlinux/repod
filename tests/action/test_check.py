@@ -106,6 +106,37 @@ def test_matchingarchitecturecheck(
 
 
 @mark.parametrize(
+    "filename, arch, name, version, return_value",
+    [
+        ("foo-1:1.0.0-1-any.pkg.tar.zst", "any", "foo", "1:1.0.0-1", ActionStateEnum.SUCCESS),
+        ("foo-1:1.0.0-1-any.pkg.tar.zst", "x86_64", "foo", "1:1.0.0-1", ActionStateEnum.FAILED),
+        ("foo-1:1.0.0-1-any.pkg.tar.zst", "any", "bar", "1:1.0.0-1", ActionStateEnum.FAILED),
+        ("foo-1:1.0.0-1-any.pkg.tar.zst", "any", "foo", "2:1.0.0-1", ActionStateEnum.FAILED),
+        ("foo-1:1.0.0-1-any.pkg.tar.zst", "any", "foo", "1:2.0.0-1", ActionStateEnum.FAILED),
+        ("foo-1:1.0.0-1-any.pkg.tar.zst", "any", "foo", "1:1.0.2-1", ActionStateEnum.FAILED),
+        ("foo-1:1.0.0-1-any.pkg.tar.zst", "any", "foo", "1:1.0.0-2", ActionStateEnum.FAILED),
+    ],
+)
+def test_matchingfilenamecheck(
+    filename: str,
+    name: str,
+    version: str,
+    arch: str,
+    return_value: ActionStateEnum,
+    packagev1: Package,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    packagev1.filename = filename  # type: ignore[attr-defined]
+    packagev1.pkginfo.name = name  # type: ignore[attr-defined]
+    packagev1.pkginfo.version = version  # type: ignore[attr-defined]
+    packagev1.pkginfo.arch = arch  # type: ignore[attr-defined]
+    check_ = check.MatchingFilenameCheck(packages_and_paths=[(packagev1, Path(filename))])
+    assert check_() == return_value
+
+
+@mark.parametrize(
     "increase_version, return_value",
     [
         (True, ActionStateEnum.SUCCESS),

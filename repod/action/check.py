@@ -11,6 +11,7 @@ from repod.errors import RepoManagementFileError
 from repod.files import Package
 from repod.files.pkginfo import PkgInfoV2, PkgType
 from repod.repo.management import OutputPackageBase
+from repod.repo.package.repofile import filename_parts
 from repod.verification import PacmanKeyVerifier
 from repod.version.alpm import pkg_vercmp
 
@@ -196,7 +197,7 @@ class MatchingArchitectureCheck(Check):
     """
 
     def __init__(self, architecture: ArchitectureEnum, packages: list[Package]):
-        """Initialize an instance of DebugPackagesCheck
+        """Initialize an instance of MatchingArchitectureCheck
 
         Parameters
         ----------
@@ -237,6 +238,63 @@ class MatchingArchitectureCheck(Check):
             info(
                 "Adding package(s) to repository failed as the following packages are not compatible with CPU "
                 f"architecture {'(' + self.architecture.value + ')' if self.architecture else ''}: {non_matching}"
+            )
+        else:
+            self.state = ActionStateEnum.SUCCESS
+
+        return self.state
+
+
+class MatchingFilenameCheck(Check):
+    """A Check to ensure that package metadata matches the data from the package filename.
+
+    Attributes
+    ----------
+    packages_and_paths: list[tuple[Package, Path]]
+        A list of tuples of Package instances and Path instances to check
+    """
+
+    def __init__(self, packages_and_paths: list[tuple[Package, Path]]):
+        """Initialize an instance of MatchingFilenameCheck
+
+        Parameters
+        ----------
+        packages_and_paths: list[tuple[Package, Path]]
+            A list of tuples of Package instances and Path instances to check
+        """
+
+        self.packages_and_paths = packages_and_paths
+
+    def __call__(self) -> ActionStateEnum:
+        """Check that package metadata matches data from the filename.
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check is successful,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        debug("Running check to test whether package metadata and package filenames match...")
+
+        non_matching: list[str] = []
+
+        for package, path in self.packages_and_paths:
+            pkginfo = package.pkginfo  # type: ignore[attr-defined]
+            filename_data = filename_parts(path)
+            pkg_data = {"arch": pkginfo.arch, "name": pkginfo.name, "version": pkginfo.version}
+            for key, value in pkg_data.items():
+                if filename_data[key] != value:
+                    msg = f"{package.filename}: {filename_data[key]}/{value}"  # type: ignore[attr-defined]
+                    non_matching.append(msg)
+
+        if len(non_matching) > 0:
+            self.state = ActionStateEnum.FAILED
+            info(
+                "Adding package(s) to repository failed as the following packages have a mismatch between package "
+                f"filename and package metadata: {non_matching}"
             )
         else:
             self.state = ActionStateEnum.SUCCESS

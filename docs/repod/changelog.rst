@@ -43,6 +43,8 @@ Added
   testing or staging), the layers above and below are checked, so that pkgbases
   in lower layers do not have a higher version and pkgbases in higher layer do
   not have lower versions than the one being added.
+* Checks now ensure that when adding packages the filename of the package and
+  the package's info name are the same.
 
 Changed
 ^^^^^^^

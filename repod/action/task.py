@@ -16,6 +16,7 @@ from repod.action.check import (
     Check,
     DebugPackagesCheck,
     MatchingArchitectureCheck,
+    MatchingFilenameCheck,
     PackagesNewOrUpdatedCheck,
     PacmanKeyPackagesSignatureVerificationCheck,
     PkgbasesVersionUpdateCheck,
@@ -443,16 +444,17 @@ class CreateOutputPackageBasesTask(Task):
         debug(f"Running Task to create a list of OutputPackageBase instances using {self.package_paths}...")
         self.state = ActionStateEnum.STARTED_TASK
 
+        packages_and_paths: list[tuple[Package, Path]] = []
         for package_list in self.package_paths:
             try:
-                packages.append(
-                    asyncio.run(
-                        Package.from_file(
-                            package=package_list[0],
-                            signature=package_list[1] if len(package_list) == 2 else None,
-                        )
+                package = asyncio.run(
+                    Package.from_file(
+                        package=package_list[0],
+                        signature=package_list[1] if len(package_list) == 2 else None,
                     )
                 )
+                packages.append(package)
+                packages_and_paths.append((package, package_list[0]))
             except RepoManagementFileError as e:
                 info(e)
                 self.state = ActionStateEnum.FAILED_TASK
@@ -473,6 +475,7 @@ class CreateOutputPackageBasesTask(Task):
 
         self.post_checks.append(DebugPackagesCheck(packages=packages, debug=self.debug_repo))
         self.post_checks.append(MatchingArchitectureCheck(architecture=self.architecture, packages=packages))
+        self.post_checks.append(MatchingFilenameCheck(packages_and_paths=packages_and_paths))
 
         self.state = ActionStateEnum.SUCCESS_TASK
         return self.state
