@@ -314,6 +314,75 @@ class RepoDirTypeEnum(Enum):
     POOL = "pool"
 
 
+class RepoTypeEnum(Enum):
+    """An Enum to distinguish different types of repositories
+
+    Attributes
+    ----------
+    STABLE: str
+        A stable repository
+    DEBUG: str
+        A stable debug repository
+    STAGING: str
+        A staging repository
+    STAGING_DEBUG: str
+        A staging debug repository
+    TESTING: str
+        A testing repository
+    TESTING_DEBUG: str
+        A testing debug repository
+    """
+
+    STABLE = "stable"
+    STABLE_DEBUG = "stable debug"
+    STAGING = "staging"
+    STAGING_DEBUG = "staging debug"
+    TESTING = "testing"
+    TESTING_DEBUG = "testing debug"
+
+    @classmethod
+    def from_bool(cls, debug: bool, staging: bool, testing: bool) -> RepoTypeEnum:
+        """Return a member of RepoTypeEnum by providing boolean values
+
+        Parameters
+        ----------
+        debug: bool
+            A boolean value indicating whether a debug repository is targeted
+        staging: bool
+            A boolean value indicating whether a staging repository is targeted
+        testing: bool
+            A boolean value indicating whether a testing repository is targeted
+
+        Raises
+        ------
+        RuntimeError
+            If no member of RepoTypeEnum matches the provided boolean values
+
+        Returns
+        -------
+        RepoTypeEnum
+            A member of RepoTypeEnum matching the provided boolean values
+        """
+
+        match debug, staging, testing:
+            case False, False, False:
+                return cls.STABLE
+            case False, True, False:
+                return cls.STAGING
+            case False, False, True:
+                return cls.TESTING
+            case True, False, False:
+                return cls.STABLE_DEBUG
+            case True, True, False:
+                return cls.STAGING_DEBUG
+            case True, False, True:
+                return cls.TESTING_DEBUG
+            case _:
+                raise RuntimeError(
+                    f"Can not define a repository type from data: debug={debug}, staging={staging}, testing={testing}"
+                )
+
+
 class SettingsTypeEnum(Enum):
     """An Enum to distinguish different Settings types
 

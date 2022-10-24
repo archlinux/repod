@@ -48,3 +48,26 @@ def test_compressiontypeenum_as_files_file_suffixes() -> None:
 
 def test_architectureenum_as_or_regex() -> None:
     assert enums.ArchitectureEnum.as_or_regex()
+
+
+@mark.parametrize(
+    "debug, staging, testing, return_value, expectation",
+    [
+        (False, False, False, enums.RepoTypeEnum.STABLE, does_not_raise()),
+        (False, True, False, enums.RepoTypeEnum.STAGING, does_not_raise()),
+        (False, False, True, enums.RepoTypeEnum.TESTING, does_not_raise()),
+        (True, False, False, enums.RepoTypeEnum.STABLE_DEBUG, does_not_raise()),
+        (True, True, False, enums.RepoTypeEnum.STAGING_DEBUG, does_not_raise()),
+        (True, False, True, enums.RepoTypeEnum.TESTING_DEBUG, does_not_raise()),
+        (True, True, True, None, raises(RuntimeError)),
+    ],
+)
+def test_repotypeenum_from_bool(
+    debug: bool,
+    staging: bool,
+    testing: bool,
+    return_value: enums.RepoTypeEnum,
+    expectation: ContextManager[str],
+) -> None:
+    with expectation:
+        assert enums.RepoTypeEnum.from_bool(debug=debug, staging=staging, testing=testing) == return_value
