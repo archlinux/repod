@@ -47,116 +47,101 @@ def test_mangement_repo(
 
 
 @mark.parametrize(
-    "name, debug_repo, staging_repo, testing_repo, package_pool, source_pool, management_repo, url, expectation",
+    "name, debug_repo, staging_repo, staging_debug_repo, testing_repo, testing_debug_repo, expectation",
     [
-        (Path("foo"), None, None, None, False, False, False, None, does_not_raise()),
-        (Path("foo"), Path("debug"), None, None, False, False, False, None, does_not_raise()),
-        (Path("foo"), Path("debug"), Path("staging"), None, False, False, False, None, does_not_raise()),
-        (Path("foo"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, does_not_raise()),
-        ("foo", None, None, None, False, False, False, None, does_not_raise()),
-        ("foo", "debug", None, None, False, False, False, None, does_not_raise()),
-        ("foo", "debug", "staging", None, False, False, False, None, does_not_raise()),
-        ("foo", "debug", "staging", "testing", False, False, False, None, does_not_raise()),
-        (Path("foo-bar123"), None, None, None, False, False, False, None, does_not_raise()),
-        (Path("foo-bar123"), Path("debug"), None, None, False, False, False, None, does_not_raise()),
-        (Path("foo-bar123"), Path("debug"), Path("staging"), None, False, False, False, None, does_not_raise()),
-        (
-            Path("foo-bar123"),
-            Path("debug"),
-            Path("staging"),
-            Path("testing"),
-            False,
-            False,
-            False,
-            None,
-            does_not_raise(),
-        ),
-        (Path("foo-bar123"), None, None, None, False, False, True, "https://foo.bar", does_not_raise()),
-        (Path("foo-bar123"), Path("debug"), None, None, False, False, True, "https://foo.bar", does_not_raise()),
-        (
-            Path("foo-bar123"),
-            Path("debug"),
-            Path("staging"),
-            None,
-            False,
-            False,
-            True,
-            "https://foo.bar",
-            does_not_raise(),
-        ),
-        (
-            Path("foo-bar123"),
-            Path("debug"),
-            Path("staging"),
-            Path("testing"),
-            False,
-            False,
-            True,
-            "https://foo.bar",
-            does_not_raise(),
-        ),
-        (Path(" foo"), None, None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path(" debug"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path("debug "), Path(" staging"), None, False, False, False, None, raises(ValueError)),
+        (Path("foo"), None, None, None, None, None, does_not_raise()),
+        (Path("foo"), None, Path("stage"), None, None, None, does_not_raise()),
+        (Path("foo"), None, None, None, Path("test"), None, does_not_raise()),
+        (Path("foo"), Path("dbg"), None, None, None, None, does_not_raise()),
+        (Path("foo"), Path("dbg"), None, None, Path("test"), Path("test-dbg"), does_not_raise()),
+        (Path("foo"), Path("dbg"), Path("stage"), Path("stage-dbg"), None, None, does_not_raise()),
+        (Path("foo"), Path("dbg"), Path("stage"), Path("stage-dbg"), Path("test"), Path("test-dbg"), does_not_raise()),
+        (Path("foo"), Path("dbg"), Path("stage"), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("test"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("stage"), Path("stage-dbg"), Path("test"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("stage"), None, Path("test"), Path("test-dbg"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, Path("stage-debug"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, None, Path("test-dbg"), raises(ValueError)),
+        (Path("foo"), None, Path("stage"), Path("stage-debug"), None, None, raises(ValueError)),
+        (Path("foo"), None, None, None, Path("test"), Path("test-dbg"), raises(ValueError)),
+        (Path("FOO"), None, None, None, None, None, raises(ValueError)),
+        (Path(".foo"), None, None, None, None, None, raises(ValueError)),
+        (Path("-foo"), None, None, None, None, None, raises(ValueError)),
+        (Path("."), None, None, None, None, None, raises(ValueError)),
+        (Path(" foo"), None, None, None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg "), None, None, None, None, raises(ValueError)),
+        (Path("foo"), None, Path("st "), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st-dbg "), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst "), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst"), Path("tst-dbg "), raises(ValueError)),
+        (Path("foo"), Path("foo"), None, None, None, None, raises(ValueError)),
+        (Path("foo"), Path("foo/dbg"), None, None, None, None, raises(ValueError)),
+        (Path("foo"), None, Path("foo"), None, None, None, raises(ValueError)),
+        (Path("foo"), None, Path("foo/st"), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("foo"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("foo/st-dbg"), None, None, raises(ValueError)),
+        (Path("foo"), None, None, None, Path("foo"), None, raises(ValueError)),
+        (Path("foo"), None, None, None, Path("foo/tst"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst"), Path("foo"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst"), Path("foo/tst-dbg"), raises(ValueError)),
+        (Path("dbg/foo"), Path("dbg"), None, None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("dbg"), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("dbg/st"), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("dbg"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("dbg/st-dbg"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("dbg"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("dbg/tst"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst"), Path("dbg"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst"), Path("dbg/tst-dbg"), raises(ValueError)),
+        (Path("st/foo"), None, Path("st"), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("st"), Path("st"), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("st/dbg"), Path("st"), None, None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st/st-dbg"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st"), None, None, raises(ValueError)),
+        (Path("foo"), None, Path("st"), None, Path("st"), None, raises(ValueError)),
+        (Path("foo"), None, Path("st"), None, Path("st/tst"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), None, Path("tst"), Path("st"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), None, Path("tst"), Path("st/tst-dbg"), raises(ValueError)),
+        (Path("st-dbg/foo"), Path("dbg"), Path("st"), Path("st-dbg"), None, None, raises(ValueError)),
+        (Path("foo"), Path("st-dbg/dbg"), Path("st"), Path("st-dbg"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st-dbg"), Path("st-dbg"), None, None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st-dbg"), Path("st-dbg"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st-dbg"), Path("st-dbg/tst"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st-dbg"), Path("tst"), Path("st-dbg"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("st-dbg"), Path("tst"), Path("st-dbg/tst-dbg"), raises(ValueError)),
+        (Path("tst/foo"), None, None, None, Path("tst"), None, raises(ValueError)),
+        (Path("foo"), Path("tst/dbg"), None, None, Path("tst"), None, raises(ValueError)),
+        (Path("foo"), None, Path("tst"), None, Path("tst"), None, raises(ValueError)),
+        (Path("foo"), None, Path("tst/st"), None, Path("tst"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("tst"), Path("tst"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("tst/stg-dbg"), Path("tst"), None, raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst"), Path("tst"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), None, None, Path("tst"), Path("tst/tst-dbg"), raises(ValueError)),
+        (Path("tst-dbg/foo"), Path("dbg"), None, None, Path("tst"), Path("tst-dbg"), raises(ValueError)),
+        (Path("foo"), Path("tst-dbg/dbg"), None, None, Path("tst"), Path("tst-dbg"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("tst-dbg"), None, Path("tst"), Path("tst-dbg"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("tst-dbg/st"), None, Path("tst"), Path("tst-dbg"), raises(ValueError)),
+        (Path("foo"), Path("dbg"), Path("st"), Path("tst-dbg"), Path("tst"), Path("tst-dbg"), raises(ValueError)),
         (
             Path("foo"),
-            Path("debug "),
-            Path(" staging"),
-            Path(" testing"),
-            False,
-            False,
-            False,
-            None,
+            Path("dbg"),
+            Path("st"),
+            Path("tst-dbg/st-dbg"),
+            Path("tst"),
+            Path("tst-dbg"),
             raises(ValueError),
         ),
-        (Path("foo"), Path("foo"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), None, Path("foo"), None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), None, None, Path("foo"), False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path("debug"), Path("debug"), None, False, False, False, None, raises(ValueError)),
-        (Path("foo"), Path("debug"), None, Path("debug"), False, False, False, None, raises(ValueError)),
-        (Path("FOO"), None, None, None, False, False, False, None, raises(ValueError)),
-        (Path("FOO"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("FOO"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
-        (Path("FOO"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
-        (Path("foo_BAR123"), None, None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo_BAR123"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("foo_BAR123"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
-        (
-            Path("foo_BAR123"),
-            Path("debug"),
-            Path("staging"),
-            Path("testing"),
-            False,
-            False,
-            False,
-            None,
-            raises(ValueError),
-        ),
-        (Path(".foo"), None, None, None, False, False, False, None, raises(ValueError)),
-        (Path(".foo"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
-        (Path(".foo"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
-        (Path(".foo"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
-        (Path("-foo"), None, None, None, False, False, False, None, raises(ValueError)),
-        (Path("-foo"), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("-foo"), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
-        (Path("-foo"), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
-        (Path("."), None, None, None, False, False, False, None, raises(ValueError)),
-        (Path("."), Path("debug"), None, None, False, False, False, None, raises(ValueError)),
-        (Path("."), Path("debug"), Path("staging"), None, False, False, False, None, raises(ValueError)),
-        (Path("."), Path("debug"), Path("staging"), Path("testing"), False, False, False, None, raises(ValueError)),
     ],
 )
 def test_package_repo(
     name: Path,
     debug_repo: Path | None,
     staging_repo: Path | None,
+    staging_debug_repo: Path | None,
     testing_repo: Path | None,
-    package_pool: bool,
-    source_pool: bool,
-    management_repo: bool,
-    url: str | None,
+    testing_debug_repo: Path | None,
     expectation: ContextManager[str],
-    empty_dir: Path,
     caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
@@ -166,15 +151,12 @@ def test_package_repo(
             name=name,
             debug=debug_repo,
             staging=staging_repo,
+            staging_debug=staging_debug_repo,
             testing=testing_repo,
-            package_pool=empty_dir if package_pool else None,
-            source_pool=empty_dir if source_pool else None,
-            management_repo=settings.ManagementRepo(
-                directory=empty_dir,
-                url=url,
-            )
-            if management_repo
-            else None,
+            testing_debug=testing_debug_repo,
+            package_pool=None,
+            source_pool=None,
+            management_repo=None,
         )
 
 
@@ -412,17 +394,22 @@ def test_usersettings(
         ", repo_has_source_pool"
         ", repo_has_debug"
         ", repo_has_staging"
+        ", repo_has_staging_debug"
         ", repo_has_testing"
+        ", repo_has_testing_debug"
     ),
     [
-        (True, True, True, True, True, True, True, True),
-        (True, True, True, True, True, False, True, True),
-        (True, True, True, True, True, True, False, True),
-        (True, True, True, True, True, True, True, False),
-        (False, False, False, False, False, False, False, False),
+        (True, True, True, True, True, True, True, True, True, True),
+        (True, True, True, True, True, True, True, False, True, False),
+        (True, True, True, True, True, True, True, True, True, False),
+        (True, True, True, True, True, True, True, False, True, True),
+        (True, True, True, True, True, False, True, False, True, False),
+        (True, True, True, True, True, True, False, False, True, False),
+        (True, True, True, True, True, True, True, False, False, False),
+        (False, False, False, False, False, False, False, False, False, False),
     ],
 )
-def test_settings_consolidate_repositories_with_defaults(
+def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
     repo_has_architecture: bool,
     repo_has_database_compression: bool,
     repo_has_management_repo: bool,
@@ -430,7 +417,9 @@ def test_settings_consolidate_repositories_with_defaults(
     repo_has_source_pool: bool,
     repo_has_debug: bool,
     repo_has_staging: bool,
+    repo_has_staging_debug: bool,
     repo_has_testing: bool,
+    repo_has_testing_debug: bool,
     packagerepo_in_tmp_path: settings.PackageRepo,
     tmp_path: Path,
 ) -> None:
@@ -453,8 +442,12 @@ def test_settings_consolidate_repositories_with_defaults(
         packagerepo_in_tmp_path.debug = None
     if not repo_has_staging:
         packagerepo_in_tmp_path.staging = None
+    if not repo_has_staging_debug:
+        packagerepo_in_tmp_path.staging_debug = None
     if not repo_has_testing:
         packagerepo_in_tmp_path.testing = None
+    if not repo_has_testing_debug:
+        packagerepo_in_tmp_path.testing_debug = None
 
     with patch("repod.config.settings.Settings._package_repo_base", tmp_path / "_package_repo_base"):
         with patch("repod.config.settings.Settings._source_repo_base", tmp_path / "_source_repo_base"):
@@ -504,28 +497,34 @@ def test_settings_consolidate_repositories_with_defaults(
 
 
 @mark.parametrize(
-    "debug_repo, staging_repo, testing_repo",
+    "debug_repo, staging_repo, staging_debug_repo, testing_repo, testing_debug_repo",
     [
-        (True, True, True),
-        (False, True, True),
-        (False, False, True),
-        (False, True, False),
-        (True, True, False),
-        (False, False, False),
+        (True, True, True, True, True),
+        (False, True, True, True, True),
+        (False, False, False, True, True),
+        (False, True, True, False, False),
+        (True, True, True, False, False),
+        (False, False, False, False, False),
     ],
 )
-def test_settings_create_repository_directories(
+def test_settings_create_repository_directories(  # noqa: C901
     debug_repo: bool,
     staging_repo: bool,
+    staging_debug_repo: bool,
     testing_repo: bool,
+    testing_debug_repo: bool,
     packagerepo_in_tmp_path: settings.PackageRepo,
 ) -> None:
     if not debug_repo:
         packagerepo_in_tmp_path.debug = None
     if not staging_repo:
         packagerepo_in_tmp_path.staging = None
+    if not staging_debug_repo:
+        packagerepo_in_tmp_path.staging_debug = None
     if not testing_repo:
         packagerepo_in_tmp_path.testing = None
+    if not testing_debug_repo:
+        packagerepo_in_tmp_path.testing_debug = None
 
     settings.Settings.create_repository_directories(repositories=[packagerepo_in_tmp_path])
     assert packagerepo_in_tmp_path._stable_repo_dir.exists()
@@ -542,529 +541,727 @@ def test_settings_create_repository_directories(
         assert packagerepo_in_tmp_path._staging_repo_dir.exists()
         assert packagerepo_in_tmp_path._staging_source_repo_dir.exists()
         assert packagerepo_in_tmp_path._staging_management_repo_dir.exists()
+        if staging_debug_repo:
+            assert packagerepo_in_tmp_path._staging_debug_repo_dir.exists()
+            assert packagerepo_in_tmp_path._staging_debug_source_repo_dir.exists()
+            assert packagerepo_in_tmp_path._staging_debug_management_repo_dir.exists()
     if testing_repo:
         assert packagerepo_in_tmp_path._testing_repo_dir.exists()
         assert packagerepo_in_tmp_path._testing_source_repo_dir.exists()
         assert packagerepo_in_tmp_path._testing_management_repo_dir.exists()
+        if testing_debug_repo:
+            assert packagerepo_in_tmp_path._testing_debug_repo_dir.exists()
+            assert packagerepo_in_tmp_path._testing_debug_source_repo_dir.exists()
+            assert packagerepo_in_tmp_path._testing_debug_management_repo_dir.exists()
 
 
 @mark.parametrize(
-    "base_overrides, repo_overrides, expectation",
+    "repo1_overrides, repo2_overrides, expectation",
     [
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             does_not_raise(),
         ),
         (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
             {},
-            raises(ValueError),
-        ),
-        (
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/default/repo/source_repo_base/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "package_pool_dir": Path("/default/repo/source_repo_base/"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "source_pool_dir": Path("/default/repo/source_repo_base/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/source_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/default/repo/package_repo_base/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "package_pool_dir": Path("/default/repo/package_repo_base/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "source_pool_dir": Path("/default/repo/package_repo_base/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
-                "package_pool_dir": Path("/repo/stable_management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
-                "source_pool_dir": Path("/repo/stable_management_repo_dir"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/repo/stable_management_repo_dir"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/repo/stable_management_repo_dir"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
-                "staging_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
+            does_not_raise(),
+        ),
+        (
+            {},
             {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
-                "testing_management_repo_dir": Path("/repo/stable_management_repo_dir"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            does_not_raise(),
+        ),
+        (
+            {},
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir"),
-                "package_pool_dir": Path("/repo/stable_management_repo_dir/foo/bar"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "package_pool_dir": Path("/repo/source_pool_dir/foo/bar"),
-                "source_pool_dir": Path("/repo/source_pool_dir"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "package_pool_dir": Path("/default/repo/package_repo_base/foo/bar/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "package_pool_dir": Path("/default/repo/source_repo_base/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir/"),
-                "source_pool_dir": Path("/repo/stable_management_repo_dir/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
+            {},
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
+            raises(ValueError),
+        ),
+        (
+            {},
             {
-                "stable_repo_dir": Path("/repo/other"),
-                "package_pool_dir": Path("/repo/package_pool_dir/"),
-                "source_pool_dir": Path("/repo/package_pool_dir/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
             },
             raises(ValueError),
         ),
         (
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2/default1"),
             },
             {
-                "stable_repo_dir": Path("/repo/other"),
-                "source_pool_dir": Path("/default/repo/package_repo_base/foo/bar/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/other"),
-                "source_pool_dir": Path("/default/repo/source_repo_base/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug/default1"),
             },
             {
-                "stable_repo_dir": Path("/repo/stable_management_repo_dir/foo/bar/"),
-                "stable_management_repo_dir": Path("/repo/stable_management_repo_dir/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/staging_repo_dir/foo/bar/"),
-                "staging_repo_dir": Path("/repo/staging_repo_dir/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging/default1-staging"),
             },
             {
-                "stable_repo_dir": Path("/repo/testing_repo_dir/foo/bar/"),
-                "testing_repo_dir": Path("/repo/testing_repo_dir/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_management_repo_dir": Path("/stable_management_repo_dir/"),
-                "stable_repo_dir": Path("/repo/stable/"),
-                "staging_repo_dir": Path("/stable_management_repo_dir/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug/default1-staging-debug"),
             },
             {
-                "stable_repo_dir": Path("/repo/stable/"),
-                "staging_repo_dir": Path("/repo/stable/foo/bar/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/stable/"),
-                "staging_repo_dir": Path("/repo/testing/foo/bar/"),
-                "testing_repo_dir": Path("/repo/testing/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing/default1-testing"),
             },
             {
-                "stable_management_repo_dir": Path("/stable_management_repo_dir/"),
-                "stable_repo_dir": Path("/repo/stable/"),
-                "testing_repo_dir": Path("/stable_management_repo_dir/foo/bar/"),
-            },
-            raises(ValueError),
-        ),
-        (
-            {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
-            },
-            {
-                "stable_repo_dir": Path("/repo/stable/"),
-                "testing_repo_dir": Path("/repo/stable/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
         (
             {
-                "management_repo_base": Path("/default/management_repo_base/"),
-                "package_pool_base": Path("/default/pool/package_pool_base/"),
-                "package_repo_base": Path("/default/repo/package_repo_base/"),
-                "source_pool_base": Path("/default/pool/source_pool_base/"),
-                "source_repo_base": Path("/default/repo/source_repo_base/"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug/testing1-testing-debug"),
             },
             {
-                "stable_repo_dir": Path("/repo/stable/"),
-                "staging_repo_dir": Path("/repo/staging/"),
-                "testing_repo_dir": Path("/repo/staging/foo/bar/"),
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "package_pool_dir": Path("/repo/pkg/pool/pkg/default1"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "source_pool_dir": Path("/repo/pkg/pool/src/default1"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "stable_repo_dir": Path("/repo/pkg/repo/default2/default1"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug/default1-debug"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging/default1-staging"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug/default1-staging-debug"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing/default1-testing"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
+            },
+            raises(ValueError),
+        ),
+        (
+            {
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug/default1-testing-debug"),
+            },
+            {
+                "stable_management_repo_dir": Path("/repo/mgmt/default2"),
+                "debug_management_repo_dir": Path("/repo/mgmt/default2-debug"),
+                "staging_management_repo_dir": Path("/repo/mgmt/default2-staging"),
+                "staging_debug_management_repo_dir": Path("/repo/mgmt/default2-staging-debug"),
+                "testing_management_repo_dir": Path("/repo/mgmt/default2-testing"),
+                "testing_debug_management_repo_dir": Path("/repo/mgmt/default2-testing-debug"),
+                "package_pool_dir": Path("/repo/pkg/pool/pkg"),
+                "source_pool_dir": Path("/repo/pkg/pool/src"),
+                "stable_repo_dir": Path("/repo/pkg/repo/default2"),
+                "debug_repo_dir": Path("/repo/pkg/repo/default2-debug"),
+                "staging_repo_dir": Path("/repo/pkg/repo/default2-staging"),
+                "staging_debug_repo_dir": Path("/repo/pkg/repo/default2-staging-debug"),
+                "testing_repo_dir": Path("/repo/pkg/repo/default2-testing"),
+                "testing_debug_repo_dir": Path("/repo/pkg/repo/default2-testing-debug"),
             },
             raises(ValueError),
         ),
     ],
+    ids=[
+        "no duplication",
+        "duplicate stable management repository dir",
+        "duplicate stable debug management repository dir",
+        "duplicate staging management repository dir",
+        "duplicate staging debug management repository dir",
+        "duplicate testing management repository dir",
+        "duplicate testing debug management repository dir",
+        "duplicate package pool dir",
+        "duplicate source pool dir",
+        "duplicate stable repo dir",
+        "duplicate stable debug repo dir",
+        "duplicate staging repo dir",
+        "duplicate staging debug repo dir",
+        "duplicate testing repo dir",
+        "duplicate testing debug repo dir",
+        "nested stable management repository dir",
+        "nested stable debug management repository dir",
+        "nested staging management repository dir",
+        "nested staging debug management repository dir",
+        "nested testing management repository dir",
+        "nested testing debug management repository dir",
+        "nested package pool dir",
+        "nested source pool dir",
+        "nested stable repo dir",
+        "nested stable debug repo dir",
+        "nested staging repo dir",
+        "nested staging debug repo dir",
+        "nested testing repo dir",
+        "nested testing debug repo dir",
+    ],
 )
 def test_ensure_non_overlapping_repositories(
-    packagerepo_in_tmp_path: settings.PackageRepo,
-    tmp_path: Path,
-    caplog: LogCaptureFixture,
-    base_overrides: dict[str, Path],
-    repo_overrides: dict[str, Path],
+    repo1_overrides: dict[str, Path],
+    repo2_overrides: dict[str, Path],
     expectation: ContextManager[str],
+    packagerepo_in_tmp_path: settings.PackageRepo,
+    usersettings: settings.Settings,
+    caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
 
-    _management_repo_base = base_overrides.get("management_repo_base")
-    _package_pool_base = base_overrides.get("package_pool_base")
-    _package_repo_base = base_overrides.get("package_repo_base")
-    _source_pool_base = base_overrides.get("source_pool_base")
-    _source_repo_base = base_overrides.get("source_repo_base")
-
+    packagerepo1 = packagerepo_in_tmp_path
     packagerepo2 = deepcopy(packagerepo_in_tmp_path)
 
-    if repo_overrides.get("stable_management_repo_dir"):
-        packagerepo2._stable_management_repo_dir = repo_overrides.get(  # type: ignore[assignment]
-            "stable_management_repo_dir"
-        )
+    packagerepo1._stable_management_repo_dir = (
+        repo1_overrides.get("stable_management_repo_dir") or packagerepo1._stable_management_repo_dir
+    )
+    packagerepo1._debug_management_repo_dir = (
+        repo1_overrides.get("debug_management_repo_dir") or packagerepo1._debug_management_repo_dir
+    )
+    packagerepo1._staging_management_repo_dir = (
+        repo1_overrides.get("staging_management_repo_dir") or packagerepo1._staging_management_repo_dir
+    )
+    packagerepo1._staging_debug_management_repo_dir = (
+        repo1_overrides.get("staging_debug_management_repo_dir") or packagerepo1._staging_debug_management_repo_dir
+    )
+    packagerepo1._testing_management_repo_dir = (
+        repo1_overrides.get("testing_management_repo_dir") or packagerepo1._testing_management_repo_dir
+    )
+    packagerepo1._testing_debug_management_repo_dir = (
+        repo1_overrides.get("testing_debug_management_repo_dir") or packagerepo1._testing_debug_management_repo_dir
+    )
+    packagerepo1._package_pool_dir = repo1_overrides.get("package_pool_dir") or packagerepo1._package_pool_dir
+    packagerepo1._source_pool_dir = repo1_overrides.get("source_pool_dir") or packagerepo1._source_pool_dir
+    packagerepo1._stable_repo_dir = repo1_overrides.get("stable_repo_dir") or packagerepo1._stable_repo_dir
+    packagerepo1._debug_repo_dir = repo1_overrides.get("debug_repo_dir") or packagerepo1._debug_repo_dir
+    packagerepo1._staging_repo_dir = repo1_overrides.get("staging_repo_dir") or packagerepo1._staging_repo_dir
+    packagerepo1._staging_debug_repo_dir = (
+        repo1_overrides.get("staging_debug_repo_dir") or packagerepo1._staging_debug_repo_dir
+    )
+    packagerepo1._testing_repo_dir = repo1_overrides.get("testing_repo_dir") or packagerepo1._testing_repo_dir
+    packagerepo1._testing_debug_repo_dir = (
+        repo1_overrides.get("testing_debug_repo_dir") or packagerepo1._testing_debug_repo_dir
+    )
 
-    if repo_overrides.get("staging_management_repo_dir"):
-        packagerepo2._staging_management_repo_dir = repo_overrides.get(  # type: ignore[assignment]
-            "staging_management_repo_dir"
-        )
+    packagerepo2._stable_management_repo_dir = (
+        repo2_overrides.get("stable_management_repo_dir") or packagerepo1._stable_management_repo_dir
+    )
+    packagerepo2._debug_management_repo_dir = (
+        repo2_overrides.get("debug_management_repo_dir") or packagerepo1._debug_management_repo_dir
+    )
+    packagerepo2._staging_management_repo_dir = (
+        repo2_overrides.get("staging_management_repo_dir") or packagerepo1._staging_management_repo_dir
+    )
+    packagerepo2._staging_debug_management_repo_dir = (
+        repo2_overrides.get("staging_debug_management_repo_dir") or packagerepo1._staging_debug_management_repo_dir
+    )
+    packagerepo2._testing_management_repo_dir = (
+        repo2_overrides.get("testing_management_repo_dir") or packagerepo1._testing_management_repo_dir
+    )
+    packagerepo2._testing_debug_management_repo_dir = (
+        repo2_overrides.get("testing_debug_management_repo_dir") or packagerepo1._testing_debug_management_repo_dir
+    )
+    packagerepo2._package_pool_dir = repo2_overrides.get("package_pool_dir") or packagerepo1._package_pool_dir
+    packagerepo2._source_pool_dir = repo2_overrides.get("source_pool_dir") or packagerepo1._source_pool_dir
+    packagerepo2._stable_repo_dir = repo2_overrides.get("stable_repo_dir") or packagerepo1._stable_repo_dir
+    packagerepo2._debug_repo_dir = repo2_overrides.get("debug_repo_dir") or packagerepo1._debug_repo_dir
+    packagerepo2._staging_repo_dir = repo2_overrides.get("staging_repo_dir") or packagerepo1._staging_repo_dir
+    packagerepo2._staging_debug_repo_dir = (
+        repo2_overrides.get("staging_debug_repo_dir") or packagerepo1._staging_debug_repo_dir
+    )
+    packagerepo2._testing_repo_dir = repo2_overrides.get("testing_repo_dir") or packagerepo1._testing_repo_dir
+    packagerepo2._testing_debug_repo_dir = (
+        repo2_overrides.get("testing_debug_repo_dir") or packagerepo1._testing_debug_repo_dir
+    )
 
-    if repo_overrides.get("testing_management_repo_dir"):
-        packagerepo2._testing_management_repo_dir = repo_overrides.get(  # type: ignore[assignment]
-            "testing_management_repo_dir"
-        )
-
-    if repo_overrides.get("package_pool_dir"):
-        packagerepo2._package_pool_dir = repo_overrides.get("package_pool_dir")  # type: ignore[assignment]
-
-    if repo_overrides.get("source_pool_dir"):
-        packagerepo2._source_pool_dir = repo_overrides.get("source_pool_dir")  # type: ignore[assignment]
-
-    if repo_overrides.get("stable_repo_dir"):
-        packagerepo2._stable_repo_dir = repo_overrides.get("stable_repo_dir")  # type: ignore[assignment]
-
-    if repo_overrides.get("staging_repo_dir"):
-        packagerepo2._staging_repo_dir = repo_overrides.get("staging_repo_dir")  # type: ignore[assignment]
-
-    if repo_overrides.get("testing_repo_dir"):
-        packagerepo2._testing_repo_dir = repo_overrides.get("testing_repo_dir")  # type: ignore[assignment]
-
-    with patch("repod.config.settings.Settings._management_repo_base", _management_repo_base):
-        with patch("repod.config.settings.Settings._package_pool_base", _package_pool_base):
-            with patch("repod.config.settings.Settings._package_repo_base", _package_repo_base):
-                with patch("repod.config.settings.Settings._source_pool_base", _source_pool_base):
-                    with patch("repod.config.settings.Settings._source_repo_base", _source_repo_base):
-                        with expectation:
-                            settings.Settings.ensure_non_overlapping_repositories(
-                                repositories=[packagerepo_in_tmp_path, packagerepo2]
-                            )
+    with expectation:
+        usersettings.ensure_non_overlapping_repositories(repositories=[packagerepo1, packagerepo2])
 
 
 @mark.parametrize(
@@ -1134,6 +1331,7 @@ def test_raise_on_path_equals_other(
     "path, path_name, other, other_name, expectation",
     [
         (Path("/foo"), "foo", Path("/bar"), "bar", does_not_raise()),
+        (Path("/foo"), "foo", Path("/foo-bar"), "bar", does_not_raise()),
         (Path("/bar/foo"), "foo", Path("/bar"), "bar", raises(ValueError)),
     ],
 )
@@ -1142,6 +1340,60 @@ def test_raise_on_path_in_other(
 ) -> None:
     with expectation:
         settings.raise_on_path_in_other(path=path, path_name=path_name, other=other, other_name=other_name)
+
+
+@mark.parametrize(
+    "path, path_name, path_list, other_name, expectation",
+    [
+        (Path("/foo"), "foo", [], "bar", does_not_raise()),
+        (Path("/foo"), "foo", [Path("/bar")], "bar", does_not_raise()),
+        (Path("/foo"), "foo", [Path("/foo")], "bar", raises(ValueError)),
+        (Path("/foo/bar"), "foo", [Path("/foo")], "bar", raises(ValueError)),
+    ],
+)
+def test_raise_on_path_in_list_of_paths(
+    path: Path | None,
+    path_name: str,
+    path_list: list[Path],
+    other_name: str,
+    expectation: ContextManager[str],
+) -> None:
+    with expectation:
+        settings.raise_on_path_in_list_of_paths(
+            path=path,
+            path_name=path_name,
+            path_list=path_list,
+            other_name=other_name,
+        )
+
+
+@mark.parametrize(
+    "repo_dirs, repo_dir_name, repo_dir_options, self_dup_ok, self_nested_ok, expectation",
+    [
+        ([Path("/foo")], "foo", [([Path("/bar")], "bar")], False, False, does_not_raise()),
+        ([Path("/foo")], "foo", [([Path("/foo")], "bar")], False, False, raises(ValueError)),
+        ([Path("/foo"), Path("/foo")], "foo", [([Path("/bar")], "bar")], False, False, raises(ValueError)),
+        ([Path("/foo"), Path("/foo")], "foo", [([Path("/bar")], "bar")], True, False, does_not_raise()),
+        ([Path("/foo"), Path("/foo/bar")], "foo", [([Path("/bar")], "bar")], False, False, raises(ValueError)),
+        ([Path("/foo"), Path("/foo/bar")], "foo", [([Path("/bar")], "bar")], False, True, does_not_raise()),
+    ],
+)
+def test_validate_repo_paths(
+    repo_dirs: list[Path],
+    repo_dir_name: str,
+    repo_dir_options: list[tuple[list[Path], str]],
+    self_dup_ok: bool,
+    self_nested_ok: bool,
+    expectation: ContextManager[str],
+) -> None:
+    with expectation:
+        settings.validate_repo_paths(
+            repo_dirs=repo_dirs,
+            repo_dir_name=repo_dir_name,
+            repo_dir_options=repo_dir_options,
+            self_dup_ok=self_dup_ok,
+            self_nested_ok=self_nested_ok,
+        )
 
 
 @mark.parametrize(

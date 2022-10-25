@@ -342,7 +342,9 @@ def transform_databases(repo_name: str, base_path: Path) -> None:
     name = "{base_path}/data/repo/package/{repo_name}"
     debug = "{base_path}/data/repo/package/{repo_name}-debug"
     staging = "{base_path}/data/repo/package/{repo_name}-staging"
+    staging_debug = "{base_path}/data/repo/package/{repo_name}-staging-debug"
     testing = "{base_path}/data/repo/package/{repo_name}-testing"
+    testing_debug = "{base_path}/data/repo/package/{repo_name}-testing-debug"
     package_pool = "{base_path}/data/pool/package/{repo_name}"
     source_pool = "{base_path}/data/pool/source/{repo_name}"
 
@@ -504,7 +506,9 @@ def test_import_into_default_repo(tmp_path: Path) -> None:
     name = "{tmp_path}/data/repo/package/default/"
     debug = "{tmp_path}/data/repo/package/default-debug/"
     staging = "{tmp_path}/data/repo/package/default-staging/"
+    staging_debug = "{tmp_path}/data/repo/package/default-staging-debug/"
     testing = "{tmp_path}/data/repo/package/default-testing/"
+    testing_debug = "{tmp_path}/data/repo/package/default-testing-debug/"
     package_pool = "{tmp_path}/data/pool/package/default/"
     source_pool = "{tmp_path}/data/pool/source/default/"
 
@@ -541,7 +545,9 @@ def test_write_empty_sync_db(tmp_path: Path) -> None:
     name = "{tmp_path}/data/repo/package/default/"
     debug = "{tmp_path}/data/repo/package/default-debug/"
     staging = "{tmp_path}/data/repo/package/default-staging/"
+    staging_debug = "{tmp_path}/data/repo/package/default-staging-debug/"
     testing = "{tmp_path}/data/repo/package/default-testing/"
+    testing_debug = "{tmp_path}/data/repo/package/default-testing-debug/"
     package_pool = "{tmp_path}/data/pool/package/default/"
     source_pool = "{tmp_path}/data/pool/source/default/"
 
