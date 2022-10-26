@@ -1576,7 +1576,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             management repository of a PackageRepo
         """
 
-        if (debug and staging) or (debug and testing) or (staging and testing):
+        if staging and testing:
             raise RuntimeError(
                 "Only one non-stable repository path can be returned, but requested "
                 f"debug ({debug}), staging ({staging}) and testing ({testing})!"
@@ -1595,10 +1595,22 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 if not repo.staging:
                     raise RuntimeError(f"The repository {name} does not have a staging repository!")
                 return repo._staging_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, True, True, False:
+                if not repo.staging:
+                    raise RuntimeError(f"The repository {name} does not have a staging repository!")
+                if not repo.staging_debug:
+                    raise RuntimeError(f"The repository {name} does not have a staging debug repository!")
+                return repo._staging_debug_management_repo_dir
             case RepoDirTypeEnum.MANAGEMENT, False, False, True:
                 if not repo.testing:
                     raise RuntimeError(f"The repository {name} does not have a testing repository!")
                 return repo._testing_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, True, False, True:
+                if not repo.testing:
+                    raise RuntimeError(f"The repository {name} does not have a testing repository!")
+                if not repo.testing_debug:
+                    raise RuntimeError(f"The repository {name} does not have a testing debug repository!")
+                return repo._testing_debug_management_repo_dir
             case RepoDirTypeEnum.PACKAGE, False, False, False:
                 return repo._stable_repo_dir
             case RepoDirTypeEnum.PACKAGE, True, False, False:
@@ -1609,10 +1621,22 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 if not repo.staging:
                     raise RuntimeError(f"The repository {name} does not have a staging repository!")
                 return repo._staging_repo_dir
+            case RepoDirTypeEnum.PACKAGE, True, True, False:
+                if not repo.staging:
+                    raise RuntimeError(f"The repository {name} does not have a staging repository!")
+                if not repo.staging_debug:
+                    raise RuntimeError(f"The repository {name} does not have a staging debug repository!")
+                return repo._staging_debug_repo_dir
             case RepoDirTypeEnum.PACKAGE, False, False, True:
                 if not repo.testing:
                     raise RuntimeError(f"The repository {name} does not have a testing repository!")
                 return repo._testing_repo_dir
+            case RepoDirTypeEnum.PACKAGE, True, False, True:
+                if not repo.testing:
+                    raise RuntimeError(f"The repository {name} does not have a testing repository!")
+                if not repo.testing_debug:
+                    raise RuntimeError(f"The repository {name} does not have a testing debug repository!")
+                return repo._testing_debug_repo_dir
             case (
                 (RepoDirTypeEnum.POOL, False, False, False)
                 | (RepoDirTypeEnum.POOL, True, False, False)
