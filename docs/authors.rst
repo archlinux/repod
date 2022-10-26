@@ -14,3 +14,4 @@ Authors
 * Jörg Behrmann <behrmann@physik.fu-berlin.de>
 * InsanePrawn <insane.prawny@gmail.com>
 * Isaac Good <archlinux@isaacgood.com>
+* Kristian Klausen <kristian@klausen.dk>

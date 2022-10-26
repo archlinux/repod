@@ -70,28 +70,28 @@ def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
     # Try and detect the instance of the libmagic shared library (loaded via
     # ctypes) used by the magic.py shipped with file.
     if hasattr(magic, "_libraries"):  # pragma: no cover
-        file = magic.detect_from_content(file_start_bytes).name  # type: ignore[attr-defined]
+        types = magic.detect_from_content(file_start_bytes).name  # type: ignore[attr-defined]
     else:
-        file = magic.from_buffer(file_start_bytes)
-    file = " ".join(file.split()[0:3]).lower().strip(",")
-    debug(f"Type of file {path} detected as: {file}")
+        m = magic.Magic(keep_going=True)
+        types = m.from_buffer(file_start_bytes)
+    types = types.lower().strip(",")
+    debug(f"Types of file {path} detected as: {types}")
 
-    match file:
-        case "posix tar archive":
-            return CompressionTypeEnum.NONE
-        case "bzip2 compressed data":
-            return CompressionTypeEnum.BZIP2
-        case "gzip compressed data":
-            return CompressionTypeEnum.GZIP
-        case "xz compressed data":
-            return CompressionTypeEnum.LZMA
-        case "zstandard compressed data":
-            return CompressionTypeEnum.ZSTANDARD
-        case _:
-            raise RepoManagementFileError(
-                f"An error occured while attempting to retrieve the compression type of tar file: {path}!\n"
-                "Unknown compression type encountered."
-            )
+    if "posix tar archive" in types:
+        return CompressionTypeEnum.NONE
+    elif "bzip2 compressed data" in types:
+        return CompressionTypeEnum.BZIP2
+    elif "gzip compressed data" in types:
+        return CompressionTypeEnum.GZIP
+    elif "xz compressed data" in types:
+        return CompressionTypeEnum.LZMA
+    elif "zstandard compressed data" in types:
+        return CompressionTypeEnum.ZSTANDARD
+    else:
+        raise RepoManagementFileError(
+            f"An error occured while attempting to retrieve the compression type of tar file: {path}!\n"
+            "Unknown compression type encountered."
+        )
 
 
 def open_tarfile(

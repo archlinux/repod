@@ -76,6 +76,10 @@ Fixed
   ValidationErrors when initializing MTree objects.
 * In the ``repod.conf`` man page, TOML inline tables had been used falsely as
   tables.
+* The library (magic) used for detecting the file type of a package file does
+  not always return the correct type as its first match, this caused importing
+  to fail, if the type was misdetected. All the detected types of the package
+  file is now checked for a match.
 
 [0.2.2] - 2022-08-29
 --------------------
