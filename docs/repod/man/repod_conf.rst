@@ -121,6 +121,9 @@ Repository options are used to configure a specific repository. If optional
 options are not defined, global options (see :ref:`repod.conf_global_options`)
 or defaults (see :ref:`repod.conf_default_options`) are assumed.
 
+**NOTE**: The resolved directories for repositories must be globally unique.
+The only exceptions to this rule are *package_pool* and *source_pool*.
+
 * *architecture* (optional): A string setting the CPU architecture.
   Understood values are
 
@@ -161,43 +164,108 @@ or defaults (see :ref:`repod.conf_default_options`) are assumed.
   * *tls_required*: A boolean value, setting whether the URLS in the *urls*
     list and any source URL provided to *repod-file* must use TLS or not.
 
-* *name*: A string setting the name of the repository. It is used as the
-  location to store stable package data of the repository.
-  The *name* and *architecture* combination **must be unique**.
+* *name*: A string setting the name of the repository. It is used to construct
+  the location below which stable package data of the repository is stored.
+
+  **NOTE**: The *name* and *architecture* combination **must be unique**.
+
   If the string denotes a relative directory it is used below the default
-  package repository base directory (see
-  :ref:`repod.conf_default_directories`).
+  *package repository base directory* and *management repository base
+  directory* (see :ref:`repod.conf_default_directories`).
 
   If the string denotes an absolute directory it is used directly and the
-  default base directory is disregarded.
+  default base directories are disregarded.
+
+* *debug*: A string setting the debug name of the repository. It is used to
+  construct the location below which stable debug package data of the
+  repository is stored.
+
+  **NOTE**: When using this option and also using the *staging* or *testing*
+  options, the *staging_debug* and *testing_debug* options (respectively) must
+  be set as well.
+
+  If the string denotes a relative directory it is used below the default
+  *package repository base directory* and *management repository base
+  directory* (see :ref:`repod.conf_default_directories`).
+
+  If the string denotes an absolute directory it is used directly and the
+  default base directories are disregarded.
 
 * *package_pool* (optional): A string setting a directory that serves as the
-  package pool for the repository. If repositories move packages amongst one
-  another, they need to use the same *package_pool*.
+  package pool for the repository.
+
+  **NOTE**: If repositories move packages amongst one another, they need to use
+  the same *package_pool*.
+
+  If the string denotes a relative directory it is used below the default
+  *package pool base directory* (see :ref:`repod.conf_default_directories`).
+
+  If the string denotes an absolute directory it is used directly and the
+  default base directories are disregarded.
 
 * *source_pool* (optional): A string setting a directory that serves as the
-  source tarball pool for the repository. If repositories move packages amongst
-  one another, they need to use the same *package_pool*.
+  source tarball pool for the repository.
+
+  **NOTE**: If repositories move packages amongst one another, they need to use
+  the same *package_pool*.
+
+  If the string denotes a relative directory it is used below the default
+  *source pool base directory* (see :ref:`repod.conf_default_directories`).
+
+  If the string denotes an absolute directory it is used directly and the
+  default base directories are disregarded.
 
 * *staging* (optional): A string setting the staging name of the repository. It
-  is used as the location to store staging package data of the repository.
-  Multiple repositories may use the same *stable* and *architecture*
-  combination. If the string denotes a relative directory it is used below the
-  default package repository base directory (see
-  :ref:`repod.conf_default_directories`).
+  is used to construct the location below which staging package data of the
+  repository is stored.
+
+  If the string denotes a relative directory it is used below the
+  default *package repository base directory* and *management repository base
+  directory* (see :ref:`repod.conf_default_directories`).
 
   If the string denotes an absolute directory it is used directly and the
-  default base directory is disregarded.
+  default base directories are disregarded.
+
+* *staging_debug* (optional): A string setting the staging debug name of the
+  repository. It is used to construct the location below which staging debug
+  package data of the repository is stored.
+
+  **NOTE**: The *staging* and *debug* option must be set when using this
+  option. Similarly, if *debug* and *staging* are configured for a repository,
+  this option also has to be configured.
+
+  If the string denotes a relative directory it is used below the
+  default *package repository base directory* and *management repository base
+  directory* (see :ref:`repod.conf_default_directories`).
+
+  If the string denotes an absolute directory it is used directly and the
+  default base directories are disregarded.
 
 * *testing* (optional): A string setting the testing name of the repository. It
-  is used as the location to store testing package data of the repository.
-  Multiple repositories may use the same *stable* and *architecture*
-  combination. If the string denotes a relative directory it is used below the
-  default package repository base directory (see
-  :ref:`repod.conf_default_directories`).
+  is used to construct the location below which testing package data of the
+  repository is stored.
+
+  If the string denotes a relative directory it is used below the
+  default *package repository base directory* and *management repository base
+  directory* (see :ref:`repod.conf_default_directories`).
 
   If the string denotes an absolute directory it is used directly and the
-  default base directory is disregarded.
+  default base directories are disregarded.
+
+* *testing_debug* (optional): A string setting the testing debug name of the
+  repository. It is used to construct the location below which testing debug
+  package data of the repository is stored.
+
+  **NOTE**: The *testing* and *debug* option must be set when using this
+  option. Similarly, if *debug* and *testing* are configured for a repository,
+  this option also has to be configured.
+
+  If the string denotes a relative directory it is used below the
+  default *package repository base directory* and *management repository base
+  directory* (see :ref:`repod.conf_default_directories`).
+
+  If the string denotes an absolute directory it is used directly and the
+  default base directories are disregarded.
 
 .. _repod.conf_defaults:
 
@@ -230,42 +298,42 @@ DEFAULT DIRECTORIES
 ^^^^^^^^^^^^^^^^^^^
 
 * *$XDG_STATE_HOME/repod/management/* The default per-user location below which
-  management repository directories are created (aka management repository base
-  directory).
+  management repository directories are created (aka *management repository base
+  directory*).
 
 * */var/lib/repod/management/* The default system-wide location below which
-  management repository directories are created (aka management repository base
-  directory).
+  management repository directories are created (aka *management repository base
+  directory*).
 
 * *$XDG_STATE_HOME/repod/data/pool/package/* The default per-user location
-  below which package pool directories are created (aka. package pool base
-  directory).
+  below which package pool directories are created (aka *package pool base
+  directory*).
 
 * */var/lib/repod/data/pool/package/* The default system-wide location below
-  which package pool directories are created (aka. package pool base
-  directory).
+  which package pool directories are created (aka *package pool base
+  directory*).
 
 * *$XDG_STATE_HOME/repod/data/repo/package/* The default per-user location
-  below which package repository directories are created (aka. package
-  repository base directory).
+  below which package repository directories are created (aka *package
+  repository base directory*).
 
 * */var/lib/repod/data/repo/package/* The default system-wide location below
-  which package repository directories are created (aka. package repository
-  base directory).
+  which package repository directories are created (aka *package repository
+  base directory*).
 
 * *$XDG_STATE_HOME/repod/data/pool/source/* The default per-user location below
-  which source pool directories are created (aka. source pool base directory).
+  which source pool directories are created (aka *source pool base directory*).
 
 * */var/lib/repod/data/pool/source/* The default system-wide location below
-  which source pool directories are created (aka. source pool base directory).
+  which source pool directories are created (aka *source pool base directory*).
 
 * *$XDG_STATE_HOME/repod/data/repo/source/* The default per-user location below
-  which source repository directories are created (aka. source repository base
-  directory).
+  which source repository directories are created (aka *source repository base
+  directory*).
 
 * */var/lib/repod/data/repo/source/* The default system-wide location below
-  which source repository directories are created (aka. source repository base
-  directory).
+  which source repository directories are created (aka *source repository base
+  directory*).
 
 .. _repod.conf_default_options:
 
@@ -308,22 +376,28 @@ Example 1. One repository with custom architecture
   staging = "repo-staging"
   testing = "repo-testing"
 
-Example 2. Two repositories with shared staging and testing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Example 2. Two repositories with debug locations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: toml
 
   [[repositories]]
   architecture = "x86_64"
   name = "repo1"
-  staging = "repo-staging"
-  testing = "repo-testing"
+  debug  = "repo1-debug"
+  staging = "repo1-staging"
+  staging_debug = "repo1-staging-debug"
+  testing = "repo1-testing"
+  testing_debug = "repo1-testing-debug"
 
   [[repositories]]
   architecture = "x86_64"
   name = "repo2"
-  staging = "repo-staging"
-  testing = "repo-testing"
+  debug = "repo2-debug"
+  staging = "repo2-staging"
+  staging_debug = "repo2-staging-debug"
+  testing = "repo2-testing"
+  testing_debug = "repo2-testing-debug"
 
 Example 3. One repository with custom management repo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
