@@ -35,6 +35,8 @@ Added
   ``--source-url``) with which users may provide lists of ``pkgbase=url``
   strings, that - if matching - are combined with the data gained from consumed
   packages and is used for source URL validation.
+* The ``repod.conf`` man page now features information on how to configure
+  debug repositories.
 
 Changed
 ^^^^^^^
@@ -67,6 +69,13 @@ Changed
 * The ``format`` field in ``.BUILDINFO`` files maps to a ``SchemaVersionV1`` or
   ``SchemaVersionV2`` rather than a ``FormatV1`` or ``FormatV2``. This provides
   a uniform approach to versioning objects across object types.
+* The configuration file now understands ``staging_debug`` and
+  ``testing_debug`` options per package repository. Analogous to setting the
+  ``debug`` repository name for the stable repository, identified by ``name``,
+  the new options are used to set the debug repository names for ``staging``
+  and ``testing`` repositories.
+* The configuration file now requires, that all directories except the
+  ``package_pool`` and ``source_pool`` directories must be unique.
 
 Fixed
 ^^^^^
