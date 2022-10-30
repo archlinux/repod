@@ -37,6 +37,8 @@ Added
   packages and is used for source URL validation.
 * The ``repod.conf`` man page now features information on how to configure
   debug repositories.
+* Symlinks in package and managment repositories, that belong to the previous
+  versions of packages are now removed when updating packages.
 
 Changed
 ^^^^^^^
