@@ -1380,13 +1380,18 @@ class ConsolidateOutputPackageBasesTask(Task):
         A list of OutputPackageBase instances to compare to those in a management repository directory
     directory: Path
         A Path to the directory in a management repository where to look for OutputPackageBases
+    filenames: list[str]
+        A list of package filenames associated with the OutputPackageBases in pkgbases
+    package_names: list[str]
+        A list of package names associated with the OutputPackageBases in pkgbases
+    current_filenames: list[str]
+        A list of package filenames associated with the pkgbases in directory, that match those in pkgbases
+    current_package_names: list[str]
+        A list of package names associated with the pkgbases in directory, that match those in pkgbases
     url_validation_settings: UrlValidationSettings | None
         An optional instance of UrlValidationSettings providing settings for validating the source URLs of pkgbases
         (defaults to None)
     """
-
-    pkgbases: list[OutputPackageBase] = []
-    input_from_dependency = False
 
     def __init__(
         self,
@@ -1417,6 +1422,7 @@ class ConsolidateOutputPackageBasesTask(Task):
             raise RuntimeError("The provided directory must exist!")
 
         self.url_validation_settings = url_validation_settings
+        self.input_from_dependency = False
 
         if dependencies:
             self.dependencies = dependencies
@@ -1426,6 +1432,7 @@ class ConsolidateOutputPackageBasesTask(Task):
 
         if self.input_from_dependency:
             debug("Creating Task to compare OutputPackageBases, using output from another Task...")
+            self.pkgbases = []
         else:
             if not pkgbases:
                 raise RuntimeError("Pkgbases must be provided if not depending on another Task for input!")
@@ -1435,6 +1442,11 @@ class ConsolidateOutputPackageBasesTask(Task):
                 f"{[pkgbase.base for pkgbase in pkgbases]}..."  # type: ignore[attr-defined]
             )
             self.pkgbases = pkgbases
+
+        self.filenames: list[str] = []
+        self.package_names: list[str] = []
+        self.current_filenames: list[str] = []
+        self.current_package_names: list[str] = []
 
     def do(self) -> ActionStateEnum:
         """Run Task to compare OutputPackageBase instances with those in a management repository directory
@@ -1457,6 +1469,17 @@ class ConsolidateOutputPackageBasesTask(Task):
                         return self.state
 
         pkgbase_names = [pkgbase.base for pkgbase in self.pkgbases]  # type: ignore[attr-defined]
+        self.filenames = [
+            package.filename
+            for package_list in [pkgbase.packages for pkgbase in self.pkgbases]  # type: ignore[attr-defined]
+            for package in package_list
+        ]
+        self.package_names = [
+            package.name
+            for package_list in [pkgbase.packages for pkgbase in self.pkgbases]  # type: ignore[attr-defined]
+            for package in package_list
+        ]
+
         debug(f"Running Task to consolidate pkgbases {pkgbase_names}...")
         self.state = ActionStateEnum.STARTED_TASK
 
@@ -1466,11 +1489,23 @@ class ConsolidateOutputPackageBasesTask(Task):
             current_pkgbase_file = self.directory / Path(name + ".json")
             if current_pkgbase_file.exists():
                 try:
-                    current_pkgbases.append(asyncio.run(OutputPackageBase.from_file(current_pkgbase_file)))
+                    current_pkgbase = asyncio.run(OutputPackageBase.from_file(current_pkgbase_file))
                 except RepoManagementFileError as e:
                     info(e)
                     self.state = ActionStateEnum.FAILED_TASK
                     return self.state
+                self.current_filenames += [
+                    package.filename for package in current_pkgbase.packages  # type: ignore[attr-defined]
+                ]
+                self.current_package_names += [
+                    package.name for package in current_pkgbase.packages  # type: ignore[attr-defined]
+                ]
+                current_pkgbases.append(current_pkgbase)
+
+        debug(f"Found new package filenames: {self.filenames}")
+        debug(f"Found new package names: {self.package_names}")
+        debug(f"Current package filenames: {self.current_filenames}")
+        debug(f"Current package names: {self.current_package_names}")
 
         self.post_checks.append(
             SourceUrlCheck(
@@ -1516,6 +1551,289 @@ class ConsolidateOutputPackageBasesTask(Task):
 
         if self.input_from_dependency:
             self.pkgbases.clear()
+
+        self.filenames.clear()
+        self.package_names.clear()
+        self.current_filenames.clear()
+        self.current_package_names.clear()
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
+        return self.state
+
+
+class RemoveManagementRepoSymlinksTask(Task):
+    """Destructive Task to remove symlinks in a management repository directory
+
+    Attributes
+    ----------
+    directory: Path
+        A Path to the directory in a management repository
+    names: list[str]
+        A list of names, representing package in the management repository
+    """
+
+    def __init__(self, directory: Path, names: list[str] | None = None, dependencies: list[Task] | None = None):
+        """Initialize an instance of RemoveManagementRepoSymlinksTask
+
+        If instances of ConsolidateOutputPackageBasesTask are provided in dependencies, names is populated from them.
+
+        Parameters
+        ----------
+        directory: Path
+            A Path to the directory in a management repository
+        names: list[str] | None
+            An aoptional list of names, representing package in the management repository (defaults to None)
+        dependencies: list[Task] | None
+            An optional list of Task instances that are run before this task (defaults to None)
+        """
+
+        self.directory = directory
+        if not self.directory or not self.directory.exists():
+            raise RuntimeError("The provided directory must exist!")
+
+        self.input_from_dependency = False
+
+        if dependencies:
+            self.dependencies = dependencies
+            for dependency in self.dependencies:
+                if isinstance(dependency, ConsolidateOutputPackageBasesTask):
+                    self.input_from_dependency = True
+
+        if self.input_from_dependency:
+            debug(
+                "Creating Task to remove symlinks in a management repository directory, "
+                "using output from another Task..."
+            )
+            self.names = []
+        else:
+            if not names:
+                raise RuntimeError("Names must be provided if not depending on another Task for input!")
+
+            debug(
+                f"Creating Task to remove symlinks {', '.join([name for name in names])} "
+                f"in repository directory {directory}..."
+            )
+            self.names = names
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to remove symlinks in a management repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        if self.input_from_dependency and len(self.dependencies) > 0:
+            debug("Getting pkgbases from the output of another Task...")
+            for dependency in self.dependencies:  # pragma: no branch
+                if isinstance(dependency, ConsolidateOutputPackageBasesTask):
+                    if dependency.state == ActionStateEnum.SUCCESS:
+                        self.names = [
+                            name for name in dependency.current_package_names if name not in dependency.package_names
+                        ]
+                    else:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
+
+        for name in self.names:
+            symlink = self.directory / f"pkgnames/{name}.json"
+            debug(f"Removing symlink {symlink}...")
+            symlink.unlink(missing_ok=True)
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo Task to remove symlinks from a management repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(
+                "Can not undo removing of symlinks for packages "
+                f"{', '.join([name for name in self.names])} "
+                "as it has not happened yet!"
+            )
+            self.dependency_undo()
+            return self.state
+
+        if self.input_from_dependency:
+            self.names.clear()
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
+        return self.state
+
+
+class RemovePackageRepoSymlinksTask(Task):
+    """Destructive Task to remove symlinks in a package repository directory
+
+    This Task removes symlinks for package files and their accompanying signature files.
+
+    Attributes
+    ----------
+    directory: Path
+        A Path to the directory in a package repository
+    filenames: list[str]
+        A list of filename strings
+    """
+
+    def __init__(self, directory: Path, filenames: list[str] | None = None, dependencies: list[Task] | None = None):
+        """Initialize an instance of RemovePackageRepoSymlinksTask
+
+        If instances of ConsolidateOutputPackageBasesTask are provided in dependencies, filenames is populated from
+        them.
+
+        Parameters
+        ----------
+        directory: Path
+            A Path to the directory in a package repository
+        filenames: list[str] | None
+            An optional list of filename strings (defaults to None)
+        dependencies: list[Task] | None
+            An optional list of Task instances that are run before this task (defaults to None)
+        """
+
+        self.directory = directory
+        if not self.directory or not self.directory.exists():
+            raise RuntimeError("The provided directory must exist!")
+
+        self.input_from_dependency = False
+
+        if dependencies:
+            self.dependencies = dependencies
+            for dependency in self.dependencies:
+                if isinstance(dependency, ConsolidateOutputPackageBasesTask):
+                    self.input_from_dependency = True
+
+        if self.input_from_dependency:
+            debug(
+                "Creating Task to remove symlinks in a package repository directory, using output from another Task..."
+            )
+            self.filenames = []
+        else:
+            if not filenames:
+                raise RuntimeError("Filenames must be provided if not depending on another Task for input!")
+
+            debug(
+                f"Creating Task to remove symlinks {', '.join([filename for filename in filenames])} "
+                f"in package repository directory {directory}..."
+            )
+            self.filenames = filenames
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to remove symlinks in a package repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        if self.input_from_dependency and len(self.dependencies) > 0:
+            debug("Getting pkgbases from the output of another Task...")
+            for dependency in self.dependencies:  # pragma: no branch
+                if isinstance(dependency, ConsolidateOutputPackageBasesTask):
+                    if dependency.state == ActionStateEnum.SUCCESS:
+                        self.filenames = dependency.current_filenames
+                    else:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
+
+        for filename in self.filenames:
+            package_file = self.directory / filename
+            signature_file = self.directory / f"{filename}.sig"
+            debug(f"Removing symlink {package_file}...")
+            package_file.unlink(missing_ok=True)
+            debug(f"Removing symlink {signature_file}...")
+            signature_file.unlink(missing_ok=True)
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo Task to remove symlinks from a package repository directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(
+                "Can not undo removing of symlinks "
+                f"{', '.join([filename for filename in self.filenames])} "
+                f"from package repository directory {str(self.directory)} as it has not happened yet!"
+            )
+            self.dependency_undo()
+            return self.state
+
+        if self.input_from_dependency:
+            self.filenames.clear()
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
+        return self.state
+
+
+class CleanupRepoTask(Task):
+    """Cleanup files in a repository
+
+    Attributes
+    ----------
+    dependencies: list[Task]
+        A list of Tasks that are dependencies of this one
+    """
+
+    def __init__(self, dependencies: list[Task]):
+        """Initialize an instance of AddToRepoTask
+
+        Parameters
+        ----------
+        dependencies: list[Task]
+            A list of Tasks that are dependencies of this one
+        """
+
+        self.dependencies = dependencies
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to add package files to a repository
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo the adding of packages to a repository
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
 
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()

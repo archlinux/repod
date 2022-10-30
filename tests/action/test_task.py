@@ -1361,3 +1361,324 @@ def test_consolidateoutputpackagebasestask_undo(
         task_.do()
 
     assert task_.undo() == return_value
+
+
+@mark.parametrize(
+    "add_directory, add_names, add_dependencies, expectation",
+    [
+        (True, True, True, does_not_raise()),
+        (True, True, False, does_not_raise()),
+        (True, False, True, does_not_raise()),
+        (True, False, False, raises(RuntimeError)),
+        (False, False, False, raises(RuntimeError)),
+        (False, True, False, raises(RuntimeError)),
+        (False, False, True, raises(RuntimeError)),
+    ],
+)
+def test_removemanagementreposymlinkstask(
+    add_directory: bool,
+    add_names: bool,
+    add_dependencies: bool,
+    expectation: ContextManager[str],
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    names = ["foo"]
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.ConsolidateOutputPackageBasesTask,
+            current_package_names=[],
+            package_names=[],
+            state=ActionStateEnum.SUCCESS,
+        ),
+        Mock(),
+    ]
+
+    with expectation:
+        task_ = task.RemoveManagementRepoSymlinksTask(
+            directory=tmp_path if add_directory else None,
+            names=names if add_names else None,
+            dependencies=dependencies if add_dependencies else None,
+        )
+        assert task_.directory == tmp_path
+
+        if add_dependencies:
+            assert task_.dependencies == dependencies
+            assert task_.input_from_dependency
+            assert not task_.names
+        else:
+            assert task_.names == names
+            assert not task_.input_from_dependency
+
+
+@mark.parametrize(
+    "add_names, add_dependencies, dependency_state, return_value",
+    [
+        (True, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, False, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (False, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, False, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+        (False, True, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+    ],
+)
+def test_removemanagementreposymlinkstask_do(
+    add_names: bool,
+    add_dependencies: bool,
+    dependency_state: ActionStateEnum,
+    return_value: ActionStateEnum,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    (tmp_path / "pkgnames").mkdir()
+    file = tmp_path / "pkgnames" / "foo.json"
+    file.touch()
+
+    names = ["foo"]
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.ConsolidateOutputPackageBasesTask,
+            current_package_names=["foo"],
+            package_names=[],
+            state=dependency_state,
+        ),
+        Mock(),
+    ]
+
+    task_ = task.RemoveManagementRepoSymlinksTask(
+        directory=tmp_path,
+        names=names if add_names else None,
+        dependencies=dependencies if add_dependencies else None,
+    )
+    task_.do() == return_value
+
+    if (add_dependencies and dependency_state == ActionStateEnum.SUCCESS) or add_names:
+        assert not file.exists()
+    else:
+        assert file.exists()
+
+
+@mark.parametrize(
+    "add_names, add_dependencies, do",
+    [
+        (True, True, True),
+        (False, True, True),
+        (True, False, True),
+        (True, True, False),
+        (False, True, False),
+        (True, False, False),
+    ],
+)
+def test_removemanagementreposymlinkstask_undo(
+    add_names: bool,
+    add_dependencies: bool,
+    do: bool,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    (tmp_path / "pkgnames").mkdir()
+    file = tmp_path / "pkgnames" / "foo.json"
+    file.touch()
+
+    names = ["foo"]
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.ConsolidateOutputPackageBasesTask,
+            current_package_names=["foo"],
+            package_names=[],
+            state=ActionStateEnum.SUCCESS,
+        ),
+        Mock(),
+    ]
+
+    task_ = task.RemoveManagementRepoSymlinksTask(
+        directory=tmp_path,
+        names=names if add_names else None,
+        dependencies=dependencies if add_dependencies else None,
+    )
+
+    if do:
+        task_.do()
+
+    task_.undo() == ActionStateEnum.NOT_STARTED
+
+    if add_dependencies and do:
+        assert not task_.names
+
+
+@mark.parametrize(
+    "add_directory, add_filenames, add_dependencies, expectation",
+    [
+        (True, True, True, does_not_raise()),
+        (True, True, False, does_not_raise()),
+        (True, False, True, does_not_raise()),
+        (True, False, False, raises(RuntimeError)),
+        (False, False, False, raises(RuntimeError)),
+        (False, True, False, raises(RuntimeError)),
+        (False, False, True, raises(RuntimeError)),
+    ],
+)
+def test_removepackagereposymlinkstask(
+    add_directory: bool,
+    add_filenames: bool,
+    add_dependencies: bool,
+    expectation: ContextManager[str],
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    filenames = ["foo-1.0.0-1-x86_64.pkg.tar.zst"]
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.ConsolidateOutputPackageBasesTask,
+            current_filenames=[],
+            state=ActionStateEnum.SUCCESS,
+        ),
+        Mock(),
+    ]
+
+    with expectation:
+        task_ = task.RemovePackageRepoSymlinksTask(
+            directory=tmp_path if add_directory else None,
+            filenames=filenames if add_filenames else None,
+            dependencies=dependencies if add_dependencies else None,
+        )
+        assert task_.directory == tmp_path
+
+        if add_dependencies:
+            assert task_.dependencies == dependencies
+            assert task_.input_from_dependency
+            assert not task_.filenames
+        else:
+            assert task_.filenames == filenames
+            assert not task_.input_from_dependency
+
+
+@mark.parametrize(
+    "add_filenames, add_dependencies, dependency_state, return_value",
+    [
+        (True, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, False, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (False, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, False, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+        (False, True, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+    ],
+)
+def test_removepackagereposymlinkstask_do(
+    add_filenames: bool,
+    add_dependencies: bool,
+    dependency_state: ActionStateEnum,
+    return_value: ActionStateEnum,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    filenames = ["foo-1.0.0-1-x86_64.pkg.tar.zst"]
+    package_file = tmp_path / filenames[0]
+    package_file.touch()
+    signature_file = tmp_path / f"{filenames[0]}.sig"
+    signature_file.touch()
+
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.ConsolidateOutputPackageBasesTask,
+            current_filenames=filenames,
+            state=dependency_state,
+        ),
+        Mock(),
+    ]
+
+    task_ = task.RemovePackageRepoSymlinksTask(
+        directory=tmp_path,
+        filenames=filenames if add_filenames else None,
+        dependencies=dependencies if add_dependencies else None,
+    )
+    task_.do() == return_value
+
+    if (add_dependencies and dependency_state == ActionStateEnum.SUCCESS) or add_filenames:
+        assert not package_file.exists()
+        assert not signature_file.exists()
+    else:
+        assert package_file.exists()
+        assert signature_file.exists()
+
+
+@mark.parametrize(
+    "add_filenames, add_dependencies, do",
+    [
+        (True, True, True),
+        (False, True, True),
+        (True, False, True),
+        (True, True, False),
+        (False, True, False),
+        (True, False, False),
+    ],
+)
+def test_removepackagereposymlinkstask_undo(
+    add_filenames: bool,
+    add_dependencies: bool,
+    do: bool,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    filenames = ["foo-1.0.0-1-x86_64.pkg.tar.zst"]
+    (tmp_path / "pkgnames").mkdir()
+    package_file = tmp_path / "pkgnames" / filenames[0]
+    package_file.touch()
+    signature_file = tmp_path / "pkgnames" / f"{filenames[0]}.sig"
+    signature_file.touch()
+
+    dependencies = [
+        Mock(),
+        Mock(
+            spec=task.ConsolidateOutputPackageBasesTask,
+            current_filenames=filenames,
+            state=ActionStateEnum.SUCCESS,
+        ),
+        Mock(),
+    ]
+
+    task_ = task.RemovePackageRepoSymlinksTask(
+        directory=tmp_path,
+        filenames=filenames if add_filenames else None,
+        dependencies=dependencies if add_dependencies else None,
+    )
+
+    if do:
+        task_.do()
+
+    task_.undo() == ActionStateEnum.NOT_STARTED
+
+    if add_dependencies and do:
+        assert not task_.filenames
+
+
+def test_cleanuprepotask() -> None:
+
+    assert task.CleanupRepoTask(dependencies=[])
+
+
+def test_cleanuprepotask_do() -> None:
+
+    assert task.CleanupRepoTask(dependencies=[]).do() == ActionStateEnum.SUCCESS_TASK
+
+
+def test_cleanuprepotask_undo() -> None:
+
+    task_ = task.CleanupRepoTask(dependencies=[])
+    assert task_.do() == ActionStateEnum.SUCCESS_TASK
+    assert task_.undo() == ActionStateEnum.NOT_STARTED
