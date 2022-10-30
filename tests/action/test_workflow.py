@@ -57,6 +57,7 @@ def test_add_packages_dryrun(
 )
 @patch("repod.action.workflow.exit_on_error")
 @patch("repod.action.workflow.AddToRepoTask")
+@patch("repod.action.workflow.CleanupRepoTask")
 @patch("repod.action.workflow.CreateOutputPackageBasesTask")
 @patch("repod.action.workflow.ConsolidateOutputPackageBasesTask")
 @patch("repod.action.workflow.WriteOutputPackageBasesToTmpFileInDirTask")
@@ -64,7 +65,11 @@ def test_add_packages_dryrun(
 @patch("repod.action.workflow.FilesToRepoDirTask")
 @patch("repod.action.workflow.WriteSyncDbsToTmpFilesInDirTask")
 @patch("repod.action.workflow.RemoveBackupFilesTask")
+@patch("repod.action.workflow.RemoveManagementRepoSymlinksTask")
+@patch("repod.action.workflow.RemovePackageRepoSymlinksTask")
 def test_add_packages(
+    removepackagereposymlinkstask_mock: Mock,
+    removemanagementreposymlinkstask_mock: Mock,
     removebackupfilestask_mock: Mock,
     writesyncdbstotmpfilesindirtask_mock: Mock,
     filestorepodirtask_mock: Mock,
@@ -72,6 +77,7 @@ def test_add_packages(
     writeoutputpackagebasestotmpfileindirtask_mock: Mock,
     consolidateoutputpackagebasestask_mock: Mock,
     createoutputpackagebasestask_mock: Mock,
+    cleanuprepotask_mock: Mock,
     addtorepotask_mock: Mock,
     exit_on_error_mock: Mock,
     with_signature: bool,
@@ -81,6 +87,8 @@ def test_add_packages(
 ) -> None:
     caplog.set_level(DEBUG)
 
+    removepackagereposymlinkstask_mock.spec = workflow.RemovePackageRepoSymlinksTask
+    removemanagementreposymlinkstask_mock.spec = workflow.RemoveManagementRepoSymlinksTask
     removebackupfilestask_mock.spec = workflow.RemoveBackupFilesTask
     writesyncdbstotmpfilesindirtask_mock.spec = workflow.WriteSyncDbsToTmpFilesInDirTask
     filestorepodirtask_mock.spec = workflow.FilesToRepoDirTask
@@ -88,6 +96,7 @@ def test_add_packages(
     writeoutputpackagebasestotmpfileindirtask_mock.spec = workflow.WriteOutputPackageBasesToTmpFileInDirTask
     consolidateoutputpackagebasestask_mock.spec = workflow.ConsolidateOutputPackageBasesTask
     createoutputpackagebasestask_mock.spec = workflow.CreateOutputPackageBasesTask
+    cleanuprepotask_mock.spec = workflow.CleanupRepoTask
     addtorepotask_mock.spec = workflow.AddToRepoTask
     addtorepotask_mock.return_value = Mock(return_value=task_return_value)
     (addtorepotask_mock.return_value).dependencies = []

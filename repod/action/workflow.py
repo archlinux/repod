@@ -6,12 +6,15 @@ from pydantic import AnyUrl
 
 from repod.action.task import (
     AddToRepoTask,
+    CleanupRepoTask,
     ConsolidateOutputPackageBasesTask,
     CreateOutputPackageBasesTask,
     FilesToRepoDirTask,
     MoveTmpFilesTask,
     PrintOutputPackageBasesTask,
     RemoveBackupFilesTask,
+    RemoveManagementRepoSymlinksTask,
+    RemovePackageRepoSymlinksTask,
     WriteOutputPackageBasesToTmpFileInDirTask,
     WriteSyncDbsToTmpFilesInDirTask,
 )
@@ -129,6 +132,23 @@ def add_packages(
     debug(f"Adding packages: {files}")
     debug(f"Provided urls: {pkgbase_urls}")
 
+    management_repo_dir = settings.get_repo_path(
+        repo_type=RepoDirTypeEnum.MANAGEMENT,
+        name=repo_name,
+        architecture=repo_architecture,
+        debug=debug_repo,
+        staging=staging_repo,
+        testing=testing_repo,
+    )
+    package_repo_dir = settings.get_repo_path(
+        repo_type=RepoDirTypeEnum.PACKAGE,
+        name=repo_name,
+        architecture=repo_architecture,
+        debug=debug_repo,
+        staging=staging_repo,
+        testing=testing_repo,
+    )
+
     outputpackagebasestask = CreateOutputPackageBasesTask(
         architecture=settings.get_repo_architecture(name=repo_name, architecture=repo_architecture),
         package_paths=files,
@@ -137,35 +157,23 @@ def add_packages(
         pkgbase_urls=pkgbase_urls,
         package_verification=settings.package_verification,
     )
+    consolidateoutputpackagebases = ConsolidateOutputPackageBasesTask(
+        directory=management_repo_dir,
+        url_validation_settings=settings.get_repo(
+            name=repo_name,
+            architecture=repo_architecture,
+        ).package_url_validation,
+        dependencies=[
+            outputpackagebasestask,
+        ],
+    )
+
     add_to_repo_dependencies = [
         MoveTmpFilesTask(
             dependencies=[
-                ConsolidateOutputPackageBasesTask(
-                    directory=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.MANAGEMENT,
-                        name=repo_name,
-                        architecture=repo_architecture,
-                        debug=debug_repo,
-                        staging=staging_repo,
-                        testing=testing_repo,
-                    ),
-                    url_validation_settings=settings.get_repo(
-                        name=repo_name,
-                        architecture=repo_architecture,
-                    ).package_url_validation,
-                    dependencies=[
-                        outputpackagebasestask,
-                    ],
-                ),
+                consolidateoutputpackagebases,
                 WriteOutputPackageBasesToTmpFileInDirTask(
-                    directory=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.MANAGEMENT,
-                        name=repo_name,
-                        architecture=repo_architecture,
-                        debug=debug_repo,
-                        staging=staging_repo,
-                        testing=testing_repo,
-                    ),
+                    directory=management_repo_dir,
                     dumps_option=settings.get_repo_management_repo(
                         name=repo_name, architecture=repo_architecture
                     ).json_dumps_option,
@@ -208,22 +216,8 @@ def add_packages(
                     compression=settings.get_repo_database_compression(name=repo_name, architecture=repo_architecture),
                     desc_version=settings.syncdb_settings.desc_version,
                     files_version=settings.syncdb_settings.files_version,
-                    management_repo_dir=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.MANAGEMENT,
-                        name=repo_name,
-                        architecture=repo_architecture,
-                        debug=debug_repo,
-                        staging=staging_repo,
-                        testing=testing_repo,
-                    ),
-                    package_repo_dir=settings.get_repo_path(
-                        repo_type=RepoDirTypeEnum.PACKAGE,
-                        name=repo_name,
-                        architecture=repo_architecture,
-                        debug=debug_repo,
-                        staging=staging_repo,
-                        testing=testing_repo,
-                    ),
+                    management_repo_dir=management_repo_dir,
+                    package_repo_dir=package_repo_dir,
                 ),
             ],
         ),
@@ -235,10 +229,22 @@ def add_packages(
         exit_on_error("An error occured while trying to add packages to a repository!")
         return
 
-    remove_backup_files_task = RemoveBackupFilesTask(
-        dependencies=[task for task in add_to_repo_task.dependencies if isinstance(task, MoveTmpFilesTask)]
+    cleanup_repo_task = CleanupRepoTask(
+        dependencies=[
+            RemovePackageRepoSymlinksTask(
+                directory=package_repo_dir,
+                dependencies=[consolidateoutputpackagebases],
+            ),
+            RemoveManagementRepoSymlinksTask(
+                directory=management_repo_dir,
+                dependencies=[consolidateoutputpackagebases],
+            ),
+            RemoveBackupFilesTask(
+                dependencies=[task for task in add_to_repo_task.dependencies if isinstance(task, MoveTmpFilesTask)]
+            ),
+        ],
     )
-    remove_backup_files_task()
+    cleanup_repo_task()
 
     return
 
