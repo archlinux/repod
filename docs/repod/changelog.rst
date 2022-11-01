@@ -39,6 +39,10 @@ Added
   debug repositories.
 * Symlinks in package and managment repositories, that belong to the previous
   versions of packages are now removed when updating packages.
+* When adding packages to a stability layer of a repository (e.g. stable,
+  testing or staging), the layers above and below are checked, so that pkgbases
+  in lower layers do not have a higher version and pkgbases in higher layer do
+  not have lower versions than the one being added.
 
 Changed
 ^^^^^^^
