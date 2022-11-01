@@ -308,8 +308,6 @@ class CreateOutputPackageBasesTask(Task):
         A boolean value indicating whether a debug repository is targetted
     """
 
-    pkgbases: list[OutputPackageBase] = []
-
     def __init__(
         self,
         architecture: ArchitectureEnum,
@@ -365,6 +363,7 @@ class CreateOutputPackageBasesTask(Task):
         self.pkgbase_urls = pkgbase_urls or {}
         self.pre_checks = pre_checks
         self.post_checks = post_checks
+        self.pkgbases: list[OutputPackageBase] = []
 
     def do(self) -> ActionStateEnum:
         """Create instances of OutputPackageBase
@@ -704,8 +703,6 @@ class MoveTmpFilesTask(Task):
     dependencies: list[Task] | None
         An optional list of Task instances that are run before this task (defaults to None)
     """
-
-    paths: list[SourceDestination]
 
     def __init__(
         self,
@@ -1286,9 +1283,6 @@ class RemoveBackupFilesTask(Task):
         An optional list of Task lists which are executed before this Task (defaults to None)
     """
 
-    paths: list[Path] = []
-    input_from_dependency: bool = False
-
     def __init__(self, paths: list[Path] | None = None, dependencies: list[Task] | None = None):
         """Initialize an instance of RemoveBackupFilesTask
 
@@ -1302,6 +1296,7 @@ class RemoveBackupFilesTask(Task):
             An optional list of Task instances that are run before this task (defaults to None)
         """
 
+        self.input_from_dependency: bool = False
         if dependencies:
             self.dependencies = dependencies
             for dependency in self.dependencies:
@@ -1310,6 +1305,7 @@ class RemoveBackupFilesTask(Task):
 
         if self.input_from_dependency:
             debug("Creating Task to remove backup files, using output from another Task...")
+            self.paths = []
         else:
             if not paths:
                 raise RuntimeError("Paths must be provided if not depending on another Task for input!")
