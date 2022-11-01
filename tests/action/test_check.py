@@ -224,3 +224,48 @@ def test_sourceurlcheck(
     )
 
     assert check_() == return_value
+
+
+@mark.parametrize(
+    "pkgbase_version, pkgbase_above_version, pkgbase_below_version, return_value",
+    [
+        ("1.0.0-1", None, None, ActionStateEnum.SUCCESS),
+        ("1.0.0-1", "2.0.0-1", None, ActionStateEnum.SUCCESS),
+        ("1.0.0-1", "2.0.0-1", "0.0.1-1", ActionStateEnum.SUCCESS),
+        ("1.0.0-1", None, "0.0.1-1", ActionStateEnum.SUCCESS),
+        ("1.0.0-1", "0.0.1-1", None, ActionStateEnum.FAILED),
+        ("1.0.0-1", None, "2.0.0-1", ActionStateEnum.FAILED),
+    ],
+)
+def test_stabilitylayercheck(
+    pkgbase_version: str,
+    pkgbase_above_version: str,
+    pkgbase_below_version: str,
+    return_value: ActionStateEnum,
+    outputpackagebasev1: OutputPackageBase,
+) -> None:
+
+    pkgbases = []
+    pkgbases_above = []
+    pkgbases_below = []
+
+    pkgbase = outputpackagebasev1
+    pkgbase.version = pkgbase_version  # type: ignore[attr-defined]
+    pkgbases.append(pkgbase)
+
+    if pkgbase_above_version is not None:
+        pkgbase_above = deepcopy(pkgbase)
+        pkgbase_above.version = pkgbase_above_version  # type: ignore[attr-defined]
+        pkgbases_above.append(pkgbase_above)
+
+    if pkgbase_below_version is not None:
+        pkgbase_below = deepcopy(pkgbase)
+        pkgbase_below.version = pkgbase_below_version  # type: ignore[attr-defined]
+        pkgbases_below.append(pkgbase_below)
+
+    check_ = check.StabilityLayerCheck(
+        pkgbases=pkgbases,
+        pkgbases_above=pkgbases_above,
+        pkgbases_below=pkgbases_below,
+    )
+    assert check_() == return_value

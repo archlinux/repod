@@ -524,3 +524,85 @@ class SourceUrlCheck(Check):
 
         self.state = ActionStateEnum.SUCCESS
         return self.state
+
+
+class StabilityLayerCheck(Check):
+    """A Check to compare the versions of pkgbases in the stability layers above and below them
+
+    Attributes
+    ----------
+    pkgbases: list[OutputPackageBase]
+        A list of OutputPackageBase objects, that represent the pkgbases to be checked
+    pkgbases_above: list[OutputPackageBase]
+        A list of OutputPackageBase objects, that represent the pkgbases in stability layers above those in pkgbases
+    pkgbases_below: list[OutputPackageBase]
+        A list of OutputPackageBase objects, that represent the pkgbases in stability layers below those in pkgbases
+    """
+
+    def __init__(
+        self,
+        pkgbases: list[OutputPackageBase],
+        pkgbases_above: list[OutputPackageBase],
+        pkgbases_below: list[OutputPackageBase],
+    ):
+        """Initialize an instance of StabilityLayerCheck
+
+        Parameters
+        ----------
+        pkgbases: list[OutputPackageBase]
+            A list of OutputPackageBase objects, that represent the pkgbases to be checked
+        pkgbases_above: list[OutputPackageBase]
+            A list of OutputPackageBase objects, that represent the pkgbases in stability layers above those in pkgbases
+        pkgbases_below: list[OutputPackageBase]
+            A list of OutputPackageBase objects, that represent the pkgbases in stability layers below those in pkgbases
+        """
+
+        self.pkgbases = pkgbases
+        self.pkgbases_above = pkgbases_above
+        self.pkgbases_below = pkgbases_below
+
+    def __call__(self) -> ActionStateEnum:
+        """Check that pkgbases are not newer than pkgbases_above and not older than pkgbases_below
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check passed successfully,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        for pkgbase in self.pkgbases:
+            name = pkgbase.base  # type: ignore[attr-defined]
+            version = pkgbase.get_version()
+            above_versions = [
+                pkgbase_above.get_version()
+                for pkgbase_above in self.pkgbases_above
+                if pkgbase_above.base == pkgbase.base  # type: ignore[attr-defined]
+            ]
+            for above_version in above_versions:
+                if pkg_vercmp(a=version, b=above_version) >= 0:
+                    info(
+                        f"The version of {name} ({version}) is newer than what is available "
+                        f"in a stability layer above: {above_version}"
+                    )
+                    self.state = ActionStateEnum.FAILED
+                    return self.state
+
+            below_versions = [
+                pkgbase_below.get_version()
+                for pkgbase_below in self.pkgbases_below
+                if pkgbase_below.base == pkgbase.base  # type: ignore[attr-defined]
+            ]
+            for below_version in below_versions:
+                if pkg_vercmp(a=version, b=below_version) <= 0:
+                    info(
+                        f"The version of {name} ({version}) is older than what is available "
+                        f"in a stability layer below: {below_version}"
+                    )
+                    self.state = ActionStateEnum.FAILED
+                    return self.state
+
+        self.state = ActionStateEnum.SUCCESS
+        return self.state
