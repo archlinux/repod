@@ -28,6 +28,49 @@ from repod.repo.management import OutputPackageBase
 
 
 @mark.parametrize(
+    "add_above, above_exists, add_below, below_exists",
+    [
+        (True, True, True, True),
+        (True, True, False, False),
+        (True, True, True, False),
+        (True, True, False, True),
+        (True, False, True, True),
+        (False, True, True, True),
+        (False, False, True, True),
+        (False, False, False, False),
+    ],
+)
+def test_read_pkgbases_from_stability_layers(
+    add_above: bool,
+    above_exists: bool,
+    add_below: bool,
+    below_exists: bool,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+) -> None:
+
+    current_pkgbases: list[OutputPackageBase] = []
+    current_filenames: list[str] = []
+    current_package_names: list[str] = []
+    pkgbases_above: list[OutputPackageBase] = []
+    pkgbases_below: list[OutputPackageBase] = []
+
+    above = [outputpackagebasev1_json_files_in_dir if above_exists else tmp_path / "foo"] if add_above else []
+    below = [outputpackagebasev1_json_files_in_dir if below_exists else tmp_path / "foo"] if add_below else []
+
+    task.read_pkgbases_from_stability_layers(
+        directory=outputpackagebasev1_json_files_in_dir,
+        pkgbase_names=["foo"],
+        stability_layer_dirs=(above, below),
+        current_pkgbases=current_pkgbases,
+        current_filenames=current_filenames,
+        current_package_names=current_package_names,
+        pkgbases_above=pkgbases_above,
+        pkgbases_below=pkgbases_below,
+    )
+
+
+@mark.parametrize(
     "path, expectation",
     [
         (Path("/foo.tmp"), does_not_raise()),
@@ -1233,6 +1276,7 @@ def test_consolidateoutputpackagebasestask(
     with expectation:
         task_ = task.ConsolidateOutputPackageBasesTask(
             directory=directory if add_dir else None,
+            stability_layer_dirs=([], []),
             dependencies=dependencies if add_dependencies else None,
             pkgbases=pkgbases if add_pkgbases else None,
         )
@@ -1300,6 +1344,7 @@ def test_consolidateoutputpackagebasestask_do(
 
     task_ = task.ConsolidateOutputPackageBasesTask(
         directory=outputpackagebasev1_json_files_in_dir,
+        stability_layer_dirs=([], []),
         dependencies=dependencies if add_dependencies else None,
         pkgbases=pkgbases if add_pkgbases else None,
     )
@@ -1349,6 +1394,7 @@ def test_consolidateoutputpackagebasestask_undo(
 
     task_ = task.ConsolidateOutputPackageBasesTask(
         directory=outputpackagebasev1_json_files_in_dir,
+        stability_layer_dirs=([], []),
         dependencies=dependencies if add_dependencies else None,
         pkgbases=pkgbases if add_pkgbases else None,
     )

@@ -20,6 +20,7 @@ from repod.action.check import (
     PacmanKeyPackagesSignatureVerificationCheck,
     PkgbasesVersionUpdateCheck,
     SourceUrlCheck,
+    StabilityLayerCheck,
 )
 from repod.common.enums import (
     ActionStateEnum,
@@ -40,6 +41,67 @@ from repod.files import Package
 from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.package import RepoDbTypeEnum, RepoFile
 from repod.repo.package.repofile import relative_to_shared_base
+
+
+def read_pkgbases_from_stability_layers(
+    directory: Path,
+    pkgbase_names: list[str],
+    stability_layer_dirs: tuple[list[Path], list[Path]],
+    current_pkgbases: list[OutputPackageBase],
+    current_filenames: list[str],
+    current_package_names: list[str],
+    pkgbases_above: list[OutputPackageBase],
+    pkgbases_below: list[OutputPackageBase],
+) -> None:
+    """Read the pkgbases from all available stability layers
+
+    Parameters
+    ----------
+    directory: Path
+        The Path of the default directory in which to find pkgbase JSON files
+    pkgbase_names: list[str]
+        The names of pkgbases to read
+    stability_layer_dirs: tuple[list[Path], list[Path]]
+        A tuple of two lists of Paths, that represent the stability layers above (first list) and below (second list)
+        the default layer.
+    current_pkgbases: list[OutputPackageBase]
+        A list of OutputPackageBase objects to which to append the objects read from the default directory
+    current_filenames: list[str]
+        A list of strings to which to append the filenames of current pkgbases to
+    current_package_names: list[str]
+        A list of strings to which to append the package names of current pkgbases to
+    pkgbases_above: list[OutputPackageBase]
+        A list of OutputPackageBase objects to which to append the objects read from the layers above the default
+    pkgbases_below: list[OutputPackageBase]
+        A list of OutputPackageBase objects to which to append the objects read from the layers below the default
+
+    Raises
+    ------
+    RepoManagementFileError
+        If OutputPackageBase.from_file raises
+    """
+
+    for name in pkgbase_names:
+        current_pkgbase_file = directory / Path(name + ".json")
+        if current_pkgbase_file.exists():
+            current_pkgbase = asyncio.run(OutputPackageBase.from_file(current_pkgbase_file))
+            current_filenames += [
+                package.filename for package in current_pkgbase.packages  # type: ignore[attr-defined]
+            ]
+            current_package_names += [
+                package.name for package in current_pkgbase.packages  # type: ignore[attr-defined]
+            ]
+            current_pkgbases.append(current_pkgbase)
+
+        for path in stability_layer_dirs[0]:
+            path_above = path / Path(name + ".json")
+            if path_above.exists():
+                pkgbases_above.append(asyncio.run(OutputPackageBase.from_file(path_above)))
+
+        for path in stability_layer_dirs[1]:
+            path_below = path / Path(name + ".json")
+            if path_below.exists():
+                pkgbases_below.append(asyncio.run(OutputPackageBase.from_file(path_below)))
 
 
 class SourceDestination(BaseModel):
@@ -1377,6 +1439,7 @@ class ConsolidateOutputPackageBasesTask(Task):
     def __init__(
         self,
         directory: Path,
+        stability_layer_dirs: tuple[list[Path], list[Path]],
         url_validation_settings: UrlValidationSettings | None = None,
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
@@ -1389,6 +1452,9 @@ class ConsolidateOutputPackageBasesTask(Task):
         ----------
         directory: Path
             A Path to the directory in a management repository where to look for OutputPackageBases
+        stability_layer_dirs: tuple[list[Path], list[Path]]
+            A tuple of two Path lists that represent the stability layers above (first list) and below (second list) the
+            current
         pkgbases: list[OutputPackageBase] | None
             An optional list of OutputPackageBase instances to compare to those in a management repository directory
         url_validation_settings: UrlValidationSettings | None
@@ -1401,6 +1467,8 @@ class ConsolidateOutputPackageBasesTask(Task):
         self.directory = directory
         if not self.directory or not self.directory.exists():
             raise RuntimeError("The provided directory must exist!")
+
+        self.stability_layer_dirs = stability_layer_dirs
 
         self.url_validation_settings = url_validation_settings
         self.input_from_dependency = False
@@ -1465,29 +1533,37 @@ class ConsolidateOutputPackageBasesTask(Task):
         self.state = ActionStateEnum.STARTED_TASK
 
         current_pkgbases: list[OutputPackageBase] = []
+        pkgbases_above: list[OutputPackageBase] = []
+        pkgbases_below: list[OutputPackageBase] = []
 
-        for name in pkgbase_names:
-            current_pkgbase_file = self.directory / Path(name + ".json")
-            if current_pkgbase_file.exists():
-                try:
-                    current_pkgbase = asyncio.run(OutputPackageBase.from_file(current_pkgbase_file))
-                except RepoManagementFileError as e:
-                    info(e)
-                    self.state = ActionStateEnum.FAILED_TASK
-                    return self.state
-                self.current_filenames += [
-                    package.filename for package in current_pkgbase.packages  # type: ignore[attr-defined]
-                ]
-                self.current_package_names += [
-                    package.name for package in current_pkgbase.packages  # type: ignore[attr-defined]
-                ]
-                current_pkgbases.append(current_pkgbase)
+        try:
+            read_pkgbases_from_stability_layers(
+                directory=self.directory,
+                pkgbase_names=pkgbase_names,
+                stability_layer_dirs=self.stability_layer_dirs,
+                current_pkgbases=current_pkgbases,
+                current_filenames=self.current_filenames,
+                current_package_names=self.current_package_names,
+                pkgbases_above=pkgbases_above,
+                pkgbases_below=pkgbases_below,
+            )
+        except RepoManagementFileError as e:
+            info(e)
+            self.state = ActionStateEnum.FAILED_TASK
+            return self.state
 
         debug(f"Found new package filenames: {self.filenames}")
         debug(f"Found new package names: {self.package_names}")
         debug(f"Current package filenames: {self.current_filenames}")
         debug(f"Current package names: {self.current_package_names}")
 
+        self.post_checks.append(
+            StabilityLayerCheck(
+                pkgbases=self.pkgbases,
+                pkgbases_above=pkgbases_above,
+                pkgbases_below=pkgbases_below,
+            )
+        )
         self.post_checks.append(
             SourceUrlCheck(
                 new_pkgbases=self.pkgbases,

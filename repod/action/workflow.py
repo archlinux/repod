@@ -164,6 +164,15 @@ def add_packages(
     )
     consolidateoutputpackagebases = ConsolidateOutputPackageBasesTask(
         directory=management_repo_dir,
+        stability_layer_dirs=settings.get_management_repo_stability_paths(
+            name=repo_name,
+            architecture=repo_architecture,
+            repo_type=RepoTypeEnum.from_bool(
+                debug=debug_repo,
+                staging=staging_repo,
+                testing=testing_repo,
+            ),
+        ),
         url_validation_settings=settings.get_repo(
             name=repo_name,
             architecture=repo_architecture,
