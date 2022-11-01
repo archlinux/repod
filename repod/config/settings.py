@@ -1632,6 +1632,103 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             case _:
                 raise RuntimeError(f"An unknown error occurred while trying to retrieve a repository path for {name}!")
 
+    def get_management_repo_stability_paths(
+        self,
+        name: Path,
+        architecture: ArchitectureEnum | None,
+        repo_type: RepoTypeEnum,
+    ) -> tuple[list[Path], list[Path]]:
+        """Return the management repository directories of stability layers above and below the current
+
+        Parameters
+        ----------
+        name: Path
+            The name of the repository
+        architecture: ArchitectureEnum | None
+            The optional CPU architecture of the repository
+        repo_type: RepoTypeEnum
+            A member of RepoTypeEnum identifying the stability layer for which the layers above and below are returned
+
+        Raises
+        ------
+        RuntimeError
+            If the provided repo_type can not be used to retrieve stability layers
+
+        Returns
+        -------
+        tuple[list[Path], list[Path]]
+            A tuple of two Path lists that represent the stability layers above (first list) and below (second list) the
+            stability layer represented by repo_type.
+        """
+
+        repo = self.get_repo(name=name, architecture=architecture)
+
+        match repo_type:
+            case RepoTypeEnum.STABLE:
+                above = []
+                above += [repo._staging_management_repo_dir] if repo.staging else []
+                above += [repo._testing_management_repo_dir] if repo.testing else []
+                return (above, [])
+            case RepoTypeEnum.STABLE_DEBUG:
+                if not repo.debug:
+                    raise RuntimeError(
+                        f"The repository {name} ({architecture.value if architecture else ''}) has no debug repository!"
+                    )
+
+                above = []
+                above += [repo._staging_debug_management_repo_dir] if repo.staging else []
+                above += [repo._testing_debug_management_repo_dir] if repo.testing else []
+                return (above, [])
+            case RepoTypeEnum.STAGING:
+                if not repo.staging:
+                    raise RuntimeError(
+                        f"The repository {name} ({architecture.value if architecture else ''}) "
+                        "has no staging repository!"
+                    )
+
+                below = [repo._stable_management_repo_dir]
+                below += [repo._testing_management_repo_dir] if repo.testing else []
+                return ([], below)
+            case RepoTypeEnum.STAGING_DEBUG:
+                if not repo.debug:
+                    raise RuntimeError(
+                        f"The repository {name} ({architecture.value if architecture else ''}) has no debug repository!"
+                    )
+                if not repo.staging:
+                    raise RuntimeError(
+                        f"The repository {name} ({architecture.value if architecture else ''}) "
+                        "has no staging repository!"
+                    )
+
+                below = [repo._debug_management_repo_dir]
+                below += [repo._testing_debug_management_repo_dir] if repo.testing else []
+                return ([], below)
+            case RepoTypeEnum.TESTING:
+                if not repo.testing:
+                    raise RuntimeError(
+                        f"The repository {name} ({architecture.value if architecture else ''}) "
+                        "has no testing repository!"
+                    )
+
+                return ([repo._staging_management_repo_dir] if repo.staging else [], [repo._stable_management_repo_dir])
+            case RepoTypeEnum.TESTING_DEBUG:
+                if not repo.debug:
+                    raise RuntimeError(
+                        f"The repository {name} ({architecture.value if architecture else ''}) has no debug repository!"
+                    )
+                if not repo.testing:
+                    raise RuntimeError(
+                        f"The repository {name} ({architecture.value if architecture else ''}) "
+                        "has no testing repository!"
+                    )
+
+                return (
+                    [repo._staging_debug_management_repo_dir] if repo.staging else [],
+                    [repo._debug_management_repo_dir],
+                )
+            case _:
+                raise RuntimeError(f"Can not derive stability layers above and below {repo_type}")
+
     def get_repo_management_repo(
         self,
         name: Path,

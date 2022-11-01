@@ -1654,6 +1654,110 @@ def test_settings_get_repo_path(
 
 
 @mark.parametrize(
+    "repo_type, has_debug, has_staging, has_testing, expectation",
+    [
+        (RepoTypeEnum.STABLE, True, True, True, does_not_raise()),
+        (RepoTypeEnum.STABLE, False, True, True, does_not_raise()),
+        (RepoTypeEnum.STABLE, False, False, True, does_not_raise()),
+        (RepoTypeEnum.STABLE, False, False, False, does_not_raise()),
+        (RepoTypeEnum.STABLE_DEBUG, True, True, True, does_not_raise()),
+        (RepoTypeEnum.STABLE_DEBUG, True, False, True, does_not_raise()),
+        (RepoTypeEnum.STABLE_DEBUG, True, False, False, does_not_raise()),
+        (RepoTypeEnum.STABLE_DEBUG, True, True, False, does_not_raise()),
+        (RepoTypeEnum.STABLE_DEBUG, False, True, True, raises(RuntimeError)),
+        (RepoTypeEnum.STABLE_DEBUG, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.STABLE_DEBUG, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING, True, True, True, does_not_raise()),
+        (RepoTypeEnum.STAGING, True, True, False, does_not_raise()),
+        (RepoTypeEnum.STAGING, False, True, False, does_not_raise()),
+        (RepoTypeEnum.STAGING, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING, True, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING_DEBUG, True, True, True, does_not_raise()),
+        (RepoTypeEnum.STAGING_DEBUG, True, True, False, does_not_raise()),
+        (RepoTypeEnum.STAGING_DEBUG, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING_DEBUG, False, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING_DEBUG, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.STAGING_DEBUG, True, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING, True, True, True, does_not_raise()),
+        (RepoTypeEnum.TESTING, True, False, True, does_not_raise()),
+        (RepoTypeEnum.TESTING, False, False, True, does_not_raise()),
+        (RepoTypeEnum.TESTING, False, True, True, does_not_raise()),
+        (RepoTypeEnum.TESTING, False, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING, True, False, False, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING, True, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING, False, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING_DEBUG, True, True, True, does_not_raise()),
+        (RepoTypeEnum.TESTING_DEBUG, True, False, True, does_not_raise()),
+        (RepoTypeEnum.TESTING_DEBUG, False, False, True, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING_DEBUG, False, True, True, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING_DEBUG, True, True, False, raises(RuntimeError)),
+        (RepoTypeEnum.TESTING_DEBUG, True, False, False, raises(RuntimeError)),
+        (None, True, True, True, raises(RuntimeError)),
+    ],
+)
+def test_settings_get_management_repo_stability_paths(
+    repo_type: RepoTypeEnum,
+    has_debug: bool,
+    has_staging: bool,
+    has_testing: bool,
+    expectation: ContextManager[str],
+    usersettings: settings.UserSettings,
+    caplog: LogCaptureFixture,
+) -> None:
+    if not has_debug:
+        usersettings.repositories[0].debug = None
+
+    if not has_staging:
+        usersettings.repositories[0].staging = None
+
+    if not has_testing:
+        usersettings.repositories[0].testing = None
+
+    with expectation:
+        return_value = usersettings.get_management_repo_stability_paths(
+            name=Path(settings.DEFAULT_NAME),
+            architecture=settings.DEFAULT_ARCHITECTURE,
+            repo_type=repo_type,
+        )
+
+        match repo_type:
+            case RepoTypeEnum.STABLE:
+                paths_above = []
+                paths_above += [usersettings.repositories[0]._staging_management_repo_dir] if has_staging else []
+                paths_above += [usersettings.repositories[0]._testing_management_repo_dir] if has_testing else []
+
+                assert (paths_above, []) == return_value
+            case RepoTypeEnum.STABLE_DEBUG:
+                paths_above = []
+                paths_above += [usersettings.repositories[0]._staging_debug_management_repo_dir] if has_staging else []
+                paths_above += [usersettings.repositories[0]._testing_debug_management_repo_dir] if has_testing else []
+
+                assert (paths_above, []) == return_value
+            case RepoTypeEnum.STAGING:
+                paths_below = [usersettings.repositories[0]._stable_management_repo_dir]
+                paths_below += [usersettings.repositories[0]._testing_management_repo_dir] if has_testing else []
+
+                assert ([], paths_below) == return_value
+            case RepoTypeEnum.STAGING_DEBUG:
+                paths_below = [usersettings.repositories[0]._debug_management_repo_dir]
+                paths_below += [usersettings.repositories[0]._testing_debug_management_repo_dir] if has_testing else []
+
+                assert ([], paths_below) == return_value
+            case RepoTypeEnum.TESTING:
+                paths_above = []
+                paths_above += [usersettings.repositories[0]._staging_management_repo_dir] if has_staging else []
+
+                assert (paths_above, [usersettings.repositories[0]._stable_management_repo_dir]) == return_value
+            case RepoTypeEnum.TESTING_DEBUG:
+                paths_above = []
+                paths_above += [usersettings.repositories[0]._staging_debug_management_repo_dir] if has_staging else []
+
+                assert (paths_above, [usersettings.repositories[0]._debug_management_repo_dir]) == return_value
+
+
+@mark.parametrize(
     "urls, tls_required, expectation",
     [
         (["https://foobar.io/some/where"], True, does_not_raise()),
