@@ -12,6 +12,7 @@ from repod.common.enums import (
     ArchitectureEnum,
     CompressionTypeEnum,
     RepoDirTypeEnum,
+    RepoTypeEnum,
     SettingsTypeEnum,
 )
 from repod.config import settings
@@ -1518,22 +1519,40 @@ def test_settings_get_repo_database_compression(usersettings: settings.UserSetti
 
 @mark.parametrize(
     (
-        "repo_type, debug_exists, staging_exists, staging_debug_exists, "
-        "testing_exists, testing_debug_exists, debug, staging, testing, expectation"
+        "repo_dir_type, debug_exists, staging_exists, staging_debug_exists, "
+        "testing_exists, testing_debug_exists, repo_type, expectation"
     ),
     [
-        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, False, False, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, True, False, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, True, True, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, False, True, False, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, False, False, True, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, True, False, True, does_not_raise()),
-        (RepoDirTypeEnum.MANAGEMENT, False, True, False, True, False, True, False, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.MANAGEMENT, False, False, False, True, False, True, True, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.MANAGEMENT, False, True, False, True, False, True, True, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.MANAGEMENT, False, True, False, False, False, True, False, True, raises(RuntimeError)),
-        (RepoDirTypeEnum.MANAGEMENT, False, True, False, True, False, True, False, True, raises(RuntimeError)),
-        (RepoDirTypeEnum.MANAGEMENT, True, False, False, True, True, False, True, False, raises(RuntimeError)),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, RepoTypeEnum.STABLE, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, RepoTypeEnum.STABLE_DEBUG, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, RepoTypeEnum.STAGING, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, RepoTypeEnum.STAGING_DEBUG, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, RepoTypeEnum.TESTING, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, RepoTypeEnum.TESTING_DEBUG, does_not_raise()),
+        (RepoDirTypeEnum.MANAGEMENT, False, True, False, True, False, RepoTypeEnum.STABLE_DEBUG, raises(RuntimeError)),
+        (
+            RepoDirTypeEnum.MANAGEMENT,
+            False,
+            False,
+            False,
+            True,
+            False,
+            RepoTypeEnum.STAGING_DEBUG,
+            raises(RuntimeError),
+        ),
+        (RepoDirTypeEnum.MANAGEMENT, False, True, False, True, False, RepoTypeEnum.STAGING_DEBUG, raises(RuntimeError)),
+        (
+            RepoDirTypeEnum.MANAGEMENT,
+            False,
+            True,
+            False,
+            False,
+            False,
+            RepoTypeEnum.TESTING_DEBUG,
+            raises(RuntimeError),
+        ),
+        (RepoDirTypeEnum.MANAGEMENT, False, True, False, True, False, RepoTypeEnum.TESTING_DEBUG, raises(RuntimeError)),
+        (RepoDirTypeEnum.MANAGEMENT, True, False, False, True, True, RepoTypeEnum.STAGING, raises(RuntimeError)),
         (
             RepoDirTypeEnum.MANAGEMENT,
             True,
@@ -1541,43 +1560,41 @@ def test_settings_get_repo_database_compression(usersettings: settings.UserSetti
             True,
             False,
             False,
-            False,
-            False,
-            True,
+            RepoTypeEnum.TESTING,
             raises(RuntimeError),
         ),
-        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, False, True, True, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, False, False, False, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, True, False, False, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, False, True, False, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, True, True, False, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, False, False, True, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, True, False, True, does_not_raise()),
-        (RepoDirTypeEnum.PACKAGE, False, True, False, True, False, True, False, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, False, False, True, True, False, True, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, False, False, True, True, True, True, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, True, False, True, True, True, True, False, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, False, False, False, False, True, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, False, False, True, False, True, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, False, True, False, True, raises(RuntimeError)),
-        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, False, True, True, raises(RuntimeError)),
-        (RepoDirTypeEnum.POOL, False, False, False, False, False, False, False, False, does_not_raise()),
-        (RepoDirTypeEnum.POOL, False, False, False, False, False, True, False, False, does_not_raise()),
-        (RepoDirTypeEnum.POOL, False, False, False, False, False, False, True, False, does_not_raise()),
-        (RepoDirTypeEnum.POOL, False, False, False, False, False, False, False, True, does_not_raise()),
-        (None, True, True, True, True, True, False, False, False, raises(RuntimeError)),
+        (RepoDirTypeEnum.MANAGEMENT, True, True, True, True, True, None, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, RepoTypeEnum.STABLE, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, RepoTypeEnum.STABLE_DEBUG, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, RepoTypeEnum.STAGING, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, RepoTypeEnum.STAGING_DEBUG, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, RepoTypeEnum.TESTING, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, RepoTypeEnum.TESTING_DEBUG, does_not_raise()),
+        (RepoDirTypeEnum.PACKAGE, False, True, False, True, False, RepoTypeEnum.STABLE_DEBUG, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, False, False, True, True, RepoTypeEnum.STAGING, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, False, False, True, True, RepoTypeEnum.STAGING_DEBUG, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, False, True, True, RepoTypeEnum.STAGING_DEBUG, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, False, False, RepoTypeEnum.TESTING, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, False, False, RepoTypeEnum.TESTING_DEBUG, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, False, RepoTypeEnum.TESTING_DEBUG, raises(RuntimeError)),
+        (RepoDirTypeEnum.PACKAGE, True, True, True, True, True, None, raises(RuntimeError)),
+        (RepoDirTypeEnum.POOL, False, False, False, False, False, RepoTypeEnum.STABLE, does_not_raise()),
+        (RepoDirTypeEnum.POOL, False, False, False, False, False, RepoTypeEnum.STABLE_DEBUG, does_not_raise()),
+        (RepoDirTypeEnum.POOL, False, False, False, False, False, RepoTypeEnum.STAGING, does_not_raise()),
+        (RepoDirTypeEnum.POOL, False, False, False, False, False, RepoTypeEnum.TESTING, does_not_raise()),
+        (RepoDirTypeEnum.POOL, False, False, False, False, False, None, does_not_raise()),
+        (None, True, True, True, True, True, RepoTypeEnum.STABLE, raises(RuntimeError)),
+        (None, True, True, True, True, True, None, raises(RuntimeError)),
     ],
 )
 def test_settings_get_repo_path(
-    repo_type: RepoDirTypeEnum,
+    repo_dir_type: RepoDirTypeEnum,
     debug_exists: bool,
     staging_exists: bool,
     staging_debug_exists: bool,
     testing_exists: bool,
     testing_debug_exists: bool,
-    debug: bool,
-    staging: bool,
-    testing: bool,
+    repo_type: RepoTypeEnum,
     expectation: ContextManager[str],
     usersettings: settings.UserSettings,
     caplog: LogCaptureFixture,
@@ -1601,40 +1618,38 @@ def test_settings_get_repo_path(
 
     with expectation:
         path = usersettings.get_repo_path(
-            repo_type=repo_type,
+            repo_dir_type=repo_dir_type,
             name=Path(settings.DEFAULT_NAME),
             architecture=settings.DEFAULT_ARCHITECTURE,
-            debug=debug,
-            staging=staging,
-            testing=testing,
+            repo_type=repo_type,
         )
 
-        match repo_type, debug, staging, testing:
-            case RepoDirTypeEnum.MANAGEMENT, True, False, False:
-                assert path == usersettings.repositories[0]._debug_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, False, True, False:
-                assert path == usersettings.repositories[0]._staging_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, True, True, False:
-                assert path == usersettings.repositories[0]._staging_debug_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, False, False, True:
-                assert path == usersettings.repositories[0]._testing_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, True, False, True:
-                assert path == usersettings.repositories[0]._testing_debug_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, False, False, False:
+        match repo_type, repo_type:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE:
                 assert path == usersettings.repositories[0]._stable_management_repo_dir
-            case RepoDirTypeEnum.PACKAGE, True, False, False:
-                assert path == usersettings.repositories[0]._debug_repo_dir
-            case RepoDirTypeEnum.PACKAGE, False, True, False:
-                assert path == usersettings.repositories[0]._staging_repo_dir
-            case RepoDirTypeEnum.PACKAGE, True, True, False:
-                assert path == usersettings.repositories[0]._staging_debug_repo_dir
-            case RepoDirTypeEnum.PACKAGE, False, False, True:
-                assert path == usersettings.repositories[0]._testing_repo_dir
-            case RepoDirTypeEnum.PACKAGE, True, False, True:
-                assert path == usersettings.repositories[0]._testing_debug_repo_dir
-            case RepoDirTypeEnum.PACKAGE, False, False, False:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE_DEBUG:
+                assert path == usersettings.repositories[0]._debug_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STAGING:
+                assert path == usersettings.repositories[0]._staging_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STAGING_DEBUG:
+                assert path == usersettings.repositories[0]._staging_debug_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.TESTING:
+                assert path == usersettings.repositories[0]._testing_management_repo_dir
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.TESTING_DEBUG:
+                assert path == usersettings.repositories[0]._testing_debug_management_repo_dir
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STABLE:
                 assert path == usersettings.repositories[0]._stable_repo_dir
-            case RepoDirTypeEnum.POOL, False, False, False:
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STABLE_DEBUG:
+                assert path == usersettings.repositories[0]._debug_repo_dir
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STAGING:
+                assert path == usersettings.repositories[0]._staging_repo_dir
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STAGING_DEBUG:
+                assert path == usersettings.repositories[0]._staging_debug_repo_dir
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.TESTING:
+                assert path == usersettings.repositories[0]._testing_repo_dir
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.TESTING_DEBUG:
+                assert path == usersettings.repositories[0]._testing_debug_repo_dir
+            case RepoDirTypeEnum.POOL, _:
                 assert path == usersettings.repositories[0]._package_pool_dir
 
 

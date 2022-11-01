@@ -24,6 +24,7 @@ from repod.common.enums import (
     PackageDescVersionEnum,
     PkgVerificationTypeEnum,
     RepoDirTypeEnum,
+    RepoTypeEnum,
     SettingsTypeEnum,
 )
 from repod.config.defaults import (
@@ -1539,29 +1540,23 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
     def get_repo_path(
         self,
-        repo_type: RepoDirTypeEnum,
+        repo_dir_type: RepoDirTypeEnum,
         name: Path,
         architecture: ArchitectureEnum | None,
-        debug: bool,
-        staging: bool,
-        testing: bool,
+        repo_type: RepoTypeEnum,
     ) -> Path:
         """Return an absolute Path of a repository
 
         Parameters
         ----------
-        repo_type: RepoDirTypeEnum
+        repo_dir_type: RepoDirTypeEnum
             A member of RepoDirTypeEnum to define which type of repository path to return
         name: Path
             The name of the repository
         architecture: ArchitectureEnum | None
             An optional member of ArchitectureEnum to define the CPU architecture of the repository
-        debug: bool
-            Whether to return a debug repository path
-        staging: bool
-            Whether to return a staging repository path
-        testing: bool
-            Whether to return a testing repository path
+        repo_type: RepoTypeEnum
+            A member of RepoTypeEnum, that defines which type of repository is targeted.
 
         Raises
         ------
@@ -1572,77 +1567,67 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         Returns
         -------
         Path
-            An absolute Path which may describe stable, staging or testing directory of the binary package repository or
-            management repository of a PackageRepo
+            An absolute Path which may describe stable, stable debug, staging, staging debug, testing or testing debug
+            directory of a binary package repository, a management repository directory or the package pool directory of
+            a PackageRepo
         """
-
-        if staging and testing:
-            raise RuntimeError(
-                "Only one non-stable repository path can be returned, but requested "
-                f"debug ({debug}), staging ({staging}) and testing ({testing})!"
-            )
 
         repo = self.get_repo(name=name, architecture=architecture)
 
-        match repo_type, debug, staging, testing:
-            case RepoDirTypeEnum.MANAGEMENT, False, False, False:
+        match repo_dir_type, repo_type:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE:
                 return repo._stable_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, True, False, False:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE_DEBUG:
                 if not repo.debug:
                     raise RuntimeError(f"The repository {name} does not have a debug repository!")
                 return repo._debug_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, False, True, False:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STAGING:
                 if not repo.staging:
                     raise RuntimeError(f"The repository {name} does not have a staging repository!")
                 return repo._staging_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, True, True, False:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STAGING_DEBUG:
                 if not repo.staging:
                     raise RuntimeError(f"The repository {name} does not have a staging repository!")
                 if not repo.staging_debug:
                     raise RuntimeError(f"The repository {name} does not have a staging debug repository!")
                 return repo._staging_debug_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, False, False, True:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.TESTING:
                 if not repo.testing:
                     raise RuntimeError(f"The repository {name} does not have a testing repository!")
                 return repo._testing_management_repo_dir
-            case RepoDirTypeEnum.MANAGEMENT, True, False, True:
+            case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.TESTING_DEBUG:
                 if not repo.testing:
                     raise RuntimeError(f"The repository {name} does not have a testing repository!")
                 if not repo.testing_debug:
                     raise RuntimeError(f"The repository {name} does not have a testing debug repository!")
                 return repo._testing_debug_management_repo_dir
-            case RepoDirTypeEnum.PACKAGE, False, False, False:
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STABLE:
                 return repo._stable_repo_dir
-            case RepoDirTypeEnum.PACKAGE, True, False, False:
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STABLE_DEBUG:
                 if not repo.debug:
                     raise RuntimeError(f"The repository {name} does not have a debug repository!")
                 return repo._debug_repo_dir
-            case RepoDirTypeEnum.PACKAGE, False, True, False:
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STAGING:
                 if not repo.staging:
                     raise RuntimeError(f"The repository {name} does not have a staging repository!")
                 return repo._staging_repo_dir
-            case RepoDirTypeEnum.PACKAGE, True, True, False:
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STAGING_DEBUG:
                 if not repo.staging:
                     raise RuntimeError(f"The repository {name} does not have a staging repository!")
                 if not repo.staging_debug:
                     raise RuntimeError(f"The repository {name} does not have a staging debug repository!")
                 return repo._staging_debug_repo_dir
-            case RepoDirTypeEnum.PACKAGE, False, False, True:
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.TESTING:
                 if not repo.testing:
                     raise RuntimeError(f"The repository {name} does not have a testing repository!")
                 return repo._testing_repo_dir
-            case RepoDirTypeEnum.PACKAGE, True, False, True:
+            case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.TESTING_DEBUG:
                 if not repo.testing:
                     raise RuntimeError(f"The repository {name} does not have a testing repository!")
                 if not repo.testing_debug:
                     raise RuntimeError(f"The repository {name} does not have a testing debug repository!")
                 return repo._testing_debug_repo_dir
-            case (
-                (RepoDirTypeEnum.POOL, False, False, False)
-                | (RepoDirTypeEnum.POOL, True, False, False)
-                | (RepoDirTypeEnum.POOL, False, True, False)
-                | (RepoDirTypeEnum.POOL, False, False, True)
-            ):
+            case RepoDirTypeEnum.POOL, _:
                 return repo._package_pool_dir
             case _:
                 raise RuntimeError(f"An unknown error occurred while trying to retrieve a repository path for {name}!")

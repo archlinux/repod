@@ -30,6 +30,7 @@ from repod.common.enums import (
     PkgVerificationTypeEnum,
     RepoDirTypeEnum,
     RepoFileEnum,
+    RepoTypeEnum,
 )
 from repod.config import SystemSettings, UserSettings
 from repod.config.defaults import ORJSON_OPTION
@@ -916,12 +917,8 @@ class FilesToRepoDirTask(Task):
         The name of a repository
     architecture: ArchitectureEnum | None
         The optional architecture of the target repository
-    debug_repo: bool
-        A boolean value indicating whether a debug repository is targeted
-    staging_repo: bool
-        A boolean value indicating whether a staging repository is targeted
-    testing_repo: bool
-        A boolean value indicating whether a testing repository is targeted
+    repo_type: RepoTypeEnum
+        A member of RepoTypeEnum, which indicates which type of repository is targeted
     repo_files: list[RepoFile]
         A a list of RepoFile instances that represent the files and their targets (defaults to [])
     """
@@ -933,9 +930,7 @@ class FilesToRepoDirTask(Task):
         settings: UserSettings | SystemSettings,
         name: Path,
         architecture: ArchitectureEnum | None,
-        debug_repo: bool,
-        staging_repo: bool,
-        testing_repo: bool,
+        repo_type: RepoTypeEnum,
         dependencies: list[Task] | None = None,
     ):
         """Initialize an instance of FilesToRepoDirTask
@@ -952,12 +947,8 @@ class FilesToRepoDirTask(Task):
             The name of a repository
         architecture: ArchitectureEnum | None
             The optional architecture of the target repository
-        debug_repo: bool
-            A boolean value indicating whether a debug repository is targeted
-        staging_repo: bool
-            A boolean value indicating whether a staging repository is targeted
-        testing_repo: bool
-            A boolean value indicating whether a testing repository is targeted
+        repo_type: RepoTypeEnum
+            A member of RepoTypeEnum, which indicates which type of repository is targeted
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
@@ -972,9 +963,7 @@ class FilesToRepoDirTask(Task):
         self.settings = settings
         self.name = name
         self.architecture = architecture
-        self.debug = debug_repo
-        self.staging = staging_repo
-        self.testing = testing_repo
+        self.repo_type = repo_type
         self.repo_files: list[RepoFile] = []
 
     def do(self) -> ActionStateEnum:
@@ -993,20 +982,16 @@ class FilesToRepoDirTask(Task):
 
         try:
             package_repo_dir = self.settings.get_repo_path(
-                repo_type=RepoDirTypeEnum.PACKAGE,
+                repo_dir_type=RepoDirTypeEnum.PACKAGE,
                 name=self.name,
                 architecture=self.architecture,
-                debug=self.debug,
-                staging=self.staging,
-                testing=self.testing,
+                repo_type=self.repo_type,
             )
             package_pool_dir = self.settings.get_repo_path(
-                repo_type=RepoDirTypeEnum.POOL,
+                repo_dir_type=RepoDirTypeEnum.POOL,
                 name=self.name,
                 architecture=self.architecture,
-                debug=self.debug,
-                staging=self.staging,
-                testing=self.testing,
+                repo_type=self.repo_type,
             )
         except RuntimeError as e:
             info(e)

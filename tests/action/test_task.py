@@ -19,6 +19,7 @@ from repod.common.enums import (
     PackageDescVersionEnum,
     PkgVerificationTypeEnum,
     RepoFileEnum,
+    RepoTypeEnum,
 )
 from repod.config import UserSettings
 from repod.config.defaults import DEFAULT_ARCHITECTURE, DEFAULT_NAME
@@ -764,9 +765,7 @@ def test_filestorepodirtask(
         settings=usersettings,
         name=DEFAULT_NAME,
         architecture=DEFAULT_ARCHITECTURE,
-        debug_repo=False,
-        staging_repo=False,
-        testing_repo=False,
+        repo_type=RepoTypeEnum.STABLE,
         dependencies=dependencies if add_dependencies else None,
     )
 
@@ -809,9 +808,7 @@ def test_filestorepodirtask_do(
         settings=usersettings,
         name=Path(DEFAULT_NAME),
         architecture=DEFAULT_ARCHITECTURE,
-        debug_repo=False,
-        staging_repo=False,
-        testing_repo=False,
+        repo_type=RepoTypeEnum.STABLE,
     )
 
     if get_repo_path_raises:
@@ -855,9 +852,7 @@ def test_filestorepodirtask_undo(
         settings=usersettings,
         name=Path(DEFAULT_NAME),
         architecture=DEFAULT_ARCHITECTURE,
-        debug_repo=False,
-        staging_repo=False,
-        testing_repo=False,
+        repo_type=RepoTypeEnum.STABLE,
     )
 
     if do:

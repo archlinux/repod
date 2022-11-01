@@ -14,7 +14,7 @@ from repod.action.workflow import (
     write_sync_databases,
 )
 from repod.cli import argparse
-from repod.common.enums import RepoDirTypeEnum
+from repod.common.enums import RepoDirTypeEnum, RepoTypeEnum
 from repod.config import SystemSettings, UserSettings
 from repod.config.defaults import ORJSON_OPTION
 from repod.files import Package
@@ -137,12 +137,14 @@ def repod_file_repo(args: Namespace, settings: SystemSettings | UserSettings) ->
     match args.repo:
         case "importdb":
             management_repo_dir = settings.get_repo_path(
-                repo_type=RepoDirTypeEnum.MANAGEMENT,
+                repo_dir_type=RepoDirTypeEnum.MANAGEMENT,
                 name=args.name,
                 architecture=args.architecture,
-                debug=args.debug,
-                staging=args.staging,
-                testing=args.testing,
+                repo_type=RepoTypeEnum.from_bool(
+                    debug=args.debug,
+                    staging=args.staging,
+                    testing=args.testing,
+                ),
             )
             for base, outputpackagebase in asyncio.run(
                 SyncDatabase(

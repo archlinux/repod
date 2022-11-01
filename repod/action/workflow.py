@@ -23,6 +23,7 @@ from repod.common.enums import (
     ArchitectureEnum,
     RepoDirTypeEnum,
     RepoFileEnum,
+    RepoTypeEnum,
 )
 from repod.config.settings import SystemSettings, UserSettings
 
@@ -133,20 +134,24 @@ def add_packages(
     debug(f"Provided urls: {pkgbase_urls}")
 
     management_repo_dir = settings.get_repo_path(
-        repo_type=RepoDirTypeEnum.MANAGEMENT,
+        repo_dir_type=RepoDirTypeEnum.MANAGEMENT,
         name=repo_name,
         architecture=repo_architecture,
-        debug=debug_repo,
-        staging=staging_repo,
-        testing=testing_repo,
+        repo_type=RepoTypeEnum.from_bool(
+            debug=debug_repo,
+            staging=staging_repo,
+            testing=testing_repo,
+        ),
     )
     package_repo_dir = settings.get_repo_path(
-        repo_type=RepoDirTypeEnum.PACKAGE,
+        repo_dir_type=RepoDirTypeEnum.PACKAGE,
         name=repo_name,
         architecture=repo_architecture,
-        debug=debug_repo,
-        staging=staging_repo,
-        testing=testing_repo,
+        repo_type=RepoTypeEnum.from_bool(
+            debug=debug_repo,
+            staging=staging_repo,
+            testing=testing_repo,
+        ),
     )
 
     outputpackagebasestask = CreateOutputPackageBasesTask(
@@ -189,9 +194,11 @@ def add_packages(
             settings=settings,
             name=repo_name,
             architecture=repo_architecture,
-            debug_repo=debug_repo,
-            staging_repo=staging_repo,
-            testing_repo=testing_repo,
+            repo_type=RepoTypeEnum.from_bool(
+                debug=debug_repo,
+                staging=staging_repo,
+                testing=testing_repo,
+            ),
         ),
     ]
 
@@ -203,9 +210,11 @@ def add_packages(
                 settings=settings,
                 name=repo_name,
                 architecture=repo_architecture,
-                debug_repo=debug_repo,
-                staging_repo=staging_repo,
-                testing_repo=testing_repo,
+                repo_type=RepoTypeEnum.from_bool(
+                    debug=debug_repo,
+                    staging=staging_repo,
+                    testing=testing_repo,
+                ),
             )
         )
 
@@ -282,20 +291,24 @@ def write_sync_databases(
                 desc_version=settings.syncdb_settings.desc_version,
                 files_version=settings.syncdb_settings.files_version,
                 management_repo_dir=settings.get_repo_path(
-                    repo_type=RepoDirTypeEnum.MANAGEMENT,
+                    repo_dir_type=RepoDirTypeEnum.MANAGEMENT,
                     name=repo_name,
                     architecture=repo_architecture,
-                    debug=debug_repo,
-                    staging=staging_repo,
-                    testing=testing_repo,
+                    repo_type=RepoTypeEnum.from_bool(
+                        debug=debug_repo,
+                        staging=staging_repo,
+                        testing=testing_repo,
+                    ),
                 ),
                 package_repo_dir=settings.get_repo_path(
-                    repo_type=RepoDirTypeEnum.PACKAGE,
+                    repo_dir_type=RepoDirTypeEnum.PACKAGE,
                     name=repo_name,
                     architecture=repo_architecture,
-                    debug=debug_repo,
-                    staging=staging_repo,
-                    testing=testing_repo,
+                    repo_type=RepoTypeEnum.from_bool(
+                        debug=debug_repo,
+                        staging=staging_repo,
+                        testing=testing_repo,
+                    ),
                 ),
             ),
         ],
