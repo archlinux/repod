@@ -40,3 +40,11 @@ SOURCE_REPO_BASE = {
     SettingsTypeEnum.SYSTEM: Path("/var/lib/repod/data/repo/source/"),
     SettingsTypeEnum.USER: Path(xdg_state_home + "/repod/data/repo/source/"),
 }
+PACKAGE_ARCHIVE_DIR = {
+    SettingsTypeEnum.SYSTEM: Path("/var/lib/repod/archive/package/"),
+    SettingsTypeEnum.USER: Path(xdg_state_home + "/repod/archive/package/"),
+}
+SOURCE_ARCHIVE_DIR = {
+    SettingsTypeEnum.SYSTEM: Path("/var/lib/repod/archive/source/"),
+    SettingsTypeEnum.USER: Path(xdg_state_home + "/repod/archive/source/"),
+}
