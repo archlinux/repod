@@ -1,6 +1,6 @@
 from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
-from logging import DEBUG
+from logging import DEBUG, debug
 from pathlib import Path
 from typing import ContextManager
 from unittest.mock import Mock, call, patch
@@ -247,10 +247,14 @@ def test_read_toml_configuration_settings_system(
 
 
 @mark.parametrize(
-    "has_managementrepo, has_repositories",
+    "archiving, has_managementrepo, has_repositories",
     [
-        (True, True),
-        (False, False),
+        (True, True, True),
+        (True, False, False),
+        (False, True, True),
+        (False, False, False),
+        (None, True, True),
+        (None, False, False),
     ],
 )
 @patch("repod.config.settings.Settings.consolidate_repositories_with_defaults")
@@ -264,6 +268,7 @@ def test_systemsettings(
     create_repository_directories_mock: Mock,
     ensure_non_overlapping_repositories_mock: Mock,
     consolidate_repositories_with_defaults_mock: Mock,
+    archiving: bool | None,
     has_managementrepo: bool,
     has_repositories: bool,
     caplog: LogCaptureFixture,
@@ -289,6 +294,7 @@ def test_systemsettings(
                     ):
                         with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
                             conf = settings.SystemSettings(
+                                archiving=archiving,
                                 management_repo=(
                                     settings.ManagementRepo(directory=Path("/custom_management_repo"))
                                     if has_managementrepo
@@ -317,10 +323,14 @@ def test_systemsettings(
 
 
 @mark.parametrize(
-    "has_managementrepo, has_repositories",
+    "archiving, has_managementrepo, has_repositories",
     [
-        (True, True),
-        (False, False),
+        (True, True, True),
+        (True, False, False),
+        (False, True, True),
+        (False, False, False),
+        (None, True, True),
+        (None, False, False),
     ],
 )
 @patch("repod.config.settings.Settings.consolidate_repositories_with_defaults")
@@ -334,6 +344,7 @@ def test_usersettings(
     create_repository_directories_mock: Mock,
     ensure_non_overlapping_repositories_mock: Mock,
     consolidate_repositories_with_defaults_mock: Mock,
+    archiving: bool | None,
     has_managementrepo: bool,
     has_repositories: bool,
     caplog: LogCaptureFixture,
@@ -359,6 +370,7 @@ def test_usersettings(
                     ):
                         with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
                             conf = settings.UserSettings(
+                                archiving=archiving,
                                 management_repo=(
                                     settings.ManagementRepo(directory=Path("/custom_management_repo"))
                                     if has_managementrepo
@@ -459,6 +471,7 @@ def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
                     ):
                         repos = settings.Settings.consolidate_repositories_with_defaults(
                             architecture=settings.DEFAULT_ARCHITECTURE,
+                            archiving=None,
                             database_compression=settings.DEFAULT_DATABASE_COMPRESSION,
                             management_repo=settings.ManagementRepo(directory=tmp_path / settings.DEFAULT_NAME),
                             package_pool=tmp_path / "package_pool_dir",
@@ -1190,14 +1203,13 @@ def test_ensure_non_overlapping_repositories(
     repo1_overrides: dict[str, Path],
     repo2_overrides: dict[str, Path],
     expectation: ContextManager[str],
-    packagerepo_in_tmp_path: settings.PackageRepo,
     usersettings: settings.Settings,
     caplog: LogCaptureFixture,
 ) -> None:
     caplog.set_level(DEBUG)
 
-    packagerepo1 = packagerepo_in_tmp_path
-    packagerepo2 = deepcopy(packagerepo_in_tmp_path)
+    packagerepo1 = usersettings.repositories[0]
+    packagerepo2 = deepcopy(usersettings.repositories[0])
 
     packagerepo1._stable_management_repo_dir = (
         repo1_overrides.get("stable_management_repo_dir") or packagerepo1._stable_management_repo_dir
@@ -1261,6 +1273,8 @@ def test_ensure_non_overlapping_repositories(
         repo2_overrides.get("testing_debug_repo_dir") or packagerepo1._testing_debug_repo_dir
     )
 
+    debug(f"PackageRepo 1 before test: {packagerepo1.archiving}")
+    debug(f"PackageRepo 2 before test: {packagerepo2.archiving}")
     with expectation:
         usersettings.ensure_non_overlapping_repositories(repositories=[packagerepo1, packagerepo2])
 
@@ -1808,3 +1822,59 @@ def test_urlvalidationsettings_validate_url(
     caplog.set_level(DEBUG)
 
     assert validator.validate_url(url=url) == return_value
+
+
+@mark.parametrize(
+    (
+        "packages, sources, expanduser_raises, expanduser_absolute, "
+        "expectation, packages_return_value, sources_return_value"
+    ),
+    [
+        (Path("/packages"), Path("/sources"), False, True, does_not_raise(), Path("/packages"), Path("/sources")),
+        (Path("~/packages"), Path("~/sources"), False, True, does_not_raise(), Path("/expanded"), Path("/expanded")),
+        (Path("~/packages"), Path("~/sources"), False, False, raises(ValueError), None, None),
+        (Path("~/packages"), Path("~/sources"), True, True, raises(ValueError), None, None),
+        (Path("/packages"), Path("sources"), False, True, raises(ValueError), None, None),
+        (Path("packages"), Path("/sources"), False, True, raises(ValueError), None, None),
+    ],
+)
+@patch("repod.config.settings.Path.expanduser")
+def test_archivesettings_validate_packages(
+    expanduser_mock: Mock,
+    packages: Path,
+    sources: Path,
+    expanduser_raises: bool,
+    expanduser_absolute: bool,
+    expectation: ContextManager[str],
+    packages_return_value: bool,
+    sources_return_value: bool,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    if expanduser_absolute:
+        expanduser_mock.return_value = Path("/expanded")
+    else:
+        expanduser_mock.return_value = Path("expanded")
+
+    if expanduser_raises:
+        expanduser_mock.side_effect = RuntimeError
+
+    with expectation:
+        archiving = settings.ArchiveSettings(packages=packages, sources=sources)
+
+        assert packages_return_value == archiving.packages
+        assert sources_return_value == archiving.sources
+
+
+@mark.parametrize(
+    "settings_type, expectation",
+    [
+        (SettingsTypeEnum.USER, does_not_raise()),
+        (SettingsTypeEnum.SYSTEM, does_not_raise()),
+        (None, raises(RuntimeError)),
+    ],
+)
+def test_get_default_archive_settings(settings_type: SettingsTypeEnum, expectation: ContextManager[str]) -> None:
+    with expectation:
+        settings.get_default_archive_settings(settings_type=settings_type)

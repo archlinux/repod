@@ -10,7 +10,7 @@ from tarfile import open as tarfile_open
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from textwrap import dedent
 from typing import IO, Any, AsyncGenerator, Generator
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import orjson
 import pytest_asyncio
@@ -28,6 +28,7 @@ from repod.config.settings import (
     DEFAULT_ARCHITECTURE,
     DEFAULT_DATABASE_COMPRESSION,
     DEFAULT_NAME,
+    ArchiveSettings,
     ManagementRepo,
     PackageRepo,
     UserSettings,
@@ -1606,6 +1607,7 @@ def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
     package_repo = PackageRepo(
         name=DEFAULT_NAME,
         architecture=DEFAULT_ARCHITECTURE,
+        archiving=None,
         database_compression=DEFAULT_DATABASE_COMPRESSION,
         management_repo=ManagementRepo(directory=(management_repo_base / DEFAULT_NAME)),
         package_pool=(package_pool_base / DEFAULT_NAME),
@@ -1670,8 +1672,19 @@ def packagerepo_in_tmp_path(tmp_path: Path) -> PackageRepo:
 
 
 @fixture(scope="function")
-def usersettings(packagerepo_in_tmp_path: PackageRepo, empty_file: Path, tmp_path: Path) -> UserSettings:
+@patch("repod.config.settings.get_default_archive_settings")
+def usersettings(
+    get_default_archive_settings_mock: Mock,
+    packagerepo_in_tmp_path: PackageRepo,
+    empty_file: Path,
+    tmp_path: Path,
+) -> UserSettings:
     tmp_dir_path = tmp_path / "usersettings"
+
+    get_default_archive_settings_mock.return_value = ArchiveSettings(
+        packages=tmp_dir_path / "archive/package",
+        sources=tmp_dir_path / "archive/sources",
+    )
     with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
         with patch("repod.config.settings.UserSettings._management_repo_base", tmp_dir_path / "management"):
             with patch("repod.config.settings.UserSettings._package_pool_base", tmp_dir_path / "data/pool/package"):

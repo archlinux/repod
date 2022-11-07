@@ -33,10 +33,12 @@ from repod.config.defaults import (
     DEFAULT_NAME,
     MANAGEMENT_REPO_BASE,
     ORJSON_OPTION,
+    PACKAGE_ARCHIVE_DIR,
     PACKAGE_POOL_BASE,
     PACKAGE_REPO_BASE,
     SETTINGS_LOCATION,
     SETTINGS_OVERRIDE_LOCATION,
+    SOURCE_ARCHIVE_DIR,
     SOURCE_POOL_BASE,
     SOURCE_REPO_BASE,
 )
@@ -149,6 +151,60 @@ class SourcePool(BaseModel):
     """
 
     source_pool: Path | None
+
+
+class ArchiveSettings(BaseModel):
+    """Settings for archiving of repositories
+
+    Attributes
+    ----------
+    packages: Path
+        The Path of the directory below which package files and their signatures are archived (defaults to
+        PACKAGE_ARCHIVE_DIR[SettingsTypeEnum.USER] in user mode and PACKAGE_ARCHIVE_DIR[SettingsTypeEnum.SYSTEM] in
+        system mode)
+    sources: Path
+        The Path of the directory below which source files are archived (defaults to
+        SOURCE_ARCHIVE_DIR[SettingsTypeEnum.USER] in user mode and SOURCE_ARCHIVE_DIR[SettingsTypeEnum.SYSTEM] in
+        system mode)
+    """
+
+    packages: Path
+    sources: Path
+
+    @validator("packages", "sources")
+    def validate_paths(cls, path: Path) -> Path:
+        """Validate and expand archive paths
+
+        If path starts with `~` the validation attempts to expand it to an absolute Path.
+
+        Parameters
+        ----------
+        path: Path
+            A path to validate
+
+        Raises
+        ------
+        ValueError
+            If a Path starting with `~` can not be expanded to an absolute Path
+            or if a relative Path not starting with `~` is provided
+
+        Returns
+        -------
+        Path
+            A validated, absolute Path
+        """
+
+        if str(path).startswith("~"):
+            try:
+                debug(f"Expanding user home in archive path {path}...")
+                path = path.expanduser()
+            except RuntimeError:
+                raise ValueError(f"The archive path can not be expanded to an absolute path: {path}")
+
+        if not path.is_absolute():
+            raise ValueError("The archive path must be absolute!")
+
+        return path
 
 
 class SyncDbSettings(BaseModel):
@@ -317,6 +373,8 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
     testing_debug: Path | None
         The optional name of a testing debug repository associated with a package repository (a testing repository must
         be defined when using this)
+    archiving: ArchiveSettings | None
+        An optional instance of ArchiveSettings, that serves as an override to the application-wide archiving.
     management_repo: ManagementRepo | None
         An optional instance of ManagementRepo, that serves as an override to the application-wide management_repo
         The attribute defines the directory and upstream VCS repository that is used to track changes to a package
@@ -339,6 +397,10 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
         The absolute path to the directory used as package pool directory for the PackageRepo (unset by default)
     _source_pool_dir: Path
         The absolute path to the directory used as source pool directory for the PackageRepo (unset by default)
+    _package_archive_dir: Path
+        The absolute path to the directory used for package archive directories (unset by default)
+    _source_archive_dir: Path
+        The absolute path to the directory used for source archive directories (unset by default)
     _stable_management_repo_dir: Path
         The absolute path to the directory in a management repository used for the PackageRepo's stable packages (unset
         by default)
@@ -393,6 +455,9 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
     _package_pool_dir: Path = PrivateAttr()
     _source_pool_dir: Path = PrivateAttr()
 
+    _package_archive_dir: Path = PrivateAttr()
+    _source_archive_dir: Path = PrivateAttr()
+
     _stable_management_repo_dir: Path = PrivateAttr()
     _stable_repo_dir: Path = PrivateAttr()
     _stable_source_repo_dir: Path = PrivateAttr()
@@ -419,6 +484,7 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
     staging_debug: Path | None
     testing: Path | None
     testing_debug: Path | None
+    archiving: ArchiveSettings | bool | None
     management_repo: ManagementRepo | None
     package_url_validation: UrlValidationSettings | None
 
@@ -788,6 +854,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository
         without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
+    archiving: ArchiveSettings | None
+        An optional instance of ArchiveSettings, that (if set) defines the archiving options for each package
+        repository, which does not define one itself.
+        If unset, a default one is created during validation.
     management_repo: ManagementRepo | None
         An optional ManagementRepo, that (if set) defines a management repository setup for each package repository
         which does not define one itself.
@@ -837,6 +907,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
     architecture: ArchitectureEnum = DEFAULT_ARCHITECTURE
     database_compression: CompressionTypeEnum = DEFAULT_DATABASE_COMPRESSION
+    archiving: ArchiveSettings | bool | None
     management_repo: ManagementRepo | None
     repositories: list[PackageRepo] = []
     package_verification: PkgVerificationTypeEnum | None
@@ -858,6 +929,36 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 env_settings,
                 file_secret_settings,
             )
+
+    @validator("archiving")
+    def validate_archiving(cls, archiving: ArchiveSettings | bool | None) -> ArchiveSettings | None:
+        """Validate the ManagementRepo and return a default if none is set
+
+        Return a default ManagementRepo created by a call to get_default_managementrepo() if none is set.
+
+        Parameters
+        ----------
+        archiving: ArchiveSettings | bool | None
+            An optional ArchiveSettings instance or optional boolean value indicating whether to use default archival
+            settings. When providing None or True, default archival settings are used
+
+        Returns
+        -------
+        ManagementRepo
+            The instance's ManagementRepo or a default one
+        """
+
+        match archiving:
+            case None | True:
+                debug("No configured archiving settings found! Setting up default...")
+                archiving = get_default_archive_settings(settings_type=cls._settings_type)
+            case False:
+                archiving = None
+            case _:  # pragma: no cover
+                # NOTE: we can in fact never reach this branch, because pydantic will have raised before
+                pass
+
+        return archiving
 
     @validator("management_repo")
     def validate_management_repo(cls, management_repo: ManagementRepo | None) -> ManagementRepo:
@@ -933,6 +1034,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         repositories = cls.consolidate_repositories_with_defaults(
             architecture=values.get("architecture"),
+            archiving=values.get("archiving"),
             database_compression=values.get("database_compression"),
             management_repo=values.get("management_repo"),  # type: ignore[arg-type]
             package_pool=to_absolute_path(
@@ -955,6 +1057,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     def consolidate_repositories_with_defaults(  # noqa: C901
         cls,
         architecture: ArchitectureEnum,
+        archiving: ArchiveSettings | None,
         database_compression: CompressionTypeEnum,
         management_repo: ManagementRepo,
         package_pool: Path,
@@ -971,6 +1074,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         ----------
         architecture: ArchitectureEnum
             The settings-wide default CPU architecture
+        archiving: ArchiveSettings | None
+            The (optional) setttings-wide ArchiveSettings
         database_compression: CompressionTypeEnum
             The settings-wide default database compression
         management_repo: ManagementRepo
@@ -994,6 +1099,9 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             if not repo.architecture and architecture:
                 debug(f"Using global architecture ({architecture.value}) for repo {repo.name}.")
                 repo.architecture = architecture
+            if (repo.archiving is True or repo.archiving is None) and archiving:
+                debug(f"Using global archiving options ({archiving}) for repo {repo.name}.")
+                repo.archiving = archiving
             if not repo.database_compression and database_compression:
                 debug(f"Using global database compression ({database_compression.value}) for repo {repo.name}.")
                 repo.database_compression = database_compression
@@ -1122,6 +1230,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 base_path=cls._source_pool_base,
             )
 
+            if repo.archiving:
+                repo._package_archive_dir = repo.archiving.packages  # type: ignore[union-attr]
+                repo._source_archive_dir = repo.archiving.sources  # type: ignore[union-attr]
+
         return repositories
 
     @classmethod
@@ -1167,6 +1279,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
             create_and_validate_directory(directory=repo._package_pool_dir)
             create_and_validate_directory(directory=repo._source_pool_dir)
+
+            if repo.archiving:
+                create_and_validate_directory(directory=repo._package_archive_dir)
+                create_and_validate_directory(directory=repo._source_archive_dir)
 
     @classmethod
     def ensure_non_overlapping_repositories(cls, repositories: list[PackageRepo]) -> None:  # noqa: C901
@@ -1242,6 +1358,13 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         ]
         debug(f"Testing debug repository directories: {testing_debug_repo_dirs}")
 
+        debug(f"repo archiving: {[repo.archiving for repo in repositories]}")
+        package_archive_dirs: list[Path] = [repo._package_archive_dir for repo in repositories if repo.archiving]
+        debug(f"Archiving directories: {package_archive_dirs}")
+
+        source_archive_dirs: list[Path] = [repo._source_archive_dir for repo in repositories if repo.archiving]
+        debug(f"Archiving directories: {source_archive_dirs}")
+
         package_repos_options: list[tuple[list[Path], str]] = [
             (stable_repo_dirs, "stable repository"),
             (debug_repo_dirs, "stable debug repository"),
@@ -1262,6 +1385,10 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             (package_pool_dirs, "package pool"),
             (source_pool_dirs, "source pool"),
         ]
+        archive_dirs_option: list[tuple[list[Path], str]] = [
+            (package_archive_dirs, "package archive"),
+            (source_archive_dirs, "package archive"),
+        ]
 
         validate_repo_paths(
             repo_dirs=stable_management_repo_dirs,
@@ -1273,6 +1400,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_management_repo_dirs, "testing management repository"),
                 (testing_debug_management_repo_dirs, "testing debug management repository"),
             ]
+            + archive_dirs_option
             + pool_dirs_options
             + package_repos_options,
         )
@@ -1287,6 +1415,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_management_repo_dirs, "testing management repository"),
                 (testing_debug_management_repo_dirs, "testing debug management repository"),
             ]
+            + archive_dirs_option
             + pool_dirs_options
             + package_repos_options,
         )
@@ -1301,6 +1430,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_management_repo_dirs, "testing management repository"),
                 (testing_debug_management_repo_dirs, "testing debug management repository"),
             ]
+            + archive_dirs_option
             + pool_dirs_options
             + package_repos_options,
         )
@@ -1315,6 +1445,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_management_repo_dirs, "testing management repository"),
                 (testing_debug_management_repo_dirs, "testing debug management repository"),
             ]
+            + archive_dirs_option
             + pool_dirs_options
             + package_repos_options,
         )
@@ -1329,6 +1460,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (staging_debug_management_repo_dirs, "staging debug management repository"),
                 (testing_debug_management_repo_dirs, "testing debug management repository"),
             ]
+            + archive_dirs_option
             + pool_dirs_options
             + package_repos_options,
         )
@@ -1343,8 +1475,21 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (staging_debug_management_repo_dirs, "staging debug management repository"),
                 (testing_management_repo_dirs, "testing management repository"),
             ]
+            + archive_dirs_option
             + pool_dirs_options
             + package_repos_options,
+        )
+
+        validate_repo_paths(
+            repo_dirs=package_archive_dirs,
+            repo_dir_name="package archive",
+            repo_dir_options=[
+                (source_archive_dirs, "source archive"),
+            ]
+            + management_repos_options
+            + package_repos_options
+            + pool_dirs_options,
+            self_dup_ok=True,
         )
 
         validate_repo_paths(
@@ -1353,8 +1498,21 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             repo_dir_options=[
                 (source_pool_dirs, "source pool"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + package_repos_options,
+            self_dup_ok=True,
+        )
+
+        validate_repo_paths(
+            repo_dirs=source_archive_dirs,
+            repo_dir_name="source archive",
+            repo_dir_options=[
+                (package_archive_dirs, "package archive"),
+            ]
+            + management_repos_options
+            + package_repos_options
+            + pool_dirs_options,
             self_dup_ok=True,
         )
 
@@ -1364,6 +1522,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             repo_dir_options=[
                 (package_pool_dirs, "package pool"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + package_repos_options,
             self_dup_ok=True,
@@ -1379,6 +1538,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_repo_dirs, "testing repository"),
                 (testing_debug_repo_dirs, "testing debug repository"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + pool_dirs_options,
         )
@@ -1393,6 +1553,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_repo_dirs, "testing repository"),
                 (testing_debug_repo_dirs, "testing debug repository"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + pool_dirs_options,
         )
@@ -1407,6 +1568,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_repo_dirs, "testing repository"),
                 (testing_debug_repo_dirs, "testing debug repository"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + pool_dirs_options,
         )
@@ -1421,6 +1583,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (testing_repo_dirs, "testing repository"),
                 (testing_debug_repo_dirs, "testing debug repository"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + pool_dirs_options,
         )
@@ -1435,6 +1598,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (staging_debug_repo_dirs, "staging debug repository"),
                 (testing_debug_repo_dirs, "testing debug repository"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + pool_dirs_options,
         )
@@ -1449,6 +1613,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
                 (staging_debug_repo_dirs, "staging debug repository"),
                 (testing_repo_dirs, "testing repository"),
             ]
+            + archive_dirs_option
             + management_repos_options
             + pool_dirs_options,
         )
@@ -1949,3 +2114,40 @@ def get_default_packagerepo(settings_type: SettingsTypeEnum) -> PackageRepo:
             )
         case _:
             raise RuntimeError("Invalid settings_type provided for creating a default PackageRepo!")
+
+
+def get_default_archive_settings(settings_type: SettingsTypeEnum) -> ArchiveSettings:
+    """Return a default ArciveSettings
+
+    If settings_type is SettingsTypeEnum.SYSTEM, an ArchiveSettings using system wide default directories is returned.
+    If settings_type is SettingsTypeEnum.USER, an ArchiveSettings using per-user default directories is returned.
+
+    Parameters
+    ----------
+    settings_type: SettingsTypeEnum
+        A settings type based upon which the ArchiveSettings is created
+
+    Raises
+    ------
+    RuntimeError
+        If an invalid SettingsTypeEnum member is provided
+
+    Returns
+    -------
+    ArchiveSettings
+        An ArchiveSettings instance with defaults based upon settings_type
+    """
+
+    match settings_type:
+        case SettingsTypeEnum.USER:
+            return ArchiveSettings(
+                packages=PACKAGE_ARCHIVE_DIR[SettingsTypeEnum.USER],
+                sources=SOURCE_ARCHIVE_DIR[SettingsTypeEnum.USER],
+            )
+        case SettingsTypeEnum.SYSTEM:
+            return ArchiveSettings(
+                packages=PACKAGE_ARCHIVE_DIR[SettingsTypeEnum.SYSTEM],
+                sources=SOURCE_ARCHIVE_DIR[SettingsTypeEnum.SYSTEM],
+            )
+        case _:
+            raise RuntimeError("Invalid settings_type provided for creating a default ArchiveSettings!")
