@@ -13,7 +13,7 @@ from repod.errors import RepoManagementFileError
 
 
 def filename_parts(file: Path) -> dict[str, str]:
-    """Split a package name and return its specific metadata in a dict
+    """Split a package or signature name and return its specific metadata in a dict
 
     Parameters
     ----------
@@ -44,7 +44,7 @@ def filename_parts(file: Path) -> dict[str, str]:
     output_dict: dict[str, str] = {}
 
     arch_suffix_split = name.split("-")[-1].split(".")
-    if len(arch_suffix_split) != 4 and len(arch_suffix_split) != 3:
+    if not (5 >= len(arch_suffix_split) >= 3):
         raise ValueError(f"The provided file name {file} can not be split for architecture and suffix information!")
 
     output_dict["arch"] = arch_suffix_split[0]

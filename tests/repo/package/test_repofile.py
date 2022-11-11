@@ -27,6 +27,19 @@ from repod.repo.package import repofile
             does_not_raise(),
         ),
         (
+            Path("foo-1.0.0-1-any.pkg.tar.gz.sig"),
+            {
+                "arch": "any",
+                "name": "foo",
+                "version": "1.0.0-1",
+                "suffix": "pkg.tar.gz.sig",
+                "pkgrel": "1",
+                "pkgver": "1.0.0",
+                "epoch": "",
+            },
+            does_not_raise(),
+        ),
+        (
             Path("foo-1:1.0.0-1-any.pkg.tar.gz"),
             {
                 "arch": "any",
@@ -59,6 +72,11 @@ from repod.repo.package import repofile
         ),
         (
             Path("foo-bar-1.0.0-1-any.pkg"),
+            None,
+            raises(ValueError),
+        ),
+        (
+            Path("foo-bar-1.0.0-1-any.pkg.tar.gz.sig.foo"),
             None,
             raises(ValueError),
         ),
