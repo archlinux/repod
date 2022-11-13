@@ -45,6 +45,9 @@ Added
   not have lower versions than the one being added.
 * Checks now ensure that when adding packages the filename of the package and
   the package's info name are the same.
+* By default ``repod-file`` now also creates an archive of all packages added
+  to a repository. The archiving locations are configurable globally and per
+  repository.
 
 Changed
 ^^^^^^^
