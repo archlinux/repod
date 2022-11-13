@@ -52,6 +52,24 @@ them. For any undefined option defaults are assumed (see
 
   .. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
 
+* *archiving*: An optional table or boolean value, which defines the archiving
+  options used for any repository, that do not define them explicitly.
+  When unset or set to *true*, default archiving options are created. If set to
+  *false*, archiving is disabled by default, but may still be set per
+  repository.
+  When defined as a table, the option has to define the following key-value pairs:
+
+  * *packages*: The name of the *package archive directory* (see
+    :ref:`repod.conf_default_directories` for default values), below which
+    directory structures and files for package and signature file archiving are
+    created.
+    This directory must be absolute.
+
+  * *sources*: The name of the *source archive directory* (see
+    :ref:`repod.conf_default_directories` for default values), below which
+    directory structures and files for source tarball archiving are created.
+    This directory must be absolute.
+
 * *database_compression*: A string setting the database compression used for
   any repository, which does not define it.
   Understood values are
@@ -122,12 +140,33 @@ options are not defined, global options (see :ref:`repod.conf_global_options`)
 or defaults (see :ref:`repod.conf_default_options`) are assumed.
 
 **NOTE**: The resolved directories for repositories must be globally unique.
-The only exceptions to this rule are *package_pool* and *source_pool*.
+The only exceptions to this rule are *package_pool*, *source_pool*,
+*archiving.packages* and *archiving.sources*.
 
 * *architecture* (optional): A string setting the CPU architecture.
   Understood values are
 
   .. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
+
+* *archiving*: An optional table or boolean value, which defines the archiving
+  options.
+  When unset or set to *true*, the global archiving options are used. If set to
+  *false*, archiving is disabled.
+
+  **NOTE**: When repositories are used together, they should be using the same archiving options.
+
+  When defined as a table, the option has to define the following key-value pairs:
+
+  * *packages*: The name of the *package archive directory* (see
+    :ref:`repod.conf_default_directories` for default values), below which
+    directory structures and files for package and signature file archiving are
+    created.
+    This directory must be absolute.
+
+  * *sources*: The name of the *source archive directory* (see
+    :ref:`repod.conf_default_directories` for default values), below which
+    directory structures and files for source tarball archiving are created.
+    This directory must be absolute.
 
 * *database_compression* (optional): A string setting the database compression used for
   the repository.
@@ -280,6 +319,7 @@ evaluates to the following configuration:
 .. code:: toml
 
   architecture = "any"
+  archiving = true
   database_compression = "gz"
 
   [syncdb_settings]
@@ -304,6 +344,22 @@ DEFAULT DIRECTORIES
 * */var/lib/repod/management/* The default system-wide location below which
   management repository directories are created (aka *management repository base
   directory*).
+
+* *$XDG_STATE_HOME/repod/archive/package/* The default per-user location below
+  which directory structures and files for package and signature file archiving
+  are created (aka *package archive directory*).
+
+* */var/lib/repod/archive/package/* The default system-wide location below
+  which directory structures and files for package and signature file archiving
+  are created (aka *package archive directory*).
+
+* *$XDG_STATE_HOME/repod/archive/source/* The default per-user location below
+  which directory structures and files for source tarball archiving are created
+  (aka *source archive directory*).
+
+* */var/lib/repod/archive/source/* The default system-wide location below which
+  directory structures and files for source tarball archiving are created (aka
+  *source archive directory*).
 
 * *$XDG_STATE_HOME/repod/data/pool/package/* The default per-user location
   below which package pool directories are created (aka *package pool base
@@ -449,6 +505,16 @@ Example 6. One repository with source URL validation
   staging = "repo-staging"
   testing = "repo-testing"
   package_url_validation = {urls = ["https://custom.tld"], tls_required = true}
+
+Example 6. One repository without archiving
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: toml
+
+  [[repositories]]
+  architecture = "x86_64"
+  archiving = false
+  name = "repo1"
 
 SEE ALSO
 --------
