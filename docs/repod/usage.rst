@@ -13,9 +13,11 @@ files and repositories.
   The ``repod-file`` tool is currently still limited in scope. It can
 
   * import packages to existing repositories
+  * update packages in existing repositories
   * write repository sync databases
   * inspect package files
   * write JSON schema used by repod
+  * create archives for package files and signatures
 
 The tool can be used per-user (reading configuration from
 ``$XDG_CONFIG_DIR/repod/repod.conf`` and
@@ -61,6 +63,12 @@ database` files for it and create the following directory structure:
 .. code::
 
   /home/user/.local/state/repod
+  ├── archive
+  │   ├── package
+  │   │   └── p
+  │   │       └── package_a
+  │   │           └── package_a-1.0.0-1-any.pkg.tar.zst
+  │   └── source
   ├── data
   │   ├── pool
   │   │   ├── package
@@ -114,6 +122,9 @@ packages are present):
 .. code::
 
   /home/user/.local/state/repod
+  ├── archive
+  │   ├── package
+  │   └── source
   ├── data
   │   ├── pool
   │   │   ├── package
