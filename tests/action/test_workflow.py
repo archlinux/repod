@@ -47,16 +47,21 @@ def test_add_packages_dryrun(
 
 
 @mark.parametrize(
-    "with_signature, task_return_value",
+    "with_archiving, with_signature, task_return_value",
     [
-        (True, ActionStateEnum.FAILED),
-        (True, ActionStateEnum.SUCCESS),
-        (False, ActionStateEnum.FAILED),
-        (False, ActionStateEnum.SUCCESS),
+        (True, True, ActionStateEnum.FAILED),
+        (True, True, ActionStateEnum.SUCCESS),
+        (True, False, ActionStateEnum.FAILED),
+        (True, False, ActionStateEnum.SUCCESS),
+        (False, True, ActionStateEnum.FAILED),
+        (False, True, ActionStateEnum.SUCCESS),
+        (False, False, ActionStateEnum.FAILED),
+        (False, False, ActionStateEnum.SUCCESS),
     ],
 )
 @patch("repod.action.workflow.exit_on_error")
 @patch("repod.action.workflow.AddToRepoTask")
+@patch("repod.action.workflow.AddToArchiveTask")
 @patch("repod.action.workflow.CleanupRepoTask")
 @patch("repod.action.workflow.CreateOutputPackageBasesTask")
 @patch("repod.action.workflow.ConsolidateOutputPackageBasesTask")
@@ -78,8 +83,10 @@ def test_add_packages(
     consolidateoutputpackagebasestask_mock: Mock,
     createoutputpackagebasestask_mock: Mock,
     cleanuprepotask_mock: Mock,
+    addtoarchivetask_mock: Mock,
     addtorepotask_mock: Mock,
     exit_on_error_mock: Mock,
+    with_archiving: bool,
     with_signature: bool,
     task_return_value: ActionStateEnum,
     usersettings: UserSettings,
@@ -97,9 +104,14 @@ def test_add_packages(
     consolidateoutputpackagebasestask_mock.spec = workflow.ConsolidateOutputPackageBasesTask
     createoutputpackagebasestask_mock.spec = workflow.CreateOutputPackageBasesTask
     cleanuprepotask_mock.spec = workflow.CleanupRepoTask
+    addtoarchivetask_mock.spec = workflow.AddToArchiveTask
     addtorepotask_mock.spec = workflow.AddToRepoTask
     addtorepotask_mock.return_value = Mock(return_value=task_return_value)
     (addtorepotask_mock.return_value).dependencies = []
+
+    if not with_archiving:
+        usersettings.archiving = None
+        usersettings.repositories[0].archiving = None
 
     workflow.add_packages(
         settings=usersettings,

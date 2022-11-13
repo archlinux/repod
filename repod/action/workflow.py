@@ -5,6 +5,7 @@ from sys import exit, stderr
 from pydantic import AnyUrl
 
 from repod.action.task import (
+    AddToArchiveTask,
     AddToRepoTask,
     CleanupRepoTask,
     ConsolidateOutputPackageBasesTask,
@@ -25,7 +26,7 @@ from repod.common.enums import (
     RepoFileEnum,
     RepoTypeEnum,
 )
-from repod.config.settings import SystemSettings, UserSettings
+from repod.config.settings import ArchiveSettings, SystemSettings, UserSettings
 
 
 def exit_on_error(message: str) -> None:
@@ -133,6 +134,8 @@ def add_packages(
     debug(f"Adding packages: {files}")
     debug(f"Provided urls: {pkgbase_urls}")
 
+    archive_settings = settings.get_repo(name=repo_name, architecture=repo_architecture).archiving
+
     management_repo_dir = settings.get_repo_path(
         repo_dir_type=RepoDirTypeEnum.MANAGEMENT,
         name=repo_name,
@@ -182,6 +185,18 @@ def add_packages(
         ],
     )
 
+    package_files_task = FilesToRepoDirTask(
+        files=files,
+        file_type=RepoFileEnum.PACKAGE,
+        settings=settings,
+        name=repo_name,
+        architecture=repo_architecture,
+        repo_type=RepoTypeEnum.from_bool(
+            debug=debug_repo,
+            staging=staging_repo,
+            testing=testing_repo,
+        ),
+    )
     add_to_repo_dependencies = [
         MoveTmpFilesTask(
             dependencies=[
@@ -197,9 +212,16 @@ def add_packages(
                 ),
             ]
         ),
-        FilesToRepoDirTask(
-            files=files,
-            file_type=RepoFileEnum.PACKAGE,
+        package_files_task,
+    ]
+    add_to_archive_dependencies = [
+        package_files_task,
+    ]
+
+    if with_signature:
+        signature_files_task = FilesToRepoDirTask(
+            files=[Path(str(file) + ".sig") for file in files],
+            file_type=RepoFileEnum.PACKAGE_SIGNATURE,
             settings=settings,
             name=repo_name,
             architecture=repo_architecture,
@@ -208,24 +230,9 @@ def add_packages(
                 staging=staging_repo,
                 testing=testing_repo,
             ),
-        ),
-    ]
-
-    if with_signature:
-        add_to_repo_dependencies.append(
-            FilesToRepoDirTask(
-                files=[Path(str(file) + ".sig") for file in files],
-                file_type=RepoFileEnum.PACKAGE_SIGNATURE,
-                settings=settings,
-                name=repo_name,
-                architecture=repo_architecture,
-                repo_type=RepoTypeEnum.from_bool(
-                    debug=debug_repo,
-                    staging=staging_repo,
-                    testing=testing_repo,
-                ),
-            )
         )
+        add_to_repo_dependencies.append(signature_files_task)
+        add_to_archive_dependencies.append(signature_files_task)
 
     add_to_repo_dependencies.append(
         MoveTmpFilesTask(
@@ -240,6 +247,13 @@ def add_packages(
             ],
         ),
     )
+    if isinstance(archive_settings, ArchiveSettings):
+        add_to_repo_dependencies.append(
+            AddToArchiveTask(
+                archive_dir=archive_settings.packages,
+                dependencies=add_to_archive_dependencies,
+            )
+        )
 
     add_to_repo_task = AddToRepoTask(dependencies=add_to_repo_dependencies)
     if add_to_repo_task() != ActionStateEnum.SUCCESS:
