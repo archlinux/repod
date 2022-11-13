@@ -1723,3 +1723,149 @@ def test_cleanuprepotask_undo() -> None:
     task_ = task.CleanupRepoTask(dependencies=[])
     assert task_.do() == ActionStateEnum.SUCCESS_TASK
     assert task_.undo() == ActionStateEnum.NOT_STARTED
+
+
+@mark.parametrize(
+    "add_archive_dir, add_filenames, add_dependencies, expectation",
+    [
+        (True, True, True, does_not_raise()),
+        (True, False, True, does_not_raise()),
+        (True, True, False, does_not_raise()),
+        (True, False, False, raises(RuntimeError)),
+        (False, True, True, raises(RuntimeError)),
+        (False, False, True, raises(RuntimeError)),
+    ],
+)
+def test_addtoarchivetask(
+    add_archive_dir: bool,
+    add_filenames: bool,
+    add_dependencies: bool,
+    expectation: ContextManager[str],
+    tmp_path: Path,
+    default_package_file: tuple[Path, ...],
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    archive_dir = None
+    if add_archive_dir:
+        archive_dir = tmp_path / "archive"
+        archive_dir.mkdir()
+
+    filenames = None
+    if add_filenames:
+        filenames = list(default_package_file)
+
+    dependencies = None
+    if add_dependencies:
+        dependencies = [
+            Mock(),
+            Mock(
+                spec=task.FilesToRepoDirTask,
+            ),
+            Mock(),
+        ]
+
+    with expectation:
+        task.AddToArchiveTask(archive_dir=archive_dir, filenames=filenames, dependencies=dependencies)
+
+
+@mark.parametrize(
+    "add_archive_dir, add_filenames, add_dependencies, dependency_state, return_value",
+    [
+        (True, True, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, False, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, True, True, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+        (True, False, True, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+        (True, True, False, None, ActionStateEnum.SUCCESS_TASK),
+    ],
+)
+def test_addtoarchivetask_do(
+    add_archive_dir: bool,
+    add_filenames: bool,
+    add_dependencies: bool,
+    dependency_state: ActionStateEnum,
+    return_value: ActionStateEnum,
+    tmp_path: Path,
+    default_package_file: tuple[Path, ...],
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    archive_dir = None
+    if add_archive_dir:
+        archive_dir = tmp_path / "archive"
+        archive_dir.mkdir()
+
+    filenames = None
+    if add_filenames:
+        filenames = list(default_package_file)
+
+    dependencies = None
+    if add_dependencies:
+        dependencies = [
+            Mock(),
+            Mock(
+                spec=task.FilesToRepoDirTask,
+                files=default_package_file,
+                state=dependency_state,
+            ),
+            Mock(),
+        ]
+
+    task_ = task.AddToArchiveTask(archive_dir=archive_dir, filenames=filenames, dependencies=dependencies)
+    assert task_.do() == return_value
+
+
+@mark.parametrize(
+    "add_archive_dir, add_filenames, add_dependencies, dependency_state, do",
+    [
+        (True, True, True, ActionStateEnum.SUCCESS, True),
+        (True, False, True, ActionStateEnum.SUCCESS, True),
+        (True, True, False, None, True),
+        (True, True, True, ActionStateEnum.SUCCESS, False),
+        (True, False, True, ActionStateEnum.SUCCESS, False),
+        (True, True, False, None, False),
+    ],
+)
+def test_addtoarchivetask_undo(
+    add_archive_dir: bool,
+    add_filenames: bool,
+    add_dependencies: bool,
+    dependency_state: ActionStateEnum,
+    do: bool,
+    tmp_path: Path,
+    default_package_file: tuple[Path, ...],
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    archive_dir = None
+    if add_archive_dir:
+        archive_dir = tmp_path / "archive"
+        archive_dir.mkdir()
+
+    filenames = None
+    if add_filenames:
+        filenames = list(default_package_file)
+
+    dependencies = None
+    if add_dependencies:
+        dependencies = [
+            Mock(
+                spec=task.FilesToRepoDirTask,
+                files=default_package_file,
+                state=dependency_state,
+                undo=Mock(return_value=ActionStateEnum.NOT_STARTED),
+            ),
+        ]
+
+    task_ = task.AddToArchiveTask(archive_dir=archive_dir, filenames=filenames, dependencies=dependencies)
+    if do:
+        task_.do()
+        if add_dependencies:
+            assert task_.files
+    assert task_.undo() == ActionStateEnum.NOT_STARTED
+
+    if add_dependencies and do:
+        assert not task_.files

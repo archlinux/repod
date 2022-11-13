@@ -23,6 +23,7 @@ from repod.action.check import (
     SourceUrlCheck,
     StabilityLayerCheck,
 )
+from repod.archive.archive import CopySourceDestination
 from repod.common.enums import (
     ActionStateEnum,
     ArchitectureEnum,
@@ -1897,4 +1898,143 @@ class CleanupRepoTask(Task):
 
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()
+        return self.state
+
+
+class AddToArchiveTask(Task):
+    """Add files to an archive directory
+
+    Attributes
+    ----------
+    files: list[CopySourceDestination]
+        A list of CopySourceDestination that represents the sources and destinations (in the archive)
+    """
+
+    def __init__(
+        self,
+        archive_dir: Path,
+        filenames: list[Path] | None = None,
+        dependencies: list[Task] | None = None,
+    ):
+        """Initialize an instance of AddToArchiveTask
+
+        If instances of FilesToRepoDirTask are added to dependencies, the list of files is derived from them
+
+        Parameters
+        ----------
+        archive_dir: Path
+            An archive directory below which directory structures for files are created and files are copied to for
+            archiving
+        filenames: list[Path] | None
+            An optional list of file Paths (defaults to None)
+        dependencies: list[Task] | None
+            An optional list of Task instances that are run before this task (defaults to None)
+
+        Raises
+        ------
+        RuntimeError
+            If not providing archive_dir
+            or if not providing filenames when
+        """
+
+        if not archive_dir:
+            raise RuntimeError("An archive directory must be provided!")
+
+        self.archive_dir = archive_dir
+
+        self.input_from_dependency = False
+
+        if dependencies:
+            self.dependencies = dependencies
+            for dependency in self.dependencies:
+                if isinstance(dependency, FilesToRepoDirTask):
+                    self.input_from_dependency = True
+
+        if self.input_from_dependency:
+            debug(
+                "Creating Task to remove symlinks in a package repository directory, using output from another Task..."
+            )
+            self.files: list[CopySourceDestination] = []
+        else:
+            if not filenames:
+                raise RuntimeError("Filenames must be provided if not depending on another Task for input!")
+
+            debug(
+                f"Creating Task to archive {', '.join([str(filename) for filename in filenames])} "
+                f"below {archive_dir}..."
+            )
+            self.files = [
+                CopySourceDestination.from_archive_dir(source=filename, output_dir=archive_dir)
+                for filename in filenames
+            ]
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to add files to an archive directory
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        if self.input_from_dependency and len(self.dependencies) > 0:
+            debug("Getting pkgbases from the output of another Task...")
+            for dependency in self.dependencies:  # pragma: no branch
+                if isinstance(dependency, FilesToRepoDirTask):
+                    if dependency.state == ActionStateEnum.SUCCESS:
+                        self.files += [
+                            CopySourceDestination.from_archive_dir(source=filename, output_dir=self.archive_dir)
+                            for filename in dependency.files
+                        ]
+                    else:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
+
+        debug(
+            f"Running Task to add {', '.join([str(obj.source) for obj in self.files])} to "
+            f"archive directory {str(self.archive_dir)}..."
+        )
+        self.state = ActionStateEnum.STARTED_TASK
+
+        for cp_source_destination in self.files:
+            cp_source_destination.copy_file()
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo the archiving of files
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(
+                f"Can not undo archiving of {', '.join([str(obj.source) for obj in self.files])} "
+                f"in {str(self.archive_dir)} as it has not happened yet!"
+            )
+            self.dependency_undo()
+            return self.state
+
+        debug(
+            f"Undoing Task to archive files {', '.join([str(obj.source) for obj in self.files])} in "
+            f"{str(self.archive_dir)}..."
+        )
+
+        for cp_source_destination in self.files:
+            cp_source_destination.remove_destination()
+
+        if self.input_from_dependency:
+            self.files.clear()
+
+        self.state = ActionStateEnum.NOT_STARTED
+        debug(f"before dependency undo: {self.state}")
+        self.dependency_undo()
+        debug(f"after dependency undo: {self.state}")
         return self.state
