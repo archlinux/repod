@@ -299,3 +299,27 @@ def test_stabilitylayercheck(
         pkgbases_below=pkgbases_below,
     )
     assert check_() == return_value
+
+
+@mark.parametrize(
+    "in_available_requirements, return_value",
+    [
+        (True, ActionStateEnum.SUCCESS),
+        (False, ActionStateEnum.FAILED),
+    ],
+)
+def test_reproduciblebuildenvironmentcheck(
+    in_available_requirements: bool,
+    return_value: ActionStateEnum,
+    outputpackagebasev1: OutputPackageBase,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    check_ = check.ReproducibleBuildEnvironmentCheck(
+        pkgbases=[outputpackagebasev1],
+        available_requirements=set(outputpackagebasev1.buildinfo.installed)  # type: ignore[attr-defined]
+        if in_available_requirements
+        else {},
+    )
+    assert check_() == return_value

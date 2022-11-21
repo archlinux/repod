@@ -1,5 +1,6 @@
 import asyncio
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from logging import debug, info
 from pathlib import Path
 
@@ -663,4 +664,69 @@ class StabilityLayerCheck(Check):
                     return self.state
 
         self.state = ActionStateEnum.SUCCESS
+        return self.state
+
+
+class ReproducibleBuildEnvironmentCheck(Check):
+    """A Check to ensure that all build requirements of OutputPackageBases can be met according to a provided set of
+    available requirements
+
+    Attributes
+    ----------
+    pkgbases: list[OutputPackageBase]
+        A list of OutputPackageBase objects, that represent the pkgbases to be checked
+    available_requirements: set[str]
+        A set of package information strings (name, version, architecture), which are matched against the build
+        requirements of pkgbases
+    """
+
+    def __init__(
+        self,
+        pkgbases: list[OutputPackageBase],
+        available_requirements: set[str],
+    ):
+        """Initialize an instance of ReproducibleBuildEnvironmentCheck
+
+        Parameters
+        ----------
+        pkgbases: list[OutputPackageBase]
+            A list of OutputPackageBase objects, that represent the pkgbases to be checked
+        available_requirements: set[str]
+            A set of package information strings (name, version, architecture), which are matched against the build
+            requirements of pkgbases
+        """
+
+        self.pkgbases = pkgbases
+        self.available_requirements = available_requirements
+
+    def __call__(self) -> ActionStateEnum:
+        """Check that all build requirements of OutputPackageBases can be met according to a provided set of available
+        requirements
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check passed successfully,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        missing_requirements: dict[str, list[str]] = defaultdict(list)
+
+        for pkgbase in self.pkgbases:
+            for requirement in pkgbase.buildinfo.installed:  # type: ignore[attr-defined]
+                if requirement not in self.available_requirements:
+                    missing_requirements[pkgbase.base].append(requirement)  # type: ignore[attr-defined]
+
+        self.state = ActionStateEnum.SUCCESS
+        if missing_requirements:
+            self.state = ActionStateEnum.FAILED
+            key_value_list = [f"\n{key} => {', '.join(value)}" for key, value in missing_requirements.items()]
+            info(
+                "The following build requirements can not be met with this transaction, existing packages "
+                "in the repositories, or the archive:"
+                f"{''.join(key_value_list)}"
+            )
+
         return self.state
