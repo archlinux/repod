@@ -47,16 +47,20 @@ def test_add_packages_dryrun(
 
 
 @mark.parametrize(
-    "with_archiving, with_signature, task_return_value",
+    "build_requirements_exist, with_archiving, with_signature, task_return_value",
     [
-        (True, True, ActionStateEnum.FAILED),
-        (True, True, ActionStateEnum.SUCCESS),
-        (True, False, ActionStateEnum.FAILED),
-        (True, False, ActionStateEnum.SUCCESS),
-        (False, True, ActionStateEnum.FAILED),
-        (False, True, ActionStateEnum.SUCCESS),
-        (False, False, ActionStateEnum.FAILED),
-        (False, False, ActionStateEnum.SUCCESS),
+        (True, True, True, ActionStateEnum.FAILED),
+        (True, True, True, ActionStateEnum.SUCCESS),
+        (True, True, False, ActionStateEnum.FAILED),
+        (True, True, False, ActionStateEnum.SUCCESS),
+        (True, False, True, ActionStateEnum.FAILED),
+        (True, False, True, ActionStateEnum.SUCCESS),
+        (True, False, False, ActionStateEnum.FAILED),
+        (True, False, False, ActionStateEnum.SUCCESS),
+        (False, False, True, ActionStateEnum.FAILED),
+        (False, False, True, ActionStateEnum.SUCCESS),
+        (False, False, False, ActionStateEnum.FAILED),
+        (False, False, False, ActionStateEnum.SUCCESS),
     ],
 )
 @patch("repod.action.workflow.exit_on_error")
@@ -65,6 +69,7 @@ def test_add_packages_dryrun(
 @patch("repod.action.workflow.CleanupRepoTask")
 @patch("repod.action.workflow.CreateOutputPackageBasesTask")
 @patch("repod.action.workflow.ConsolidateOutputPackageBasesTask")
+@patch("repod.action.workflow.ReproducibleBuildEnvironmentTask")
 @patch("repod.action.workflow.WriteOutputPackageBasesToTmpFileInDirTask")
 @patch("repod.action.workflow.MoveTmpFilesTask")
 @patch("repod.action.workflow.FilesToRepoDirTask")
@@ -80,12 +85,14 @@ def test_add_packages(
     filestorepodirtask_mock: Mock,
     movetmpfilestask_mock: Mock,
     writeoutputpackagebasestotmpfileindirtask_mock: Mock,
+    reproduciblebuildenvironmenttask_mock: Mock,
     consolidateoutputpackagebasestask_mock: Mock,
     createoutputpackagebasestask_mock: Mock,
     cleanuprepotask_mock: Mock,
     addtoarchivetask_mock: Mock,
     addtorepotask_mock: Mock,
     exit_on_error_mock: Mock,
+    build_requirements_exist: bool,
     with_archiving: bool,
     with_signature: bool,
     task_return_value: ActionStateEnum,
@@ -101,6 +108,7 @@ def test_add_packages(
     filestorepodirtask_mock.spec = workflow.FilesToRepoDirTask
     movetmpfilestask_mock.spec = workflow.MoveTmpFilesTask
     writeoutputpackagebasestotmpfileindirtask_mock.spec = workflow.WriteOutputPackageBasesToTmpFileInDirTask
+    reproduciblebuildenvironmenttask_mock.spec = workflow.ReproducibleBuildEnvironmentTask
     consolidateoutputpackagebasestask_mock.spec = workflow.ConsolidateOutputPackageBasesTask
     createoutputpackagebasestask_mock.spec = workflow.CreateOutputPackageBasesTask
     cleanuprepotask_mock.spec = workflow.CleanupRepoTask
@@ -108,6 +116,10 @@ def test_add_packages(
     addtorepotask_mock.spec = workflow.AddToRepoTask
     addtorepotask_mock.return_value = Mock(return_value=task_return_value)
     (addtorepotask_mock.return_value).dependencies = []
+
+    if not build_requirements_exist:
+        usersettings.build_requirements_exist = None
+        usersettings.repositories[0].build_requirements_exist = None
 
     if not with_archiving:
         usersettings.archiving = None

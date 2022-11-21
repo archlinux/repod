@@ -16,6 +16,8 @@ from repod.action.task import (
     RemoveBackupFilesTask,
     RemoveManagementRepoSymlinksTask,
     RemovePackageRepoSymlinksTask,
+    ReproducibleBuildEnvironmentTask,
+    Task,
     WriteOutputPackageBasesToTmpFileInDirTask,
     WriteSyncDbsToTmpFilesInDirTask,
 )
@@ -135,6 +137,7 @@ def add_packages(
     debug(f"Provided urls: {pkgbase_urls}")
 
     archive_settings = settings.get_repo(name=repo_name, architecture=repo_architecture).archiving
+    add_to_repo_dependencies: list[Task] = []
 
     management_repo_dir = settings.get_repo_path(
         repo_dir_type=RepoDirTypeEnum.MANAGEMENT,
@@ -197,7 +200,18 @@ def add_packages(
             testing=testing_repo,
         ),
     )
-    add_to_repo_dependencies = [
+
+    if settings.get_repo(name=repo_name, architecture=repo_architecture).build_requirements_exist:
+        reproduciblebuildenvironmenttask = ReproducibleBuildEnvironmentTask(
+            management_directories=[management_repo_dir],
+            archive_dir=archive_settings.packages if archive_settings else None,  # type: ignore[union-attr]
+            dependencies=[
+                outputpackagebasestask,
+            ],
+        )
+        add_to_repo_dependencies.append(reproduciblebuildenvironmenttask)
+
+    add_to_repo_dependencies.append(
         MoveTmpFilesTask(
             dependencies=[
                 consolidateoutputpackagebases,
@@ -212,8 +226,9 @@ def add_packages(
                 ),
             ]
         ),
-        package_files_task,
-    ]
+    )
+    add_to_repo_dependencies.append(package_files_task)
+
     add_to_archive_dependencies = [
         package_files_task,
     ]
