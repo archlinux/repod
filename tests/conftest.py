@@ -42,6 +42,7 @@ from repod.files.pkginfo import PkgInfo, PkgInfoV1, PkgInfoV2, PkgType
 from repod.repo.management import OutputBuildInfo, OutputPackageBase
 from repod.repo.management.outputpackage import OutputPackageBaseV1, OutputPackageV1
 from repod.repo.package import Files, PackageDesc, RepoDbTypeEnum
+from repod.repo.package.repofile import relative_to_shared_base
 from repod.repo.package.syncdb import (
     FilesV1,
     PackageDescV1,
@@ -953,10 +954,16 @@ def valid_buildinfov2_file(buildinfov2_stringio: StringIO, tmp_path: Path) -> Ge
 
 
 @fixture(scope="session")
+def default_installed() -> list[str]:
+    return ["build_foo-1:1.0.1-1-any", "build_bar-1:1.0.1-1-any"]
+
+
+@fixture(scope="session")
 def valid_buildinfov1(
     default_arch: str,
     default_buildenv: str,
     default_full_version: str,
+    default_installed: list[str],
     default_option: str,
     default_packager: str,
     sha256sum: str,
@@ -966,7 +973,7 @@ def valid_buildinfov1(
         builddate=1,
         builddir="/build",
         buildenv=[default_buildenv],
-        installed=["bar-1:1.0.1-1-any", "baz-1:1.0.1-1-any"],
+        installed=default_installed,
         options=[default_option],
         packager=default_packager,
         pkgarch=default_arch,
@@ -983,6 +990,7 @@ def valid_buildinfov2(
     default_arch: str,
     default_buildenv: str,
     default_full_version: str,
+    default_installed: list[str],
     default_option: str,
     default_packager: str,
     sha256sum: str,
@@ -994,7 +1002,7 @@ def valid_buildinfov2(
         buildenv=[default_buildenv],
         buildtool="buildtool",
         buildtoolver=default_full_version,
-        installed=["bar-1:1.0.1-1-any", "baz-1:1.0.1-1-any"],
+        installed=default_installed,
         options=[default_option],
         packager=default_packager,
         pkgarch=default_arch,
@@ -1520,7 +1528,13 @@ def outputpackagebasev1_json_files_in_dir(
     outputpackagebasev1: OutputPackageBase,
 ) -> Path:
     outputpackagebasev1.packages[0].files = None  # type: ignore[attr-defined]
-    with open(tmp_path / f"{outputpackagebasev1.base}.json", "wb") as output_file:  # type: ignore[attr-defined]
+
+    management_dir = tmp_path / "management"
+    pkgnames_dir = management_dir / "pkgnames"
+    pkgnames_dir.mkdir(parents=True)
+
+    pkgbase_file = management_dir / f"{outputpackagebasev1.base}.json"  # type: ignore[attr-defined]
+    with open(pkgbase_file, "wb") as output_file:
         output_file.write(
             orjson.dumps(
                 outputpackagebasev1.dict(),
@@ -1528,7 +1542,11 @@ def outputpackagebasev1_json_files_in_dir(
             )
         )
 
-    return tmp_path
+    for package in outputpackagebasev1.packages:  # type: ignore[attr-defined]
+        symlink_path = pkgnames_dir / f"{package.name}.json"
+        symlink_path.symlink_to(relative_to_shared_base(path_b=symlink_path, path_a=pkgbase_file))
+
+    return management_dir
 
 
 @fixture(scope="function")

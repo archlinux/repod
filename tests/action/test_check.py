@@ -1,6 +1,7 @@
 from copy import deepcopy
 from logging import DEBUG
 from pathlib import Path
+from shutil import rmtree
 from unittest.mock import patch
 
 from pydantic import AnyUrl
@@ -195,10 +196,8 @@ def test_packagesneworupdatedcheck(
     if increase_version:
         outputpackagebasev1.version = "2:1.0.0-1"  # type: ignore[attr-defined]
 
-    if create_symlink:
-        (outputpackagebasev1_json_files_in_dir / "pkgnames").mkdir()
-        for name in ["foo", "bar"]:
-            (outputpackagebasev1_json_files_in_dir / "pkgnames" / f"{name}.json").symlink_to("../foo.json")
+    if not create_symlink:
+        rmtree(outputpackagebasev1_json_files_in_dir / "pkgnames")
 
     check_ = check.PackagesNewOrUpdatedCheck(
         directory=outputpackagebasev1_json_files_in_dir,
