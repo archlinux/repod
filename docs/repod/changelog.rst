@@ -48,6 +48,11 @@ Added
 * By default ``repod-file`` now also creates an archive of all packages added
   to a repository. The archiving locations are configurable globally and per
   repository.
+* The existence of build requirements of added packages are checked by default
+  now (in the archive, the target repository and amongst the added packages),
+  unless ``build_requirements_exist`` is set to ``false`` in ``repod.conf``.
+  This check fails on missing requirements and thus ensures that added packages
+  are fully reproducible.
 
 Changed
 ^^^^^^^
