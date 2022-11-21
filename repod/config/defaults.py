@@ -6,6 +6,7 @@ from xdg.BaseDirectory import xdg_config_home, xdg_state_home
 from repod.common.enums import ArchitectureEnum, CompressionTypeEnum, SettingsTypeEnum
 
 DEFAULT_ARCHITECTURE = ArchitectureEnum.ANY
+DEFAULT_BUILD_REQUIREMENTS_EXIST: bool = True
 DEFAULT_DATABASE_COMPRESSION = CompressionTypeEnum.GZIP
 DEFAULT_NAME = "default"
 
