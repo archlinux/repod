@@ -29,6 +29,7 @@ from repod.common.enums import (
 )
 from repod.config.defaults import (
     DEFAULT_ARCHITECTURE,
+    DEFAULT_BUILD_REQUIREMENTS_EXIST,
     DEFAULT_DATABASE_COMPRESSION,
     DEFAULT_NAME,
     MANAGEMENT_REPO_BASE,
@@ -127,6 +128,19 @@ class DatabaseCompression(BaseModel):
     """
 
     database_compression: CompressionTypeEnum | None
+
+
+class BuildRequirementsExist(BaseModel):
+    """A model indicating whether build requirements must exist
+
+    Attribute
+    ---------
+    build_requirements_exist: bool | None
+        An optional boolean value which indicates whether build requirements of a package must exist (True), or not
+        (False/ None).
+    """
+
+    build_requirements_exist: bool | None
 
 
 class PackagePool(BaseModel):
@@ -343,7 +357,7 @@ class ManagementRepo(BaseModel):
         return url
 
 
-class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
+class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, PackagePool, SourcePool):
     """A model providing all required attributes to describe a package repository
 
     Attributes
@@ -351,6 +365,9 @@ class PackageRepo(Architecture, DatabaseCompression, PackagePool, SourcePool):
     architecture: ArchitectureEnum | None
         An optional ArchitectureEnum member, that serves as an override to the application-wide architecture. The
         attribute defines the CPU architecture for the package repository
+    build_requirements_exist: bool | None
+        An optional boolean value which indicates whether build requirements of a package must exist (True), or not
+        (False/ None).
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum (defaults to DEFAULT_DATABASE_COMPRESSION)
     debug: Path | None
@@ -839,7 +856,7 @@ def read_toml_configuration_settings(settings: BaseSettings) -> dict[str, Any]:
     return output_dict
 
 
-class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, SourcePool):
+class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompression, PackagePool, SourcePool):
     """A class to describe a configuration for repod
 
     NOTE: Do not initialize this class directly and instead use UserSettings (for per-user configuration) or
@@ -851,6 +868,9 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
     architecture: ArchitectureEnum
         An optional ArchitectureEnum member, that (if set) defines the CPU architecture for any package repository which
         does not define one itself (defaults to DEFAULT_ARCHITECTURE).
+    build_requirements_exist: bool | None
+        An optional boolean value which indicates whether build requirements of a package must exist (True), or not
+        (False/ None).
     database_compression: CompressionTypeEnum
         A member of CompressionTypeEnum which defines the default database compression for any package repository
         without a database compression set (defaults to DEFAULT_DATABASE_COMPRESSION).
@@ -960,6 +980,26 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
 
         return archiving
 
+    @validator("build_requirements_exist")
+    def validate_build_requirements_exist(cls, build_requirements_exist: bool | None) -> bool:
+        """Validate settings whether build requirements must exist and set defaults
+
+        Parameters
+        ----------
+        build_requirements_exist: bool | None
+            An optional boolean value which if set to None is set to DEFAULT_BUILD_REQUIREMENTS_EXIST
+
+        Returns
+        -------
+        bool
+            A validated boolean value
+        """
+
+        if build_requirements_exist is None:
+            build_requirements_exist = DEFAULT_BUILD_REQUIREMENTS_EXIST
+
+        return build_requirements_exist
+
     @validator("management_repo")
     def validate_management_repo(cls, management_repo: ManagementRepo | None) -> ManagementRepo:
         """Validate the ManagementRepo and return a default if none is set
@@ -1035,6 +1075,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         repositories = cls.consolidate_repositories_with_defaults(
             architecture=values.get("architecture"),
             archiving=values.get("archiving"),
+            build_requirements_exist=values.get("build_requirements_exist"),  # type: ignore[arg-type]
             database_compression=values.get("database_compression"),
             management_repo=values.get("management_repo"),  # type: ignore[arg-type]
             package_pool=to_absolute_path(
@@ -1058,6 +1099,7 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
         cls,
         architecture: ArchitectureEnum,
         archiving: ArchiveSettings | None,
+        build_requirements_exist: bool,
         database_compression: CompressionTypeEnum,
         management_repo: ManagementRepo,
         package_pool: Path,
@@ -1076,6 +1118,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             The settings-wide default CPU architecture
         archiving: ArchiveSettings | None
             The (optional) setttings-wide ArchiveSettings
+        build_requirements_exist | bool
+            The settings-wide default build_requirements_exist value
         database_compression: CompressionTypeEnum
             The settings-wide default database compression
         management_repo: ManagementRepo
@@ -1105,6 +1149,8 @@ class Settings(Architecture, BaseSettings, DatabaseCompression, PackagePool, Sou
             if not repo.database_compression and database_compression:
                 debug(f"Using global database compression ({database_compression.value}) for repo {repo.name}.")
                 repo.database_compression = database_compression
+            if repo.build_requirements_exist is None:
+                repo.build_requirements_exist = build_requirements_exist
             if not repo.management_repo and management_repo:
                 debug(f"Using global management_repo ({management_repo}) for repo {repo.name}.")
                 repo.management_repo = management_repo

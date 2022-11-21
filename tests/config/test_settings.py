@@ -323,14 +323,14 @@ def test_systemsettings(
 
 
 @mark.parametrize(
-    "archiving, has_managementrepo, has_repositories",
+    "archiving, build_requirements_exist, has_managementrepo, has_repositories",
     [
-        (True, True, True),
-        (True, False, False),
-        (False, True, True),
-        (False, False, False),
-        (None, True, True),
-        (None, False, False),
+        (True, True, True, True),
+        (True, True, False, False),
+        (False, False, True, True),
+        (False, False, False, False),
+        (None, None, True, True),
+        (None, None, False, False),
     ],
 )
 @patch("repod.config.settings.Settings.consolidate_repositories_with_defaults")
@@ -345,6 +345,7 @@ def test_usersettings(
     ensure_non_overlapping_repositories_mock: Mock,
     consolidate_repositories_with_defaults_mock: Mock,
     archiving: bool | None,
+    build_requirements_exist: bool | None,
     has_managementrepo: bool,
     has_repositories: bool,
     caplog: LogCaptureFixture,
@@ -371,6 +372,7 @@ def test_usersettings(
                         with patch("repod.config.settings.CUSTOM_CONFIG", empty_file):
                             conf = settings.UserSettings(
                                 archiving=archiving,
+                                build_requirements_exist=build_requirements_exist,
                                 management_repo=(
                                     settings.ManagementRepo(directory=Path("/custom_management_repo"))
                                     if has_managementrepo
@@ -379,6 +381,7 @@ def test_usersettings(
                                 repositories=[
                                     settings.PackageRepo(
                                         architecture="any",
+                                        build_requirements_exist=None,
                                         name="custom",
                                         management_repo=settings.ManagementRepo(
                                             directory=Path("/custom_management_repo")
@@ -410,16 +413,25 @@ def test_usersettings(
         ", repo_has_staging_debug"
         ", repo_has_testing"
         ", repo_has_testing_debug"
+        ", repo_build_requirements_exists"
     ),
     [
-        (True, True, True, True, True, True, True, True, True, True),
-        (True, True, True, True, True, True, True, False, True, False),
-        (True, True, True, True, True, True, True, True, True, False),
-        (True, True, True, True, True, True, True, False, True, True),
-        (True, True, True, True, True, False, True, False, True, False),
-        (True, True, True, True, True, True, False, False, True, False),
-        (True, True, True, True, True, True, True, False, False, False),
-        (False, False, False, False, False, False, False, False, False, False),
+        (True, True, True, True, True, True, True, True, True, True, None),
+        (True, True, True, True, True, True, True, False, True, False, None),
+        (True, True, True, True, True, True, True, True, True, False, None),
+        (True, True, True, True, True, True, True, False, True, True, None),
+        (True, True, True, True, True, False, True, False, True, False, None),
+        (True, True, True, True, True, True, False, False, True, False, None),
+        (True, True, True, True, True, True, True, False, False, False, None),
+        (False, False, False, False, False, False, False, False, False, False, None),
+        (True, True, True, True, True, True, True, True, True, True, True),
+        (True, True, True, True, True, True, True, False, True, False, True),
+        (True, True, True, True, True, True, True, True, True, False, True),
+        (True, True, True, True, True, True, True, False, True, True, True),
+        (True, True, True, True, True, False, True, False, True, False, True),
+        (True, True, True, True, True, True, False, False, True, False, True),
+        (True, True, True, True, True, True, True, False, False, False, True),
+        (False, False, False, False, False, False, False, False, False, False, True),
     ],
 )
 def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
@@ -433,6 +445,7 @@ def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
     repo_has_staging_debug: bool,
     repo_has_testing: bool,
     repo_has_testing_debug: bool,
+    repo_build_requirements_exists: bool | None,
     packagerepo_in_tmp_path: settings.PackageRepo,
     tmp_path: Path,
 ) -> None:
@@ -462,6 +475,8 @@ def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
     if not repo_has_testing_debug:
         packagerepo_in_tmp_path.testing_debug = None
 
+    packagerepo_in_tmp_path.build_requirements_exist = repo_build_requirements_exists
+
     with patch("repod.config.settings.Settings._package_repo_base", tmp_path / "_package_repo_base"):
         with patch("repod.config.settings.Settings._source_repo_base", tmp_path / "_source_repo_base"):
             with patch("repod.config.settings.Settings._package_pool_base", tmp_path / "_package_pool_base"):
@@ -472,6 +487,7 @@ def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
                         repos = settings.Settings.consolidate_repositories_with_defaults(
                             architecture=settings.DEFAULT_ARCHITECTURE,
                             archiving=None,
+                            build_requirements_exist=True,
                             database_compression=settings.DEFAULT_DATABASE_COMPRESSION,
                             management_repo=settings.ManagementRepo(directory=tmp_path / settings.DEFAULT_NAME),
                             package_pool=tmp_path / "package_pool_dir",
