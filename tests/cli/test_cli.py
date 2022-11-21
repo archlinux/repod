@@ -496,13 +496,15 @@ def test_import_into_default_repo(tmp_path: Path) -> None:
             if isinstance(fullmatch(rf"^.*\.pkg\.tar({tar_compression_types_for_filename_regex()})$", str(path)), Match)
         ]
     )
-    if len(packages) > 50:
-        packages = sample(packages, 50)
+    if len(packages) > 5:
+        packages = sample(packages, 5)
 
     custom_config = f"""
-    [[repositories]]
+    archiving = {{ packages = "{tmp_path}/archive/package/", sources = "{tmp_path}/archive/sources/" }}
 
+    [[repositories]]
     architecture = "x86_64"
+    build_requirements_exist = false
     name = "{tmp_path}/data/repo/package/default/"
     debug = "{tmp_path}/data/repo/package/default-debug/"
     staging = "{tmp_path}/data/repo/package/default-staging/"
@@ -532,6 +534,8 @@ def test_import_into_default_repo(tmp_path: Path) -> None:
         ]
         + packages
         + [f"{tmp_path}/data/repo/package/default/"],
+        debug=True,
+        check=True,
     )
     list_database(repo_name="default", base_path=tmp_path, architecture="x86_64")
 
