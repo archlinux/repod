@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, NonNegativeInt, constr, root_validator, validator
 
-from repod.common.enums import FieldTypeEnum
+from repod.common.enums import ArchitectureEnum, FieldTypeEnum
 from repod.common.models import Packager, SchemaVersionV1, SchemaVersionV2
 from repod.common.regex import (
     ARCHITECTURE,
@@ -138,6 +138,35 @@ class Installed(BaseModel):
     installed: list[  # type: ignore[valid-type]
         constr(regex=rf"^({PACKAGE_NAME})-({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}$")  # noqa: F722
     ]
+
+    @classmethod
+    def as_models(cls, installed: list[str]) -> list[tuple[PkgName, PkgVer, ArchitectureEnum]]:
+        """Return a list of installed dependencies as models
+
+        Parameters
+        ----------
+        installed: list[str]
+            A list of strings, each describing pkgname-version-architecture
+
+        Raises
+        ------
+        ValidationError
+            If any of the entries in installed can not be validated using PkgName, PkgVer, Architecture
+
+        Returns
+        -------
+        list[tuple[PkgName, PkgVer, ArchitectureEnum]]
+            A list of PkgName, PkgVer and ArchitectureEnum tuples, which describe each entry in installed
+        """
+
+        return [
+            (
+                PkgName(pkgname="-".join(dep.split("-")[0:-3])),
+                PkgVer(pkgver="-".join(dep.split("-")[-3:-1])),
+                ArchitectureEnum(dep.split("-")[-1]),
+            )
+            for dep in installed
+        ]
 
 
 class Options(BaseModel):

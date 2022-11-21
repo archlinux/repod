@@ -9,10 +9,20 @@ from typing import ContextManager
 from pydantic import ValidationError
 from pytest import mark, raises
 
-from repod.common.enums import tar_compression_types_for_filename_regex
+from repod.common.enums import (
+    ArchitectureEnum,
+    tar_compression_types_for_filename_regex,
+)
 from repod.errors import RepoManagementError
 from repod.files import buildinfo
 from repod.files.common import extract_file_from_tarfile, open_tarfile
+from tests.conftest import (
+    create_default_arch,
+    create_default_full_version,
+    create_default_invalid_full_version,
+    create_default_invalid_package_name,
+    create_default_package_name,
+)
 
 
 @mark.parametrize(
@@ -63,17 +73,36 @@ def test_buildtoolver() -> None:
     assert buildinfo.BuildToolVer(buildtoolver="foo")
 
 
-def test_installed(default_package_name: str, default_full_version: str, default_arch: str) -> None:
-    with does_not_raise():
-        buildinfo.Installed(installed=[f"{default_package_name}-{default_full_version}-{default_arch}"])
+@mark.parametrize(
+    "installed, expectation",
+    [
+        (
+            [f"{create_default_package_name()}-{create_default_full_version()}-{create_default_arch()}"],
+            does_not_raise(),
+        ),
+        (
+            [f"{create_default_invalid_package_name()}-{create_default_invalid_full_version()}-foo"],
+            raises(ValidationError),
+        ),
+    ],
+)
+def test_installed(installed: list[str], expectation: ContextManager[str]) -> None:
+    with expectation:
+        buildinfo.Installed(installed=installed)
 
 
-def test_invalid_installed(
-    default_invalid_package_name: str,
-    default_invalid_full_version: str,
+def test_installed_as_models(
+    default_arch: str,
+    default_full_version: str,
+    default_package_name: str,
 ) -> None:
-    with raises(ValidationError):
-        buildinfo.Installed(installed=[f"{default_invalid_package_name}-{default_invalid_full_version}-foo"])
+    assert [
+        (
+            buildinfo.PkgName(pkgname=default_package_name),
+            buildinfo.PkgVer(pkgver=default_full_version),
+            ArchitectureEnum(default_arch),
+        )
+    ] == buildinfo.Installed.as_models(installed=[f"{default_package_name}-{default_full_version}-{default_arch}"])
 
 
 def test_options(default_option: str, default_invalid_option: str) -> None:
