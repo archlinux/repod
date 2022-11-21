@@ -12,3 +12,7 @@ class RepoManagementValidationError(RepoManagementError):
 
 class RepoManagementFileNotFoundError(RepoManagementFileError, FileNotFoundError):
     """An Error that is raised when a file can not be found"""
+
+
+class TaskError(RepoManagementError):
+    """An Error that is raised when an error occurs in a Task"""
