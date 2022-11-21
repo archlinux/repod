@@ -70,6 +70,16 @@ them. For any undefined option defaults are assumed (see
     directory structures and files for source tarball archiving are created.
     This directory must be absolute.
 
+* *build_requirements_exist*: An optional boolean value, which defines whether
+  the build requirements of added packages must exist in the archive (if
+  configured), any of the stability layers of the target repository or the set
+  of packages being added.
+  When unset, the value will be set to the default (see
+  :ref:`repod.conf_default_options`).
+  When set to *false*, the build requirements of added packages are not
+  checked, when set to *true*, they are checked.
+  This setting may still be overriden per repository.
+
 * *database_compression*: A string setting the database compression used for
   any repository, which does not define it.
   Understood values are
@@ -167,6 +177,14 @@ The only exceptions to this rule are *package_pool*, *source_pool*,
     :ref:`repod.conf_default_directories` for default values), below which
     directory structures and files for source tarball archiving are created.
     This directory must be absolute.
+
+* *build_requirements_exist*: An optional boolean value, which defines whether
+  the build requirements of added packages must exist in the archive (if
+  configured), any of the stability layers of the target repository or the set
+  of packages being added.
+  When unset, the value will be set to the value defined globally.
+  When set to *false*, the build requirements of added packages are not
+  checked, when set to *true*, they are checked.
 
 * *database_compression* (optional): A string setting the database compression used for
   the repository.
@@ -401,6 +419,11 @@ DEFAULT OPTIONS
 
   .. program-output:: python -c "from repod.config.defaults import DEFAULT_ARCHITECTURE; print('\"' + DEFAULT_ARCHITECTURE.value + '\"')"
 
+* The default value for checking build requirements of added packages, if
+  *build_requirements_exist* not defined globally:
+
+  .. program-output:: python -c "from repod.config.defaults import DEFAULT_BUILD_REQUIREMENTS_EXIST; print(str(DEFAULT_BUILD_REQUIREMENTS_EXIST).lower())"
+
 * The default database compression if neither global nor per-repository
   *database_compression* is defined:
 
@@ -514,6 +537,16 @@ Example 6. One repository without archiving
   [[repositories]]
   architecture = "x86_64"
   archiving = false
+  name = "repo1"
+
+Example 7. One repository without checks for build requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: toml
+
+  [[repositories]]
+  architecture = "x86_64"
+  build_requirements_exist = false
   name = "repo1"
 
 SEE ALSO
