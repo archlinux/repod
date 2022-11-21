@@ -20,6 +20,7 @@ from repod.action.check import (
     PackagesNewOrUpdatedCheck,
     PacmanKeyPackagesSignatureVerificationCheck,
     PkgbasesVersionUpdateCheck,
+    ReproducibleBuildEnvironmentCheck,
     SourceUrlCheck,
     StabilityLayerCheck,
 )
@@ -35,14 +36,114 @@ from repod.common.enums import (
     RepoFileEnum,
     RepoTypeEnum,
 )
+from repod.common.models import FileName
 from repod.config import SystemSettings, UserSettings
 from repod.config.defaults import ORJSON_OPTION
 from repod.config.settings import UrlValidationSettings
-from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundError
+from repod.errors import (
+    RepoManagementFileError,
+    RepoManagementFileNotFoundError,
+    TaskError,
+)
 from repod.files import Package
+from repod.files.buildinfo import Installed
 from repod.repo import OutputPackageBase, SyncDatabase
 from repod.repo.package import RepoDbTypeEnum, RepoFile
 from repod.repo.package.repofile import relative_to_shared_base
+
+
+def read_build_requirements_from_archive_dir(
+    pkgbases: list[OutputPackageBase],
+    archive_dir: Path | None,
+    pkgs_in_archive: set[str],
+) -> None:
+    """Read build requirements of a list of OutputPackageBases from an archive directory
+
+    Parameters
+    ----------
+    pkgbases: list[OutputPackageBase]
+        A list of OutputPackageBase instances for which to read build requirements
+    archive_dir: Path | None
+        An optional archive directory, from which to read package information
+    pkgs_in_archive: set[str]
+        A set of strings to which matching build requirements in the archive are appended
+    """
+
+    if not archive_dir:
+        return
+
+    for pkgbase in pkgbases:
+        for pkgname, pkgver, architecture in Installed.as_models(
+            pkgbase.buildinfo.installed  # type: ignore[attr-defined]
+        ):
+            requirement = f"{pkgname.pkgname}-{pkgver.pkgver}-{architecture.value}"
+            if requirement not in pkgs_in_archive:
+                pkg_archive_dir = archive_dir / pkgname.pkgname[0] / pkgname.pkgname
+                paths = [path for path in pkg_archive_dir.glob(f"{requirement}*") if path.suffix != ".sig"]
+                if len(paths) == 1:
+                    try:
+                        FileName(filename=paths[0].name)
+                    except ValidationError as e:
+                        raise TaskError(e)
+
+                    pkgs_in_archive.add(requirement)
+
+
+def read_build_requirements_from_management_repo_dirs(
+    pkgbases: list[OutputPackageBase],
+    management_directories: list[Path],
+    pkgs_in_repo: set[str],
+) -> None:
+    """Read build requirements of a list of OutputPackageBases from management repository directories
+
+    Parameters
+    ----------
+    pkgbases: list[OutputPackageBase]
+        A list of OutputPackageBase instances for which to read build requirements
+    management_directories: list[Path]
+        A list of management repository directories, from which to read package information
+    pkgs_in_repo: set[str]
+        A set of strings to which matching build requirements in the management repository directories are appended
+
+    Raises
+    ------
+    TaskError
+        If an error occurs while reading a file from the management repository directories
+    """
+
+    for pkgbase in pkgbases:
+        for pkgname, pkgver, architecture in Installed.as_models(
+            pkgbase.buildinfo.installed  # type: ignore[attr-defined]
+        ):
+            requirement = f"{pkgname.pkgname}-{pkgver.pkgver}-{architecture.value}"
+            if requirement not in pkgs_in_repo:
+                for directory in management_directories:
+                    debug(
+                        f"Searching for {pkgbase.base}'s build requirement "  # type: ignore[attr-defined]
+                        f"{requirement} in management repository directory {directory}..."
+                    )
+                    file = directory / "pkgnames" / f"{pkgname.pkgname}.json"
+                    if file.exists():
+                        try:
+                            current_pkgbase = asyncio.run(OutputPackageBase.from_file(path=file))
+                        except RepoManagementFileError as e:
+                            raise TaskError(e)
+
+                        current_pkg_arch = [
+                            ArchitectureEnum(pkg.arch)
+                            for pkg in current_pkgbase.packages  # type: ignore[attr-defined]
+                            if pkg.name == pkgname.pkgname
+                        ][0]
+                        debug(
+                            f"Found {pkgname.pkgname}-"
+                            f"{current_pkgbase.version}-{current_pkg_arch}..."  # type: ignore[attr-defined]
+                        )
+
+                        if (
+                            current_pkgbase.version == pkgver.pkgver  # type: ignore[attr-defined]
+                            and current_pkg_arch == architecture
+                        ):
+                            pkgs_in_repo.add(requirement)
 
 
 def read_pkgbases_from_stability_layers(
@@ -2037,4 +2138,194 @@ class AddToArchiveTask(Task):
         debug(f"before dependency undo: {self.state}")
         self.dependency_undo()
         debug(f"after dependency undo: {self.state}")
+        return self.state
+
+
+class ReproducibleBuildEnvironmentTask(Task):
+    """Task to gather data related to an OutputPackageBase from local management repository, archive (if present) and
+    the other OutputPackageBase instances.
+
+    Attributes
+    ----------
+    archive_dir: Path | None,
+        A directory below which archived files may be found
+    management_directories: list[Path]
+        A list of Paths in a management repository where to look for OutputPackageBases
+    pkgbases: list[OutputPackageBase]
+        A list of OutputPackageBase instances to compare to those in a management repository directory
+    pkgs_in_archive: list[str]
+        A list of pkgname-pkgver-architecture strings that represent all build requirement matches in the archive
+    pkgs_in_repo: list[str]
+        A list of pkgname-pkgver-architecture strings that represent all build requirement matches in the current
+        repository state
+    pkgs_in_transaction: list[str]
+        A list of pkgname-pkgver-architecture strings that represent all build requirement matches in the current
+        transaction
+    """
+
+    def __init__(
+        self,
+        archive_dir: Path | None,
+        management_directories: list[Path],
+        pkgbases: list[OutputPackageBase] | None = None,
+        dependencies: list[Task] | None = None,
+    ):
+        """Initialize an instance of ReproducibleBuildEnvironmentTask
+
+        If instances of CreateOutputPackageBasesTask are provided in dependencies, pkgbases is populated from them.
+
+        Parameters
+        ----------
+        archive_dir: Path | None,
+            A directory below which archived files may be found
+        management_directories: list[Path]
+            A list of Paths in a management repository where to look for OutputPackageBases
+        pkgbases: list[OutputPackageBase] | None
+            An optional list of OutputPackageBase instances to compare to those in a management repository directory
+        dependencies: list[Task] | None
+            An optional list of Task instances that are run before this task (defaults to None)
+        """
+
+        if not management_directories:
+            raise RuntimeError("At least one management repository directory must be provided!")
+
+        if not all([directory and directory.exists() for directory in management_directories]):
+            raise RuntimeError("The provided management repository directories must exist!")
+        self.management_directories = management_directories
+
+        self.archive_dir = archive_dir
+
+        self.input_from_dependency = False
+
+        if dependencies:
+            self.dependencies = dependencies
+            for dependency in self.dependencies:
+                if isinstance(dependency, CreateOutputPackageBasesTask):
+                    self.input_from_dependency = True
+        else:
+            self.dependencies = []
+
+        if self.input_from_dependency:
+            debug("Creating Task to compare OutputPackageBases, using output from another Task...")
+            self.pkgbases = []
+        else:
+            if not pkgbases:
+                raise RuntimeError("Pkgbases must be provided if not depending on another Task for input!")
+
+            debug(
+                "Creating Task to gather build requirements of pkgbases "
+                f"{[pkgbase.base for pkgbase in pkgbases]}..."  # type: ignore[attr-defined]
+            )
+            self.pkgbases = pkgbases
+
+        self.pkgs_in_repo: set[str] = set()
+        self.pkgs_in_archive: set[str] = set()
+        self.pkgs_in_transaction: set[str] = set()
+
+    def do(self) -> ActionStateEnum:  # noqa: C901
+        """Run Task to gather data related to an OutputPackageBase from local management repository, archive (if
+        present) and other new OutputPackageBase instances.
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        if self.input_from_dependency:
+            debug("Getting pkgbases from the output of another Task...")
+            for dependency in self.dependencies:
+                if isinstance(dependency, CreateOutputPackageBasesTask):
+                    if dependency.state == ActionStateEnum.SUCCESS:
+                        self.pkgbases = dependency.pkgbases
+                    else:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
+
+        debug("Running Task to gather build requirements for packages...")
+        self.state = ActionStateEnum.STARTED_TASK
+
+        try:
+            read_build_requirements_from_management_repo_dirs(
+                pkgbases=self.pkgbases,
+                management_directories=self.management_directories,
+                pkgs_in_repo=self.pkgs_in_repo,
+            )
+        except TaskError as e:
+            info(e)
+            self.state = ActionStateEnum.FAILED_TASK
+            return self.state
+
+        try:
+            read_build_requirements_from_archive_dir(
+                pkgbases=self.pkgbases,
+                archive_dir=self.archive_dir,
+                pkgs_in_archive=self.pkgs_in_archive,
+            )
+        except TaskError as e:
+            info(e)
+            self.state = ActionStateEnum.FAILED_TASK
+            return self.state
+
+        for pkgbase in self.pkgbases:
+            for pkg in pkgbase.packages:  # type: ignore[attr-defined]
+                self.pkgs_in_transaction.add(f"{pkg.name}-{pkgbase.version}-{pkg.arch}")  # type: ignore[attr-defined]
+
+        debug(
+            "Found the following build requirements in the repositories: "
+            f"{', '.join([dep for dep in self.pkgs_in_repo])}"
+        )
+        debug(
+            "Found the following build requirements in the archives: "
+            f"{', '.join([dep for dep in self.pkgs_in_archive])}"
+        )
+        debug(
+            "Found the following build requirements in the transaction: "
+            f"{', '.join([dep for dep in self.pkgs_in_transaction])}"
+        )
+
+        self.post_checks.append(
+            ReproducibleBuildEnvironmentCheck(
+                pkgbases=self.pkgbases,
+                available_requirements=self.pkgs_in_repo | self.pkgs_in_archive | self.pkgs_in_transaction,
+            )
+        )
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo Task to gather data related to an OutputPackageBase from local management repository, archive (if
+        present) and other new OutputPackageBase instances.
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(
+                "Can not undo consolidation of OutputPackageBases "
+                f"{[pkgbase.base for pkgbase in self.pkgbases]} "  # type: ignore[attr-defined]
+                "as it has not happened yet!"
+            )
+            self.dependency_undo()
+            return self.state
+
+        debug("Undo gathering of build requirements for pkgbases...")
+
+        if self.input_from_dependency:
+            self.pkgbases.clear()
+
+        self.pkgs_in_repo.clear()
+        self.pkgs_in_archive.clear()
+        self.pkgs_in_transaction.clear()
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
         return self.state

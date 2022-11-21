@@ -23,8 +23,131 @@ from repod.common.enums import (
 )
 from repod.config import UserSettings
 from repod.config.defaults import DEFAULT_ARCHITECTURE, DEFAULT_NAME
-from repod.errors import RepoManagementFileError
+from repod.errors import RepoManagementFileError, TaskError
 from repod.repo.management import OutputPackageBase
+
+
+@mark.parametrize(
+    "archive_dir_exists, files_in_archive, deps_in_archive, deps_in_input_list, expectation",
+    [
+        (True, True, True, False, does_not_raise()),
+        (True, True, False, False, raises(TaskError)),
+        (True, False, False, False, does_not_raise()),
+        (False, False, False, False, does_not_raise()),
+        (False, False, False, True, does_not_raise()),
+        (True, False, False, True, does_not_raise()),
+    ],
+)
+def test_read_build_requirements_from_archive_dir(
+    archive_dir_exists: bool,
+    files_in_archive: bool,
+    deps_in_archive: bool,
+    deps_in_input_list: bool,
+    expectation: ContextManager[str],
+    default_installed: list[str],
+    outputpackagebasev1: OutputPackageBase,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    pkgs_in_archive: set[str] = set()
+    return_value: set[str] = set()
+
+    if deps_in_input_list:
+        pkgs_in_archive = set([dep for dep in default_installed])
+        return_value = set([dep for dep in default_installed])
+
+    archive_dir = None
+    if archive_dir_exists:
+        archive_dir = tmp_path / "archive"
+        archive_dir.mkdir()
+
+        if files_in_archive:
+            for dep in default_installed:
+                dep_dir = archive_dir / dep[0] / "-".join(dep.split("-")[0:-3])
+                dep_dir.mkdir(parents=True)
+                (dep_dir / f"{dep}.pkg.tar.zst").touch() if deps_in_archive else (dep_dir / f"{dep}.txt").touch()
+            return_value = set([dep for dep in default_installed]) if deps_in_archive else set()
+
+    with expectation:
+        task.read_build_requirements_from_archive_dir(
+            pkgbases=[outputpackagebasev1],
+            archive_dir=archive_dir,
+            pkgs_in_archive=pkgs_in_archive,
+        )
+        assert return_value == pkgs_in_archive
+
+
+@mark.parametrize(
+    "dep_exists, dep_in_input_list, dep_search_mismatch, from_file_raises, expectation",
+    [
+        (True, False, False, False, does_not_raise()),
+        (True, True, False, False, does_not_raise()),
+        (True, True, True, False, does_not_raise()),
+        (True, False, True, False, does_not_raise()),
+        (False, False, False, False, does_not_raise()),
+        (True, False, False, True, raises(TaskError)),
+    ],
+)
+def test_read_build_requirements_from_management_repo_dirs(
+    dep_exists: bool,
+    dep_in_input_list: bool,
+    dep_search_mismatch: bool,
+    from_file_raises: bool,
+    expectation: ContextManager[str],
+    outputpackagebasev1: OutputPackageBase,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    pkgs_in_repo: set[str] = set()
+    return_value: set[str] = set()
+
+    management_dirs = [tmp_path / "empty_management" / "foo"]
+    for dir_ in management_dirs:
+        dir_.mkdir(parents=True)
+
+    if dep_search_mismatch:
+        installed = [
+            f"{pkg.name}-2000-1-{pkg.arch}" for pkg in outputpackagebasev1.packages  # type: ignore[attr-defined]
+        ]
+    else:
+        installed = [
+            f"{pkg.name}-{outputpackagebasev1.version}-{pkg.arch}"  # type: ignore[attr-defined]
+            for pkg in outputpackagebasev1.packages  # type: ignore[attr-defined]
+        ]
+        if dep_exists:
+            return_value = set([dep for dep in installed])
+
+    if dep_in_input_list:
+        pkgs_in_repo.add(installed[0])
+        if dep_search_mismatch:
+            return_value.add(installed[0])
+
+    if dep_exists:
+        del outputpackagebasev1.packages[0]  # type: ignore[attr-defined]
+        outputpackagebasev1.packages[0].name = "foo2000"  # type: ignore[attr-defined]
+        outputpackagebasev1.buildinfo.installed = installed  # type: ignore[attr-defined]
+        management_dirs = [outputpackagebasev1_json_files_in_dir]
+
+    with expectation:
+        if from_file_raises:
+            with patch("repod.action.task.OutputPackageBase.from_file", side_effect=RepoManagementFileError):
+                task.read_build_requirements_from_management_repo_dirs(
+                    pkgbases=[outputpackagebasev1],
+                    management_directories=management_dirs,
+                    pkgs_in_repo=pkgs_in_repo,
+                )
+        else:
+            task.read_build_requirements_from_management_repo_dirs(
+                pkgbases=[outputpackagebasev1],
+                management_directories=management_dirs,
+                pkgs_in_repo=pkgs_in_repo,
+            )
+            assert return_value == pkgs_in_repo
 
 
 @mark.parametrize(
@@ -1869,3 +1992,243 @@ def test_addtoarchivetask_undo(
 
     if add_dependencies and do:
         assert not task_.files
+
+
+@mark.parametrize(
+    (
+        "add_archive_dir, add_management_dirs, management_dirs_exist, "
+        "add_pkgbases, add_dependencies, add_matching_dep, expectation"
+    ),
+    [
+        (True, True, True, True, False, False, does_not_raise()),
+        (True, True, True, True, True, True, does_not_raise()),
+        (True, True, True, False, True, True, does_not_raise()),
+        (False, True, True, True, False, False, does_not_raise()),
+        (False, True, True, True, True, True, does_not_raise()),
+        (False, True, True, False, True, True, does_not_raise()),
+        (True, False, True, True, False, False, raises(RuntimeError)),
+        (True, False, True, True, True, True, raises(RuntimeError)),
+        (False, False, True, True, False, False, raises(RuntimeError)),
+        (False, False, True, True, True, True, raises(RuntimeError)),
+        (True, True, False, True, False, False, raises(RuntimeError)),
+        (True, True, False, True, True, True, raises(RuntimeError)),
+        (False, True, False, True, False, False, raises(RuntimeError)),
+        (False, True, False, True, True, True, raises(RuntimeError)),
+        (True, True, True, False, False, False, raises(RuntimeError)),
+        (False, True, True, False, False, False, raises(RuntimeError)),
+    ],
+)
+def test_reproduciblebuildenvironmenttask(
+    add_archive_dir: bool,
+    add_management_dirs: bool,
+    management_dirs_exist: bool,
+    add_pkgbases: bool,
+    add_dependencies: bool,
+    add_matching_dep: bool,
+    expectation: ContextManager[str],
+    outputpackagebasev1: OutputPackageBase,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    archive_dir = None
+    if add_archive_dir:
+        archive_dir = Path("foo")
+
+    dependencies = [Mock()]
+    if add_matching_dep:
+        dependencies += [Mock(spec=task.CreateOutputPackageBasesTask)]
+
+    management_dirs = []
+    if add_management_dirs:
+        management_dirs = [tmp_path / "foo"]
+        if management_dirs_exist:
+            management_dirs = [tmp_path]
+
+    with expectation:
+        task_ = task.ReproducibleBuildEnvironmentTask(
+            archive_dir=archive_dir,
+            management_directories=management_dirs,
+            pkgbases=[outputpackagebasev1] if add_pkgbases else [],
+            dependencies=dependencies if add_dependencies else None,
+        )
+        if add_dependencies:
+            assert task_.dependencies == dependencies
+
+
+@mark.parametrize(
+    (
+        "deps_in_archive, deps_in_repo, deps_in_transaction, add_pkgbases, add_dependencies, add_matching_dep, "
+        "dependency_state, read_from_mgmt_repo_raises, read_from_archive_dir_raises, return_value"
+    ),
+    [
+        (True, False, False, True, False, False, None, False, False, ActionStateEnum.SUCCESS_TASK),
+        (True, False, False, True, False, False, None, True, False, ActionStateEnum.FAILED_TASK),
+        (True, False, False, True, False, False, None, False, True, ActionStateEnum.FAILED_TASK),
+        (True, False, False, False, True, True, ActionStateEnum.SUCCESS, False, False, ActionStateEnum.SUCCESS_TASK),
+        (True, False, False, False, True, True, ActionStateEnum.SUCCESS, True, False, ActionStateEnum.FAILED_TASK),
+        (True, False, False, False, True, True, ActionStateEnum.SUCCESS, False, True, ActionStateEnum.FAILED_TASK),
+        (
+            True,
+            False,
+            False,
+            False,
+            True,
+            True,
+            ActionStateEnum.FAILED,
+            False,
+            False,
+            ActionStateEnum.FAILED_DEPENDENCY,
+        ),
+        (False, True, False, True, False, False, None, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, False, True, False, False, None, True, False, ActionStateEnum.FAILED_TASK),
+        (False, True, False, True, False, False, None, False, True, ActionStateEnum.FAILED_TASK),
+        (False, True, False, False, True, True, ActionStateEnum.SUCCESS, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, True, False, False, True, True, ActionStateEnum.SUCCESS, True, False, ActionStateEnum.FAILED_TASK),
+        (False, True, False, False, True, True, ActionStateEnum.SUCCESS, False, True, ActionStateEnum.FAILED_TASK),
+        (
+            False,
+            True,
+            False,
+            False,
+            True,
+            True,
+            ActionStateEnum.FAILED,
+            False,
+            False,
+            ActionStateEnum.FAILED_DEPENDENCY,
+        ),
+        (False, False, True, True, False, False, None, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, False, True, True, False, False, None, True, False, ActionStateEnum.FAILED_TASK),
+        (False, False, True, True, False, False, None, False, True, ActionStateEnum.FAILED_TASK),
+        (False, False, True, False, True, True, ActionStateEnum.SUCCESS, False, False, ActionStateEnum.SUCCESS_TASK),
+        (False, False, True, False, True, True, ActionStateEnum.SUCCESS, True, False, ActionStateEnum.FAILED_TASK),
+        (False, False, True, False, True, True, ActionStateEnum.SUCCESS, False, True, ActionStateEnum.FAILED_TASK),
+        (
+            False,
+            False,
+            True,
+            False,
+            True,
+            True,
+            ActionStateEnum.FAILED,
+            False,
+            False,
+            ActionStateEnum.FAILED_DEPENDENCY,
+        ),
+    ],
+)
+def test_reproduciblebuildenvironmenttask_do(  # noqa: C901
+    deps_in_archive: bool,
+    deps_in_repo: bool,
+    deps_in_transaction: bool,
+    add_pkgbases: bool,
+    add_dependencies: bool,
+    add_matching_dep: bool,
+    dependency_state: ActionStateEnum,
+    read_from_mgmt_repo_raises: bool,
+    read_from_archive_dir_raises: bool,
+    return_value: ActionStateEnum,
+    default_installed: list[str],
+    outputpackagebasev1: OutputPackageBase,
+    outputpackagebasev1_json_files_in_dir: Path,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    pkgs_in_archive: set[str] = set()
+    pkgs_in_repo: set[str] = set()
+    pkgs_in_transaction: set[str] = set()
+
+    archive_dir = None
+    if deps_in_archive:
+        archive_dir = tmp_path / "archive"
+        for dep in default_installed:
+            dep_dir = archive_dir / dep[0] / "-".join(dep.split("-")[0:-3])
+            dep_dir.mkdir(parents=True)
+            (dep_dir / f"{dep}.pkg.tar.zst").touch()
+        pkgs_in_archive = set([dep for dep in default_installed])
+    elif deps_in_repo:
+        installed = [
+            f"{pkg.name}-{outputpackagebasev1.version}-{pkg.arch}"  # type: ignore[attr-defined]
+            for pkg in outputpackagebasev1.packages  # type: ignore[attr-defined]
+        ]
+
+        del outputpackagebasev1.packages[0]  # type: ignore[attr-defined]
+        outputpackagebasev1.packages[0].name = "foo2000"  # type: ignore[attr-defined]
+        outputpackagebasev1.buildinfo.installed = installed  # type: ignore[attr-defined]
+        pkgs_in_repo = set([dep for dep in installed])
+    elif deps_in_transaction:
+        installed = [
+            f"{pkg.name}-{outputpackagebasev1.version}-{pkg.arch}"  # type: ignore[attr-defined]
+            for pkg in outputpackagebasev1.packages  # type: ignore[attr-defined]
+        ]
+        pkgs_in_transaction = set([dep for dep in installed])
+
+    dependencies = [Mock()]
+    if add_matching_dep:
+        dependencies += [
+            Mock(
+                spec=task.CreateOutputPackageBasesTask,
+                pkgbases=[outputpackagebasev1],
+                state=dependency_state,
+            )
+        ]
+
+    task_ = task.ReproducibleBuildEnvironmentTask(
+        archive_dir=archive_dir,
+        management_directories=[outputpackagebasev1_json_files_in_dir],
+        pkgbases=[outputpackagebasev1] if add_pkgbases else None,
+        dependencies=dependencies if add_dependencies else None,
+    )
+
+    if read_from_mgmt_repo_raises:
+        with patch("repod.action.task.read_build_requirements_from_management_repo_dirs", side_effect=TaskError):
+            assert return_value == task_.do()
+    elif read_from_archive_dir_raises:
+        with patch("repod.action.task.read_build_requirements_from_archive_dir", side_effect=TaskError):
+            assert return_value == task_.do()
+    else:
+        assert return_value == task_.do()
+
+    if deps_in_archive and return_value == ActionStateEnum.SUCCESS_TASK:
+        assert pkgs_in_archive == task_.pkgs_in_archive
+    if deps_in_repo and return_value == ActionStateEnum.SUCCESS_TASK:
+        assert pkgs_in_repo == task_.pkgs_in_repo
+    if deps_in_transaction and return_value == ActionStateEnum.SUCCESS_TASK:
+        assert pkgs_in_transaction == task_.pkgs_in_transaction
+
+
+@mark.parametrize("do, input_from_dep", [(True, False), (True, True), (False, False), (False, True)])
+def test_reproduciblebuildenvironmenttask_undo(
+    do: bool,
+    input_from_dep: bool,
+    outputpackagebasev1: OutputPackageBase,
+    outputpackagebasev1_json_files_in_dir: Path,
+) -> None:
+
+    task_ = task.ReproducibleBuildEnvironmentTask(
+        archive_dir=None,
+        management_directories=[outputpackagebasev1_json_files_in_dir],
+        pkgbases=[outputpackagebasev1],
+        dependencies=None,
+    )
+
+    if do:
+        task_.state = ActionStateEnum.SUCCESS_TASK
+        task_.pkgs_in_archive = {"foo-2000-any"}
+        task_.pkgs_in_repo = {"bar-2000-any"}
+        task_.pkgs_in_transaction = {"baz-2000-any"}
+    if input_from_dep:
+        task_.input_from_dependency = True
+        if not do:
+            task_.pkgbases.clear()
+
+    assert ActionStateEnum.NOT_STARTED == task_.undo()
+    assert not task_.pkgs_in_archive
+    assert not task_.pkgs_in_repo
+    assert not task_.pkgs_in_transaction
+    if input_from_dep:
+        assert not task_.pkgbases
