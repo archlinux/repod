@@ -1654,7 +1654,7 @@ def test_settings_get_repo_path(
             repo_type=repo_type,
         )
 
-        match repo_type, repo_type:
+        match repo_dir_type, repo_type:
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE:
                 assert path == usersettings.repositories[0]._stable_management_repo_dir
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE_DEBUG:
