@@ -368,7 +368,7 @@ class Task(ABC):
         for dependency in self.dependencies:
             if dependency() != ActionStateEnum.SUCCESS:
                 self.state = ActionStateEnum.FAILED_DEPENDENCY
-                return
+                return self.state
 
         if self.state == ActionStateEnum.SUCCESS:
             return self.state
