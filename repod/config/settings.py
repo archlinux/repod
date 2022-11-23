@@ -1073,10 +1073,10 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         debug("Consolidating and creating repository directories...")
 
         repositories = cls.consolidate_repositories_with_defaults(
-            architecture=values.get("architecture"),
+            architecture=values.get("architecture"),  # type: ignore[arg-type]
             archiving=values.get("archiving"),
             build_requirements_exist=values.get("build_requirements_exist"),  # type: ignore[arg-type]
-            database_compression=values.get("database_compression"),
+            database_compression=values.get("database_compression"),  # type: ignore[arg-type]
             management_repo=values.get("management_repo"),  # type: ignore[arg-type]
             package_pool=to_absolute_path(
                 path=values.get("package_pool") or cls._package_pool_base / DEFAULT_NAME,
@@ -1724,7 +1724,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         """
 
         repo = self.get_repo(name=name, architecture=architecture)
-        return repo.architecture
+        return repo.architecture  # type: ignore[return-value]
 
     def get_repo_database_compression(
         self,
@@ -1747,7 +1747,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         """
 
         repo = self.get_repo(name=name, architecture=architecture)
-        return repo.database_compression
+        return repo.database_compression  # type: ignore[return-value]
 
     def get_repo_path(
         self,

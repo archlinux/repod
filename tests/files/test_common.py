@@ -30,7 +30,7 @@ from repod.files import common
 )
 def test_open_tarfile(
     file_type: str,
-    compression_override: str | None,
+    compression_override: CompressionTypeEnum | None,
     expectation: ContextManager[str],
     bz2_file: Path,
     gz_file: Path,
@@ -150,7 +150,7 @@ def test_compression_type_of_tarfile(
             result = CompressionTypeEnum.NONE
         case ".txt":
             path = text_file
-            result = None
+            result = None  # type: ignore[assignment]
         case ".xz":
             path = xz_file
             result = CompressionTypeEnum.LZMA

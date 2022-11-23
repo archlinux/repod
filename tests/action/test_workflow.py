@@ -36,7 +36,7 @@ def test_add_packages_dryrun(
         settings=usersettings,
         files=[],
         repo_name=usersettings.repositories[0].name,
-        repo_architecture=usersettings.repositories[0].architecture,
+        repo_architecture=usersettings.repositories[0].architecture,  # type: ignore[arg-type]
         debug_repo=False,
         with_signature=True,
         pkgbase_urls=None,

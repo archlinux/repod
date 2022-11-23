@@ -318,7 +318,7 @@ def test_reproduciblebuildenvironmentcheck(
 
     check_ = check.ReproducibleBuildEnvironmentCheck(
         pkgbases=[outputpackagebasev1],
-        available_requirements=set(outputpackagebasev1.buildinfo.installed)  # type: ignore[attr-defined]
+        available_requirements=set(outputpackagebasev1.buildinfo.installed)  # type: ignore[arg-type,attr-defined]
         if in_available_requirements
         else {},
     )

@@ -266,7 +266,7 @@ def add_packages(
         add_to_repo_dependencies.append(
             AddToArchiveTask(
                 archive_dir=archive_settings.packages,
-                dependencies=add_to_archive_dependencies,
+                dependencies=add_to_archive_dependencies,  # type: ignore[arg-type]
             )
         )
 

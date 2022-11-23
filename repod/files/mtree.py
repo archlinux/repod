@@ -169,11 +169,11 @@ class MTreeEntry(BaseModel):
         if not hasattr(self, "name"):
             raise RuntimeError("It is not possible to retrieve a file path from the template class MTreeEntry!")
 
-        output_name = self.name  # type: ignore[attr-defined]
+        output_name = self.name
 
         if len(re.findall(r"\\[0-9A-F]{3}", output_name)) > 0:
             output_name = output_name.encode("latin1").decode("unicode-escape").encode("latin1").decode("utf8")
-            debug(f"Converted MTree path {self.name} to {output_name}.")  # type: ignore[attr-defined]
+            debug(f"Converted MTree path {self.name} to {output_name}.")
 
         return Path(output_name)
 
@@ -204,7 +204,7 @@ class MTreeEntry(BaseModel):
         if not hasattr(self, "link"):
             raise RuntimeError("It is not possible to retrieve a file path from the template class MTreeEntry!")
 
-        output_name = self.link  # type: ignore[attr-defined]
+        output_name = self.link
         if output_name is None:
             return output_name
 
@@ -239,7 +239,7 @@ class MTreeEntry(BaseModel):
         if not hasattr(self, "type_"):
             raise RuntimeError("It is not possible to retrieve a type from the template class MTreeEntry!")
 
-        return str(self.type_)  # type: ignore[attr-defined]
+        return str(self.type_)
 
 
 class MTreeEntryV1(

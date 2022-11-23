@@ -819,7 +819,7 @@ class PackageDesc(BaseModel):
         """
 
         if hasattr(self, "base"):
-            return str(self.base)  # type: ignore[attr-defined]
+            return str(self.base)
         else:
             raise RuntimeError(
                 "It is not possible to retrieve the 'base' attribute from the template class PackageDesc!"
@@ -843,7 +843,7 @@ class PackageDesc(BaseModel):
         """
 
         if hasattr(self, "name"):
-            return str(self.name)  # type: ignore[attr-defined]
+            return str(self.name)
         else:
             raise RuntimeError(
                 "It is not possible to retrieve the 'name' attribute from the template class PackageDesc!"
@@ -867,7 +867,7 @@ class PackageDesc(BaseModel):
         """
 
         if hasattr(self, "schema_version"):
-            return int(self.schema_version)  # type: ignore[attr-defined]
+            return int(self.schema_version)
         else:
             raise RuntimeError(
                 "It is not possible to retrieve the 'schema_version' attribute from the templatet class PackageDesc!"
@@ -1060,7 +1060,7 @@ class Files(BaseModel):
         """
 
         if hasattr(self, "schema_version"):
-            return int(self.schema_version)  # type: ignore[attr-defined]
+            return int(self.schema_version)
         else:
             raise RuntimeError(
                 "It is not possible to retrieve the 'schema_version' attribute from the Files template class!"

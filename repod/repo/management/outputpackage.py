@@ -668,7 +668,7 @@ class OutputPackageBase(BaseModel):
         if hasattr(self, "packages"):
             # TODO: only add OutputPackage subclasses that are compatible with the OutputPackageBase version, else
             # attempt conversion
-            self.packages += packages  # type: ignore[attr-defined]
+            self.packages += packages
         else:
             raise RuntimeError("It is not possible to add packages to the template class OutputPackageBase!")
 
@@ -690,7 +690,7 @@ class OutputPackageBase(BaseModel):
         """
 
         if hasattr(self, "version"):
-            return str(self.version)  # type: ignore[attr-defined]
+            return str(self.version)
         else:
             raise RuntimeError(
                 "It is not possible to return the version attribute of the template class OutputPackageBase!"
@@ -731,10 +731,8 @@ class OutputPackageBase(BaseModel):
                 "Packages and their files can not be retrieved from the templatae class OutputPackageBase!"
             )
 
-        if self.schema_version not in OUTPUT_PACKAGE_BASE_VERSIONS.keys():  # type: ignore[attr-defined]
-            raise RuntimeError(
-                f"OutputPackageBase has invalid schema_version {self.schema_version}!"  # type: ignore[attr-defined]
-            )
+        if self.schema_version not in OUTPUT_PACKAGE_BASE_VERSIONS.keys():
+            raise RuntimeError(f"OutputPackageBase has invalid schema_version {self.schema_version}!")
 
         match (packagedesc_version, files_version):
             case (PackageDescVersionEnum.ONE, FilesVersionEnum.DEFAULT):

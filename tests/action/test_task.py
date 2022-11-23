@@ -264,7 +264,7 @@ def test_createoutputpackagebasestask(
         package_verification=package_verification,
         debug_repo=False,
         pkgbase_urls={},
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if package_verification == PkgVerificationTypeEnum.PACMANKEY and with_signature:
@@ -371,7 +371,7 @@ def test_printoutputpackagebasestask(
         task_ = task.PrintOutputPackageBasesTask(
             dumps_option=0,
             pkgbases=[outputpackagebasev1] if add_pkgbases else None,
-            dependencies=dependencies if add_dependencies else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
 
     if expectation is does_not_raise():  # type: ignore[comparison-overlap]
@@ -424,7 +424,7 @@ def test_printoutputpackagebasestask_do(
     task_ = task.PrintOutputPackageBasesTask(
         dumps_option=0,
         pkgbases=[outputpackagebasev1] if add_pkgbases else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
     if dumps_raises:
         with patch("repod.action.task.dumps", side_effect=JSONEncodeError):
@@ -465,7 +465,7 @@ def test_printoutputpackagebasestask_undo(
     task_ = task.PrintOutputPackageBasesTask(
         dumps_option=0,
         pkgbases=[outputpackagebasev1] if add_pkgbases else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if do:
@@ -509,7 +509,7 @@ def test_writeoutputpackagebasestotmpfileindirtask(
         task_ = task.WriteOutputPackageBasesToTmpFileInDirTask(
             directory=tmp_path,
             pkgbases=[outputpackagebasev1] if add_pkgbases else None,
-            dependencies=dependencies if add_dependencies else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
         assert task_.directory == tmp_path
         assert not task_.filenames
@@ -558,7 +558,7 @@ def test_writeoutputpackagebasestotmpfileindirtask_do(
     task_ = task.WriteOutputPackageBasesToTmpFileInDirTask(
         directory=tmp_path,
         pkgbases=[outputpackagebasev1] if add_pkgbases else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
     if dumps_raises:
         with patch("repod.action.task.dumps", side_effect=JSONEncodeError):
@@ -607,7 +607,7 @@ def test_writeoutputpackagebasestotmpfileindirtask_undo(
     task_ = task.WriteOutputPackageBasesToTmpFileInDirTask(
         directory=tmp_path,
         pkgbases=[outputpackagebasev1],
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if do:
@@ -667,7 +667,7 @@ def test_movetmpfilestask(
     with expectation:
         task_ = task.MoveTmpFilesTask(
             paths=paths if add_paths else None,
-            dependencies=dependencies if add_dependencies else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
 
     if add_paths and correct_path_length and not add_dependencies:
@@ -808,7 +808,7 @@ def test_movetmpfilestask_do(
 
     task_ = task.MoveTmpFilesTask(
         paths=paths if add_paths else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     match (destination_exists, copy2_raises, rename_raises):
@@ -929,10 +929,10 @@ def test_filestorepodirtask(
         files=[file],
         file_type=file_type,
         settings=usersettings,
-        name=DEFAULT_NAME,
+        name=Path(DEFAULT_NAME),
         architecture=DEFAULT_ARCHITECTURE,
         repo_type=RepoTypeEnum.STABLE,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     assert task_.files == [file]
@@ -1075,7 +1075,7 @@ def test_writesyncdbstotmpfilesindirtask(
         files_version=files_version,
         management_repo_dir=outputpackagebasev1_json_files_in_dir,
         package_repo_dir=tmp_path,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if add_dependencies:
@@ -1170,7 +1170,7 @@ def test_writesyncdbstotmpfilesindirtask_do(
         files_version=FilesVersionEnum.DEFAULT,
         management_repo_dir=management_repo_dir,
         package_repo_dir=tmp_path,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if target_is_dir:
@@ -1219,7 +1219,7 @@ def test_writesyncdbstotmpfilesindirtask_undo(
         files_version=FilesVersionEnum.DEFAULT,
         management_repo_dir=outputpackagebasev1_json_files_in_dir,
         package_repo_dir=tmp_path,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if do:
@@ -1264,7 +1264,8 @@ def test_removebackupfilestask(
 
     with expectation:
         task_ = task.RemoveBackupFilesTask(
-            paths=paths if add_paths else None, dependencies=dependencies if add_dependencies else None
+            paths=paths if add_paths else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
 
     if add_dependencies:
@@ -1309,7 +1310,8 @@ def test_removebackupfilestask_do(
         )
 
     task_ = task.RemoveBackupFilesTask(
-        paths=paths if add_paths else None, dependencies=dependencies if add_dependencies else None
+        paths=paths if add_paths else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
     assert task_.do() == return_value
 
@@ -1351,7 +1353,8 @@ def test_removebackupfilestask_undo(
     ]
 
     task_ = task.RemoveBackupFilesTask(
-        paths=paths if add_paths else None, dependencies=dependencies if add_dependencies else None
+        paths=paths if add_paths else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
     if do:
         task_.do()
@@ -1398,9 +1401,9 @@ def test_consolidateoutputpackagebasestask(
 
     with expectation:
         task_ = task.ConsolidateOutputPackageBasesTask(
-            directory=directory if add_dir else None,
+            directory=directory if add_dir else None,  # type: ignore[arg-type]
             stability_layer_dirs=([], []),
-            dependencies=dependencies if add_dependencies else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
             pkgbases=pkgbases if add_pkgbases else None,
         )
 
@@ -1468,7 +1471,7 @@ def test_consolidateoutputpackagebasestask_do(
     task_ = task.ConsolidateOutputPackageBasesTask(
         directory=outputpackagebasev1_json_files_in_dir,
         stability_layer_dirs=([], []),
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         pkgbases=pkgbases if add_pkgbases else None,
     )
     if from_file_raises:
@@ -1518,7 +1521,7 @@ def test_consolidateoutputpackagebasestask_undo(
     task_ = task.ConsolidateOutputPackageBasesTask(
         directory=outputpackagebasev1_json_files_in_dir,
         stability_layer_dirs=([], []),
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         pkgbases=pkgbases if add_pkgbases else None,
     )
     if do:
@@ -1563,9 +1566,9 @@ def test_removemanagementreposymlinkstask(
 
     with expectation:
         task_ = task.RemoveManagementRepoSymlinksTask(
-            directory=tmp_path if add_directory else None,
+            directory=tmp_path if add_directory else None,  # type: ignore[arg-type]
             names=names if add_names else None,
-            dependencies=dependencies if add_dependencies else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
         assert task_.directory == tmp_path
 
@@ -1617,7 +1620,7 @@ def test_removemanagementreposymlinkstask_do(
     task_ = task.RemoveManagementRepoSymlinksTask(
         directory=tmp_path,
         names=names if add_names else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
     task_.do() == return_value
 
@@ -1666,7 +1669,7 @@ def test_removemanagementreposymlinkstask_undo(
     task_ = task.RemoveManagementRepoSymlinksTask(
         directory=tmp_path,
         names=names if add_names else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if do:
@@ -1713,9 +1716,9 @@ def test_removepackagereposymlinkstask(
 
     with expectation:
         task_ = task.RemovePackageRepoSymlinksTask(
-            directory=tmp_path if add_directory else None,
+            directory=tmp_path if add_directory else None,  # type: ignore[arg-type]
             filenames=filenames if add_filenames else None,
-            dependencies=dependencies if add_dependencies else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
         assert task_.directory == tmp_path
 
@@ -1767,7 +1770,7 @@ def test_removepackagereposymlinkstask_do(
     task_ = task.RemovePackageRepoSymlinksTask(
         directory=tmp_path,
         filenames=filenames if add_filenames else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
     task_.do() == return_value
 
@@ -1819,7 +1822,7 @@ def test_removepackagereposymlinkstask_undo(
     task_ = task.RemovePackageRepoSymlinksTask(
         directory=tmp_path,
         filenames=filenames if add_filenames else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if do:
@@ -1890,7 +1893,11 @@ def test_addtoarchivetask(
         ]
 
     with expectation:
-        task.AddToArchiveTask(archive_dir=archive_dir, filenames=filenames, dependencies=dependencies)
+        task.AddToArchiveTask(
+            archive_dir=archive_dir,  # type: ignore[arg-type]
+            filenames=filenames,
+            dependencies=dependencies,  # type: ignore[arg-type]
+        )
 
 
 @mark.parametrize(
@@ -1936,7 +1943,11 @@ def test_addtoarchivetask_do(
             Mock(),
         ]
 
-    task_ = task.AddToArchiveTask(archive_dir=archive_dir, filenames=filenames, dependencies=dependencies)
+    task_ = task.AddToArchiveTask(
+        archive_dir=archive_dir,  # type: ignore[arg-type]
+        filenames=filenames,
+        dependencies=dependencies,  # type: ignore[arg-type]
+    )
     assert task_.do() == return_value
 
 
@@ -1983,7 +1994,11 @@ def test_addtoarchivetask_undo(
             ),
         ]
 
-    task_ = task.AddToArchiveTask(archive_dir=archive_dir, filenames=filenames, dependencies=dependencies)
+    task_ = task.AddToArchiveTask(
+        archive_dir=archive_dir,  # type: ignore[arg-type]
+        filenames=filenames,
+        dependencies=dependencies,  # type: ignore[arg-type]
+    )
     if do:
         task_.do()
         if add_dependencies:
@@ -2051,7 +2066,7 @@ def test_reproduciblebuildenvironmenttask(
             archive_dir=archive_dir,
             management_directories=management_dirs,
             pkgbases=[outputpackagebasev1] if add_pkgbases else [],
-            dependencies=dependencies if add_dependencies else None,
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
         if add_dependencies:
             assert task_.dependencies == dependencies
@@ -2181,7 +2196,7 @@ def test_reproduciblebuildenvironmenttask_do(  # noqa: C901
         archive_dir=archive_dir,
         management_directories=[outputpackagebasev1_json_files_in_dir],
         pkgbases=[outputpackagebasev1] if add_pkgbases else None,
-        dependencies=dependencies if add_dependencies else None,
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
     if read_from_mgmt_repo_raises:

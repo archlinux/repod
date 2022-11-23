@@ -43,7 +43,7 @@ def test_copysourcedestination_from_archive_dir(
     with expectation:
         archive.CopySourceDestination.from_archive_dir(
             source=source,
-            output_dir=tmp_path if output_dir_is_path else None,
+            output_dir=tmp_path if output_dir_is_path else None,  # type: ignore[arg-type]
         )
 
 

@@ -207,7 +207,7 @@ class RepoFile(BaseModel):
             The validated Path
         """
 
-        file_type = values.get("file_type")
+        file_type: RepoFileEnum = values.get("file_type")  # type: ignore[assignment]
 
         paths: list[Path] = []
         paths.append(values.get("file_path"))  # type: ignore[arg-type]
