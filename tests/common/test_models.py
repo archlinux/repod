@@ -3,7 +3,8 @@ from typing import ContextManager
 from unittest.mock import patch
 
 from pydantic import ValidationError
-from pytest import lazy_fixture, mark, raises
+from pytest import mark, raises
+from pytest_lazyfixture import lazy_fixture
 
 from repod.common import models
 from tests.conftest import (
