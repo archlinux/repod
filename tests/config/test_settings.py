@@ -162,6 +162,64 @@ def test_package_repo(
 
 
 @mark.parametrize(
+    "debug, staging, testing",
+    [
+        (True, True, True),
+        (False, True, True),
+        (False, False, True),
+        (False, False, False),
+        (True, False, False),
+        (True, True, False),
+        (False, True, False),
+    ],
+)
+def test_package_repo_get_all_management_repo_dirs(
+    debug: bool,
+    staging: bool,
+    testing: bool,
+    packagerepo_in_tmp_path: settings.PackageRepo,
+) -> None:
+
+    if not debug:
+        packagerepo_in_tmp_path.debug = None
+    if not staging:
+        packagerepo_in_tmp_path.staging = None
+    if not testing:
+        packagerepo_in_tmp_path.testing = None
+
+    packagerepo_in_tmp_path.get_all_management_repo_dirs()
+
+
+@mark.parametrize(
+    "debug, staging, testing",
+    [
+        (True, True, True),
+        (False, True, True),
+        (False, False, True),
+        (False, False, False),
+        (True, False, False),
+        (True, True, False),
+        (False, True, False),
+    ],
+)
+def test_package_repo_get_all_package_repo_dirs(
+    debug: bool,
+    staging: bool,
+    testing: bool,
+    packagerepo_in_tmp_path: settings.PackageRepo,
+) -> None:
+
+    if not debug:
+        packagerepo_in_tmp_path.debug = None
+    if not staging:
+        packagerepo_in_tmp_path.staging = None
+    if not testing:
+        packagerepo_in_tmp_path.testing = None
+
+    packagerepo_in_tmp_path.get_all_package_repo_dirs()
+
+
+@mark.parametrize(
     "override_location_exists, custom_config_provided",
     [
         (True, False),
@@ -258,6 +316,7 @@ def test_read_toml_configuration_settings_system(
     ],
 )
 @patch("repod.config.settings.Settings.consolidate_repositories_with_defaults")
+@patch("repod.config.settings.Settings.check_repository_groups_dirs")
 @patch("repod.config.settings.Settings.ensure_non_overlapping_repositories")
 @patch("repod.config.settings.Settings.create_repository_directories")
 @patch("repod.config.settings.get_default_managementrepo")
@@ -267,6 +326,7 @@ def test_systemsettings(
     get_default_managementrepo_mock: Mock,
     create_repository_directories_mock: Mock,
     ensure_non_overlapping_repositories_mock: Mock,
+    check_repository_groups_dirs_mock: Mock,
     consolidate_repositories_with_defaults_mock: Mock,
     archiving: bool | None,
     has_managementrepo: bool,
@@ -319,6 +379,7 @@ def test_systemsettings(
 
                             create_repository_directories_mock.assert_called_once()
                             ensure_non_overlapping_repositories_mock.assert_called_once()
+                            check_repository_groups_dirs_mock.assert_called_once()
                             consolidate_repositories_with_defaults_mock.assert_called_once()
 
 
@@ -334,6 +395,7 @@ def test_systemsettings(
     ],
 )
 @patch("repod.config.settings.Settings.consolidate_repositories_with_defaults")
+@patch("repod.config.settings.Settings.check_repository_groups_dirs")
 @patch("repod.config.settings.Settings.ensure_non_overlapping_repositories")
 @patch("repod.config.settings.Settings.create_repository_directories")
 @patch("repod.config.settings.get_default_managementrepo")
@@ -343,6 +405,7 @@ def test_usersettings(
     get_default_managementrepo_mock: Mock,
     create_repository_directories_mock: Mock,
     ensure_non_overlapping_repositories_mock: Mock,
+    check_repository_groups_dirs_mock: Mock,
     consolidate_repositories_with_defaults_mock: Mock,
     archiving: bool | None,
     build_requirements_exist: bool | None,
@@ -398,6 +461,7 @@ def test_usersettings(
 
                             create_repository_directories_mock.assert_called_once()
                             ensure_non_overlapping_repositories_mock.assert_called_once()
+                            check_repository_groups_dirs_mock.assert_called_once()
                             consolidate_repositories_with_defaults_mock.assert_called_once()
 
 
@@ -524,6 +588,73 @@ def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
         if repo_has_source_pool
         else tmp_path / "source_pool_dir"
     )
+
+
+@mark.parametrize(
+    "same_group, same_management_parent, same_package_parent, same_pool_parent, same_source_parent, expectation",
+    [
+        (True, True, True, True, True, does_not_raise()),
+        (False, True, True, True, True, does_not_raise()),
+        (True, False, True, True, True, raises(ValueError)),
+        (True, True, False, True, True, raises(ValueError)),
+        (True, True, True, False, True, raises(ValueError)),
+        (True, True, True, True, False, raises(ValueError)),
+        (False, False, False, False, False, does_not_raise()),
+    ],
+)
+def test_settings_check_repository_groups_dirs(
+    same_group: bool,
+    same_management_parent: bool,
+    same_package_parent: bool,
+    same_pool_parent: bool,
+    same_source_parent: bool,
+    expectation: ContextManager[str],
+    packagerepo_in_tmp_path: settings.PackageRepo,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    repo1 = packagerepo_in_tmp_path
+    repo1.name = Path("repo1")
+    repo1.debug = None
+    repo1.staging = None
+    repo1.testing = None
+    repo1.group = 1
+
+    repo2 = deepcopy(repo1)
+    repo2.name = Path("repo2")
+    if not same_group:
+        repo2.group = None
+
+    if same_management_parent:
+        repo2._stable_management_repo_dir = repo2._stable_management_repo_dir.parent / "repo2"
+    else:
+        repo2._stable_management_repo_dir = repo2._stable_management_repo_dir.parent.parent / "repo2"
+
+    if same_package_parent:
+        repo2._stable_repo_dir = (
+            repo2._stable_repo_dir.parent.parent / repo2.name / repo2.architecture.value  # type: ignore[union-attr]
+        )
+    else:
+        repo2._stable_repo_dir = (
+            repo2._stable_repo_dir.parent.parent
+            / repo2.name
+            / repo2.name
+            / repo2.architecture.value  # type: ignore[union-attr]
+        )
+
+    if same_pool_parent:
+        repo2._package_pool_dir = repo2._package_pool_dir.parent / repo2.name
+    else:
+        repo2._package_pool_dir = repo2._package_pool_dir.parent.parent / repo2.name
+
+    if same_source_parent:
+        repo2._source_pool_dir = repo2._source_pool_dir.parent / repo2.name
+    else:
+        repo2._source_pool_dir = repo2._source_pool_dir.parent.parent / repo2.name
+
+    with expectation:
+        settings.Settings.check_repository_groups_dirs(repositories=[repo1, repo2])
 
 
 @mark.parametrize(
@@ -1545,6 +1676,14 @@ def test_settings_get_repo_database_compression(usersettings: settings.UserSetti
         ),
         CompressionTypeEnum,
     )
+
+
+@mark.parametrize("add_group", [(True), (False)])
+def test_settings_get_repos_by_group(add_group: bool, usersettings: settings.UserSettings) -> None:
+    if add_group:
+        usersettings.repositories[0].group = 1
+
+    usersettings.get_repos_by_group(group=1 if add_group else None)
 
 
 @mark.parametrize(

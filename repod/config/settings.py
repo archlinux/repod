@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections import defaultdict
 from logging import debug
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ from pydantic import (
     BaseModel,
     BaseSettings,
     HttpUrl,
+    PositiveInt,
     PrivateAttr,
     root_validator,
     validator,
@@ -497,6 +499,7 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
 
     name: Path
     debug: Path | None
+    group: PositiveInt | None
     staging: Path | None
     staging_debug: Path | None
     testing: Path | None
@@ -664,6 +667,52 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
             )
 
         return values
+
+    def get_all_management_repo_dirs(self) -> list[Path]:
+        """Return all management repository directories of the PackageRepo
+
+        Returns
+        -------
+        list[Path]
+            A list of Paths, representing all management repository directories that the repository uses
+        """
+
+        dirs: list[Path] = [self._stable_management_repo_dir]
+        if self.debug:
+            dirs.append(self._debug_management_repo_dir)
+        if self.staging:
+            dirs.append(self._staging_management_repo_dir)
+            if self.debug:
+                dirs.append(self._staging_debug_management_repo_dir)
+        if self.testing:
+            dirs.append(self._testing_management_repo_dir)
+            if self.debug:
+                dirs.append(self._testing_debug_management_repo_dir)
+
+        return dirs
+
+    def get_all_package_repo_dirs(self) -> list[Path]:
+        """Return all package repository directories of the PackageRepo
+
+        Returns
+        -------
+        list[Path]
+            A list of Paths, representing all package repository directories that the repository uses
+        """
+
+        dirs: list[Path] = [self._stable_repo_dir]
+        if self.debug:
+            dirs.append(self._debug_repo_dir)
+        if self.staging:
+            dirs.append(self._staging_repo_dir)
+            if self.debug:
+                dirs.append(self._staging_debug_repo_dir)
+        if self.testing:
+            dirs.append(self._testing_repo_dir)
+            if self.debug:
+                dirs.append(self._testing_debug_repo_dir)
+
+        return dirs
 
 
 def raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
@@ -1090,9 +1139,97 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         )
 
         cls.ensure_non_overlapping_repositories(repositories=repositories)
+        cls.check_repository_groups_dirs(repositories=repositories)
         cls.create_repository_directories(repositories=repositories)
 
         return values
+
+    @classmethod
+    def check_repository_groups_dirs(cls, repositories: list[PackageRepo]) -> None:
+        """Check that directories of repositories of the same group are used consistently
+
+        Ensure that
+        * all management repository directories have the same parent directory (i.e. reside in the same management
+        repository)
+        * all package repository directories have the same grandparent directory (i.e. reside in the same package
+        repository base directory)
+        * all package pool directories share the same parent (i.e. reside in the same package pool base directory)
+        * all source pool directories share the same parent (i.e. reside in the same source pool base directory)
+
+        Raises
+        ------
+        ValueError
+            If the repositories in a group do not share the same management repository
+        """
+
+        repo_groups: dict[int, list[PackageRepo]] = defaultdict(list)
+        for repository in repositories:
+            if repository.group:
+                repo_groups[repository.group].append(repository)
+
+        for group, repos in repo_groups.items():
+            repo_names = [str(repo.name) for repo in repos]
+            debug(
+                f"Check that all repositories of group {group} ({', '.join(repo_names)}) use the same "
+                "management repository parent directory..."
+            )
+            if (
+                len(
+                    set(
+                        [
+                            management_dir.parent
+                            for management_dir_list in [repo.get_all_management_repo_dirs() for repo in repos]
+                            for management_dir in management_dir_list
+                        ]
+                    )
+                )
+                > 1
+            ):
+                raise ValueError(
+                    f"The repositories in group {group} do not share the same management repository: "
+                    f"{', '.join(repo_names)}"
+                )
+
+            debug(
+                f"Check that all repositories of group {group} ({', '.join(repo_names)}) use the package "
+                "repository base directory..."
+            )
+            if (
+                len(
+                    set(
+                        [
+                            package_dir.parent.parent
+                            for package_dir_list in [repo.get_all_package_repo_dirs() for repo in repos]
+                            for package_dir in package_dir_list
+                        ]
+                    )
+                )
+                > 1
+            ):
+                raise ValueError(
+                    f"The repositories in group {group} do not share the same package repository base directory: "
+                    f"{', '.join(repo_names)}"
+                )
+
+            debug(
+                f"Check that all repositories of group {group} ({', '.join(repo_names)}) use the same package "
+                "pool base directory..."
+            )
+            if len(set([repo._package_pool_dir.parent for repo in repos])) > 1:
+                raise ValueError(
+                    f"The repositories in group {group} do not share the same package pool base directory: "
+                    f"{', '.join(repo_names)}"
+                )
+
+            debug(
+                f"Check that all repositories of group {group} ({', '.join(repo_names)}) use the same source "
+                "pool base directory..."
+            )
+            if len(set([repo._source_pool_dir.parent for repo in repos])) > 1:
+                raise ValueError(
+                    f"The repositories in group {group} do not share the same source pool base directory: "
+                    f"{', '.join(repo_names)}"
+                )
 
     @classmethod
     def consolidate_repositories_with_defaults(  # noqa: C901
@@ -1962,6 +2099,28 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
 
         repo = self.get_repo(name=name, architecture=architecture)
         return repo.management_repo  # type: ignore[return-value]
+
+    def get_repos_by_group(
+        self,
+        group: PositiveInt | None,
+        exclude_repo: PackageRepo | None = None,
+    ) -> list[PackageRepo]:
+        """Get the PackageRepos belonging to a group
+
+        Parameters
+        ----------
+        group: PositiveInt | None
+            The group for which to retrieve PackageRepo instances
+        exclude_repo: PackageRepo | None
+            A PackageRepo to exclude from the list of repositories to return (defaults to None)
+
+        Returns
+        -------
+        list[PackageRepo]
+            A list of PackageRepo instances
+        """
+
+        return [repo for repo in self.repositories if repo.group == group and exclude_repo is not repo]
 
 
 class UserSettings(Settings):
