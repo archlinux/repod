@@ -192,6 +192,18 @@ The only exceptions to this rule are *package_pool*, *source_pool*,
 
   .. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
 
+* *group* (optional): An optional positive integer, which defines the group a
+  repository belongs to.
+
+  **NOTE**: When repositories are grouped together, the *pkgbase* and *package*
+  names must be unique amongst them (i.e. the same package can not exist in two
+  repositories at the same time - this is different from the same package
+  existing in different stability layers of the same repository!). Furthermore,
+  the repositories must use the same management repository (which resides below
+  the *management repository base directory*), the same *package repository
+  base directory*, the same *package pool base directory* and the same *source
+  pool base directory*!
+
 * *management_repo* (optional): An inline table providing configuration for the
   *management repository* of the repository. If it is provided, it has
   precedence over a globally defined *management_repo*. As each configured
@@ -548,6 +560,23 @@ Example 7. One repository without checks for build requirements
   architecture = "x86_64"
   build_requirements_exist = false
   name = "repo1"
+
+Example 8. Two repositories in the same group
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: toml
+
+  [[repositories]]
+  architecture = "x86_64"
+  build_requirements_exist = false
+  name = "repo1"
+  group = 1
+
+  [[repositories]]
+  architecture = "x86_64"
+  build_requirements_exist = false
+  name = "repo2"
+  group = 1
 
 SEE ALSO
 --------
