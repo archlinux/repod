@@ -1,1 +1,5 @@
-from repod.config.settings import SystemSettings, UserSettings  # noqa: F401
+from repod.config.settings import (  # noqa: F401
+    PackageRepo,
+    SystemSettings,
+    UserSettings,
+)
