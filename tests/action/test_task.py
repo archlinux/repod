@@ -21,7 +21,7 @@ from repod.common.enums import (
     RepoFileEnum,
     RepoTypeEnum,
 )
-from repod.config import UserSettings
+from repod.config import PackageRepo, UserSettings
 from repod.config.defaults import DEFAULT_ARCHITECTURE, DEFAULT_NAME
 from repod.errors import RepoManagementFileError, TaskError
 from repod.repo.management import OutputPackageBase
@@ -2247,3 +2247,131 @@ def test_reproduciblebuildenvironmenttask_undo(
     assert not task_.pkgs_in_transaction
     if input_from_dep:
         assert not task_.pkgbases
+
+
+@mark.parametrize(
+    ("add_pkgbases, add_dependencies, add_matching_dep, expectation"),
+    [
+        (True, False, False, does_not_raise()),
+        (True, True, False, does_not_raise()),
+        (True, True, True, does_not_raise()),
+        (False, True, True, does_not_raise()),
+        (False, False, False, raises(RuntimeError)),
+    ],
+)
+def test_repogrouptask(
+    add_pkgbases: bool,
+    add_dependencies: bool,
+    add_matching_dep: bool,
+    expectation: ContextManager[str],
+    outputpackagebasev1: OutputPackageBase,
+    packagerepo_in_tmp_path: PackageRepo,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    dependencies = [Mock()]
+    if add_matching_dep:
+        dependencies += [Mock(spec=task.CreateOutputPackageBasesTask)]
+
+    with expectation:
+        task_ = task.RepoGroupTask(
+            repositories=[packagerepo_in_tmp_path],
+            pkgbases=[outputpackagebasev1] if add_pkgbases else [],
+            dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
+        )
+        if add_dependencies:
+            assert task_.dependencies == dependencies
+
+
+@mark.parametrize(
+    ("add_pkgbases, add_dependencies, add_matching_dep, dependency_state, return_value"),
+    [
+        (True, False, False, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, True, False, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (True, True, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (False, True, True, ActionStateEnum.SUCCESS, ActionStateEnum.SUCCESS_TASK),
+        (False, True, True, ActionStateEnum.FAILED, ActionStateEnum.FAILED_DEPENDENCY),
+    ],
+)
+def test_repogrouptask_do(
+    add_pkgbases: bool,
+    add_dependencies: bool,
+    add_matching_dep: bool,
+    dependency_state: ActionStateEnum,
+    return_value: ActionStateEnum,
+    outputpackagebasev1: OutputPackageBase,
+    packagerepo_in_tmp_path: PackageRepo,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    dependencies = [Mock()]
+    if add_matching_dep:
+        dependencies += [
+            Mock(
+                spec=task.CreateOutputPackageBasesTask,
+                pkgbases=[outputpackagebasev1],
+                state=dependency_state,
+            )
+        ]
+
+    task_ = task.RepoGroupTask(
+        repositories=[packagerepo_in_tmp_path],
+        pkgbases=[outputpackagebasev1] if add_pkgbases else [],
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
+    )
+    assert return_value == task_.do()
+    if ActionStateEnum.FAILED == dependency_state:
+        assert not task_.pkgbase_names
+        assert not task_.package_names
+        assert not task_.repo_management_dirs
+    else:
+        assert task_.pkgbase_names
+        assert task_.package_names
+        assert task_.repo_management_dirs
+
+
+@mark.parametrize(
+    ("add_pkgbases, add_dependencies, do"),
+    [
+        (True, False, False),
+        (True, False, True),
+        (True, True, True),
+        (False, True, True),
+    ],
+)
+def test_repogrouptask_undo(
+    add_pkgbases: bool,
+    add_dependencies: bool,
+    do: bool,
+    outputpackagebasev1: OutputPackageBase,
+    packagerepo_in_tmp_path: PackageRepo,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    dependencies = [
+        Mock(
+            spec=task.CreateOutputPackageBasesTask,
+            pkgbases=[outputpackagebasev1],
+            state=ActionStateEnum.SUCCESS,
+            undo=Mock(return_value=ActionStateEnum.NOT_STARTED),
+        ),
+    ]
+
+    task_ = task.RepoGroupTask(
+        repositories=[packagerepo_in_tmp_path],
+        pkgbases=[outputpackagebasev1] if add_pkgbases else [],
+        dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
+    )
+    if do:
+        task_.do()
+
+    assert ActionStateEnum.NOT_STARTED == task_.undo()
+    assert not task_.pkgbase_names
+    assert not task_.package_names
+    assert not task_.repo_management_dirs

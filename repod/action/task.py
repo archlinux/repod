@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from itertools import groupby
 from logging import debug, info
 from operator import attrgetter
@@ -23,6 +24,7 @@ from repod.action.check import (
     ReproducibleBuildEnvironmentCheck,
     SourceUrlCheck,
     StabilityLayerCheck,
+    UniqueInRepoGroupCheck,
 )
 from repod.archive.archive import CopySourceDestination
 from repod.common.enums import (
@@ -37,7 +39,7 @@ from repod.common.enums import (
     RepoTypeEnum,
 )
 from repod.common.models import FileName
-from repod.config import SystemSettings, UserSettings
+from repod.config import PackageRepo, SystemSettings, UserSettings
 from repod.config.defaults import ORJSON_OPTION
 from repod.config.settings import UrlValidationSettings
 from repod.errors import (
@@ -2325,6 +2327,155 @@ class ReproducibleBuildEnvironmentTask(Task):
         self.pkgs_in_repo.clear()
         self.pkgs_in_archive.clear()
         self.pkgs_in_transaction.clear()
+
+        self.state = ActionStateEnum.NOT_STARTED
+        self.dependency_undo()
+        return self.state
+
+
+class RepoGroupTask(Task):
+    """A Task to retrieve information about repositories in a group
+
+    Attributes
+    ----------
+    repositories: list[PackageRepo]
+        A list of PackageRepo instances, from which all management repository directories are retrieved
+    pkgbases: list[OutputPackageBase] | None
+        An optional list of OutputPackageBase instances from which all pkgbase and package names are retrieved
+    dependencies: list[Task] | None
+        An optional list of Task instances that are run before this task (defaults to None)
+    pkgbase_names: list[str]
+        A list of all pkgbase names, retrieved from pkgbases
+    package_names: list[str]
+        A list of all package names, retrieved from pkgbases
+    repo_management_dirs: dict[Path, list[Path]]
+        A dict of repository name and respective management repository directory Paths
+    """
+
+    def __init__(
+        self,
+        repositories: list[PackageRepo],
+        pkgbases: list[OutputPackageBase] | None = None,
+        dependencies: list[Task] | None = None,
+    ):
+        """Initialize an instance of RepoGroupTask
+
+        If instances of CreateOutputPackageBasesTask are provided in dependencies, pkgbases is populated from them.
+
+        Parameters
+        ----------
+        repositories: list[PackageRepo]
+            A list of PackageRepo instances, from which all management repository directories are retrieved
+        pkgbases: list[OutputPackageBase] | None
+            An optional list of OutputPackageBase instances from which all pkgbase and package names are retrieved
+        dependencies: list[Task] | None
+            An optional list of Task instances that are run before this task (defaults to None)
+        """
+
+        self.repositories = repositories
+
+        self.input_from_dependency = False
+
+        if dependencies:
+            self.dependencies = dependencies
+            for dependency in self.dependencies:
+                if isinstance(dependency, CreateOutputPackageBasesTask):
+                    self.input_from_dependency = True
+        else:
+            self.dependencies = []
+
+        if self.input_from_dependency:
+            debug("Creating Task to compare OutputPackageBases, using output from another Task...")
+            self.pkgbases = []
+        else:
+            if not pkgbases:
+                raise RuntimeError("Pkgbases must be provided if not depending on another Task for input!")
+
+            debug(
+                "Creating Task to gather build requirements of pkgbases "
+                f"{[pkgbase.base for pkgbase in pkgbases]}..."  # type: ignore[attr-defined]
+            )
+            self.pkgbases = pkgbases
+
+        self.pkgbase_names: list[str] = []
+        self.package_names: list[str] = []
+        self.repo_management_dirs: dict[Path, list[Path]] = defaultdict(list)
+
+    def do(self) -> ActionStateEnum:
+        """Run Task to gather data related to PackageRepos in a group
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
+            ActionStateEnum.FAILED_TASK otherwise
+        """
+
+        if self.input_from_dependency:
+            debug("Getting pkgbases from the output of another Task...")
+            for dependency in self.dependencies:
+                if isinstance(dependency, CreateOutputPackageBasesTask):
+                    if dependency.state == ActionStateEnum.SUCCESS:
+                        self.pkgbases = dependency.pkgbases
+                    else:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
+
+        debug("Running Task to gather information about repository groups...")
+        self.state = ActionStateEnum.STARTED_TASK
+
+        self.pkgbase_names = [pkgbase.base for pkgbase in self.pkgbases]  # type: ignore[attr-defined]
+        self.package_names = [
+            package.name
+            for package_list in [pkgbase.packages for pkgbase in self.pkgbases]  # type: ignore[attr-defined]
+            for package in package_list
+        ]
+        for repo in self.repositories:
+            self.repo_management_dirs[repo.name] = repo.get_all_management_repo_dirs()
+
+        debug(f"Found pkgbases: {', '.join(self.pkgbase_names)}")
+        debug(f"Found packages: {', '.join(self.package_names)}")
+        debug(f"Found management repository directories of repositories: {self.repo_management_dirs}")
+
+        self.post_checks.append(
+            UniqueInRepoGroupCheck(
+                pkgbase_names=self.pkgbase_names,
+                package_names=self.package_names,
+                repo_management_dirs=self.repo_management_dirs,
+            )
+        )
+
+        self.state = ActionStateEnum.SUCCESS_TASK
+        return self.state
+
+    def undo(self) -> ActionStateEnum:
+        """Undo Task to gather data related to PackageRepos in a group
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.NOT_STARTED if undoing the Task operation is successful,
+            ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
+            ActionStateEnum.FAILED_UNDO_TASK otherwise
+        """
+
+        if self.state == ActionStateEnum.NOT_STARTED:
+            info(
+                "Can not undo gathering of repository group data for pkgbases "
+                f"{[pkgbase.base for pkgbase in self.pkgbases]} "  # type: ignore[attr-defined]
+                "as it has not happened yet!"
+            )
+            self.dependency_undo()
+            return self.state
+
+        debug("Undo gathering of repository group data...")
+
+        if self.input_from_dependency:
+            self.pkgbases.clear()
+
+        self.pkgbase_names.clear()
+        self.package_names.clear()
+        self.repo_management_dirs.clear()
 
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()
