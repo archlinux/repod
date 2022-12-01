@@ -53,6 +53,14 @@ Added
   unless ``build_requirements_exist`` is set to ``false`` in ``repod.conf``.
   This check fails on missing requirements and thus ensures that added packages
   are fully reproducible.
+* Repositories can now be grouped together in the configuration, by assigning
+  the same positive integer to them. Packages in grouped repositories are
+  unique in the group (no duplicate ``pkgbase`` or ``pkgname`` is allowed).
+  Furthermore grouped repositories share the same parent directory for all of
+  their management repository directories, the same grandparent directory for
+  all of their package repository directories, the same parent directory for
+  all of their package pool directories and the same parent directory for all
+  of their source pool directories.
 
 Changed
 ^^^^^^^
