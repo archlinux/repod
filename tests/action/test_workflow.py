@@ -47,20 +47,32 @@ def test_add_packages_dryrun(
 
 
 @mark.parametrize(
-    "build_requirements_exist, with_archiving, with_signature, task_return_value",
+    "build_requirements_exist, with_archiving, with_signature, with_group, task_return_value",
     [
-        (True, True, True, ActionStateEnum.FAILED),
-        (True, True, True, ActionStateEnum.SUCCESS),
-        (True, True, False, ActionStateEnum.FAILED),
-        (True, True, False, ActionStateEnum.SUCCESS),
-        (True, False, True, ActionStateEnum.FAILED),
-        (True, False, True, ActionStateEnum.SUCCESS),
-        (True, False, False, ActionStateEnum.FAILED),
-        (True, False, False, ActionStateEnum.SUCCESS),
-        (False, False, True, ActionStateEnum.FAILED),
-        (False, False, True, ActionStateEnum.SUCCESS),
-        (False, False, False, ActionStateEnum.FAILED),
-        (False, False, False, ActionStateEnum.SUCCESS),
+        (True, True, True, True, ActionStateEnum.FAILED),
+        (True, True, True, True, ActionStateEnum.SUCCESS),
+        (True, True, False, True, ActionStateEnum.FAILED),
+        (True, True, False, True, ActionStateEnum.SUCCESS),
+        (True, False, True, True, ActionStateEnum.FAILED),
+        (True, False, True, True, ActionStateEnum.SUCCESS),
+        (True, False, False, True, ActionStateEnum.FAILED),
+        (True, False, False, True, ActionStateEnum.SUCCESS),
+        (False, False, True, True, ActionStateEnum.FAILED),
+        (False, False, True, True, ActionStateEnum.SUCCESS),
+        (False, False, False, True, ActionStateEnum.FAILED),
+        (False, False, False, True, ActionStateEnum.SUCCESS),
+        (True, True, True, False, ActionStateEnum.FAILED),
+        (True, True, True, False, ActionStateEnum.SUCCESS),
+        (True, True, False, False, ActionStateEnum.FAILED),
+        (True, True, False, False, ActionStateEnum.SUCCESS),
+        (True, False, True, False, ActionStateEnum.FAILED),
+        (True, False, True, False, ActionStateEnum.SUCCESS),
+        (True, False, False, False, ActionStateEnum.FAILED),
+        (True, False, False, False, ActionStateEnum.SUCCESS),
+        (False, False, True, False, ActionStateEnum.FAILED),
+        (False, False, True, False, ActionStateEnum.SUCCESS),
+        (False, False, False, False, ActionStateEnum.FAILED),
+        (False, False, False, False, ActionStateEnum.SUCCESS),
     ],
 )
 @patch("repod.action.workflow.exit_on_error")
@@ -69,6 +81,7 @@ def test_add_packages_dryrun(
 @patch("repod.action.workflow.CleanupRepoTask")
 @patch("repod.action.workflow.CreateOutputPackageBasesTask")
 @patch("repod.action.workflow.ConsolidateOutputPackageBasesTask")
+@patch("repod.action.workflow.RepoGroupTask")
 @patch("repod.action.workflow.ReproducibleBuildEnvironmentTask")
 @patch("repod.action.workflow.WriteOutputPackageBasesToTmpFileInDirTask")
 @patch("repod.action.workflow.MoveTmpFilesTask")
@@ -86,6 +99,7 @@ def test_add_packages(
     movetmpfilestask_mock: Mock,
     writeoutputpackagebasestotmpfileindirtask_mock: Mock,
     reproduciblebuildenvironmenttask_mock: Mock,
+    repogrouptask_mock: Mock,
     consolidateoutputpackagebasestask_mock: Mock,
     createoutputpackagebasestask_mock: Mock,
     cleanuprepotask_mock: Mock,
@@ -95,6 +109,7 @@ def test_add_packages(
     build_requirements_exist: bool,
     with_archiving: bool,
     with_signature: bool,
+    with_group: bool,
     task_return_value: ActionStateEnum,
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
@@ -109,6 +124,7 @@ def test_add_packages(
     movetmpfilestask_mock.spec = workflow.MoveTmpFilesTask
     writeoutputpackagebasestotmpfileindirtask_mock.spec = workflow.WriteOutputPackageBasesToTmpFileInDirTask
     reproduciblebuildenvironmenttask_mock.spec = workflow.ReproducibleBuildEnvironmentTask
+    repogrouptask_mock.spec = workflow.RepoGroupTask
     consolidateoutputpackagebasestask_mock.spec = workflow.ConsolidateOutputPackageBasesTask
     createoutputpackagebasestask_mock.spec = workflow.CreateOutputPackageBasesTask
     cleanuprepotask_mock.spec = workflow.CleanupRepoTask
@@ -124,6 +140,9 @@ def test_add_packages(
     if not with_archiving:
         usersettings.archiving = None
         usersettings.repositories[0].archiving = None
+
+    if with_group:
+        usersettings.repositories[0].group = 1
 
     workflow.add_packages(
         settings=usersettings,

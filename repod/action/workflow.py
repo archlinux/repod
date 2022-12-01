@@ -16,6 +16,7 @@ from repod.action.task import (
     RemoveBackupFilesTask,
     RemoveManagementRepoSymlinksTask,
     RemovePackageRepoSymlinksTask,
+    RepoGroupTask,
     ReproducibleBuildEnvironmentTask,
     Task,
     WriteOutputPackageBasesToTmpFileInDirTask,
@@ -136,7 +137,8 @@ def add_packages(
     debug(f"Adding packages: {files}")
     debug(f"Provided urls: {pkgbase_urls}")
 
-    archive_settings = settings.get_repo(name=repo_name, architecture=repo_architecture).archiving
+    repo = settings.get_repo(name=repo_name, architecture=repo_architecture)
+
     add_to_repo_dependencies: list[Task] = []
 
     management_repo_dir = settings.get_repo_path(
@@ -179,10 +181,7 @@ def add_packages(
                 testing=testing_repo,
             ),
         ),
-        url_validation_settings=settings.get_repo(
-            name=repo_name,
-            architecture=repo_architecture,
-        ).package_url_validation,
+        url_validation_settings=repo.package_url_validation,
         dependencies=[
             outputpackagebasestask,
         ],
@@ -201,15 +200,25 @@ def add_packages(
         ),
     )
 
-    if settings.get_repo(name=repo_name, architecture=repo_architecture).build_requirements_exist:
+    if repo.build_requirements_exist:
         reproduciblebuildenvironmenttask = ReproducibleBuildEnvironmentTask(
             management_directories=[management_repo_dir],
-            archive_dir=archive_settings.packages if archive_settings else None,  # type: ignore[union-attr]
+            archive_dir=repo.archiving.packages if repo.archiving else None,  # type: ignore[union-attr]
             dependencies=[
                 outputpackagebasestask,
             ],
         )
         add_to_repo_dependencies.append(reproduciblebuildenvironmenttask)
+
+    if repo.group:
+        add_to_repo_dependencies.append(
+            RepoGroupTask(
+                repositories=settings.get_repos_by_group(group=repo.group, exclude_repo=repo),
+                dependencies=[
+                    outputpackagebasestask,
+                ],
+            )
+        )
 
     add_to_repo_dependencies.append(
         MoveTmpFilesTask(
@@ -262,10 +271,10 @@ def add_packages(
             ],
         ),
     )
-    if isinstance(archive_settings, ArchiveSettings):
+    if isinstance(repo.archiving, ArchiveSettings):
         add_to_repo_dependencies.append(
             AddToArchiveTask(
-                archive_dir=archive_settings.packages,
+                archive_dir=repo.archiving.packages,
                 dependencies=add_to_archive_dependencies,  # type: ignore[arg-type]
             )
         )
