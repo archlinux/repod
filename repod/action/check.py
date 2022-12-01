@@ -730,3 +730,88 @@ class ReproducibleBuildEnvironmentCheck(Check):
             )
 
         return self.state
+
+
+class UniqueInRepoGroupCheck(Check):
+    """A Check to ensure, that lists of pkgbase and package names are unique among a group of management repository
+    directories
+
+    Attributes
+    ----------
+    pkgbase_names: list[str]
+        A list of pkgbases to look for in the management repository directories contained in repo_management_dirs
+    package_names: list[str]
+        A list of packages to look for in the management repository directories contained in repo_management_dirs
+    repo_management_dirs: dict[Path, list[Path]]
+        A dict describing a repository name and all of its management repository directories
+    """
+
+    def __init__(
+        self,
+        pkgbase_names: list[str],
+        package_names: list[str],
+        repo_management_dirs: dict[Path, list[Path]],
+    ):
+        """Initialize an instance of UniqueInRepoGroupCheck
+
+        Parameters
+        ----------
+        pkgbase_names: list[str]
+            A list of pkgbases to look for in the management repository directories contained in repo_management_dirs
+        package_names: list[str]
+            A list of packages to look for in the management repository directories contained in repo_management_dirs
+        repo_management_dirs: dict[Path, list[Path]]
+            A dict describing a repository name and all of its management repository directories
+        """
+
+        self.pkgbase_names = pkgbase_names
+        self.package_names = package_names
+        self.repo_management_dirs = repo_management_dirs
+
+    def __call__(self) -> ActionStateEnum:
+        """Check, that lists of pkgbase and package names are unique among a group of management repository directories
+
+        Returns
+        -------
+        ActionStateEnum
+            ActionStateEnum.SUCCESS if the check passed successfully,
+            ActionStateEnum.FAILED otherwise
+        """
+
+        self.state = ActionStateEnum.STARTED
+
+        existing_pkgbases: dict[str, list[str]] = defaultdict(list)
+        existing_packages: dict[str, list[str]] = defaultdict(list)
+
+        for repo, management_dirs in self.repo_management_dirs.items():
+            for management_dir in management_dirs:
+                for pkgbase in self.pkgbase_names:
+                    file = management_dir / f"{pkgbase}.json"
+                    tmp_file = management_dir / f"{pkgbase}.json.tmp"
+                    if file.exists() or tmp_file.exists():
+                        existing_pkgbases[str(repo)].append(pkgbase)
+
+                for package in self.package_names:
+                    file = management_dir / "pkgnames" / f"{package}.json"
+                    tmp_file = management_dir / "pkgnames" / f"{package}.json.tmp"
+                    if file.exists() or tmp_file.exists():
+                        existing_packages[str(repo)].append(package)
+
+        self.state = ActionStateEnum.SUCCESS
+        if existing_pkgbases or existing_packages:
+            self.state = ActionStateEnum.FAILED
+            pkgbases = [
+                f"\nRepository '{key}' already contains the pkgbase(s) {', '.join(value)}."
+                for key, value in existing_pkgbases.items()
+            ]
+            packages = [
+                f"\nRepository '{key}' already contains the package(s) {', '.join(value)}."
+                for key, value in existing_pkgbases.items()
+            ]
+            info(
+                "Duplicate pkgbases and/ or packages detected in repository group:"
+                f"{''.join(pkgbases)}"
+                f"{''.join(packages)}"
+            )
+
+        return self.state

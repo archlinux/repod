@@ -323,3 +323,40 @@ def test_reproduciblebuildenvironmentcheck(
         else {},
     )
     assert check_() == return_value
+
+
+@mark.parametrize(
+    "pkgbase_names, pkgbase_exists, package_names, package_exists, return_value",
+    [
+        (["pkgbase"], False, ["package"], False, ActionStateEnum.SUCCESS),
+        (["pkgbase"], True, ["package"], False, ActionStateEnum.FAILED),
+        (["pkgbase"], True, ["package"], True, ActionStateEnum.FAILED),
+        (["pkgbase"], False, ["package"], True, ActionStateEnum.FAILED),
+    ],
+)
+def test_uniqueinrepogroupcheck(
+    pkgbase_names: list[str],
+    pkgbase_exists: bool,
+    package_names: list[str],
+    package_exists: bool,
+    return_value: ActionStateEnum,
+    tmp_path: Path,
+    caplog: LogCaptureFixture,
+) -> None:
+    caplog.set_level(DEBUG)
+
+    if pkgbase_exists:
+        (tmp_path / f"{pkgbase_names[0]}.json").touch()
+    if package_exists:
+        (tmp_path / "pkgnames").mkdir()
+        (tmp_path / "pkgnames" / f"{package_names[0]}.json").touch()
+
+    repo_management_dirs = {Path("foo"): [tmp_path]}
+
+    check_ = check.UniqueInRepoGroupCheck(
+        pkgbase_names=pkgbase_names,
+        package_names=package_names,
+        repo_management_dirs=repo_management_dirs,
+    )
+
+    assert return_value == check_()
