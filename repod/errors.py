@@ -16,3 +16,7 @@ class RepoManagementFileNotFoundError(RepoManagementFileError, FileNotFoundError
 
 class TaskError(RepoManagementError):
     """An Error that is raised when an error occurs in a Task"""
+
+
+class FileParserError(RepoManagementError):
+    """An Error that is raised when an error occurs during parsing of a file"""
