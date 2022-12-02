@@ -239,3 +239,31 @@ def names_in_tarfile(tarfile: TarFile, names: list[str] | set[str]) -> bool:
         return True
     else:
         return False
+
+
+def read_text_from_file(path: str | Path) -> StringIO:
+    """Read text from a file and return it in a StringIO
+
+    Parameters
+    ----------
+    path: str | Path
+        A Path or str representing a file to read
+
+    Raises
+    ------
+    RepoManagementFileNotFoundError
+        If the file identifed by path does not exist
+
+    Returns
+    -------
+    StringIO
+        A string IO stream representing the contents of the file
+    """
+
+    if isinstance(path, str):
+        path = Path(path)
+
+    try:
+        return StringIO(initial_value=path.read_text())
+    except FileNotFoundError as e:
+        raise RepoManagementFileNotFoundError(e)

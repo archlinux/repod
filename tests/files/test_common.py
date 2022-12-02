@@ -1,4 +1,5 @@
 from contextlib import nullcontext as does_not_raise
+from io import StringIO
 from pathlib import Path
 from tarfile import TarFile
 from typing import ContextManager
@@ -179,3 +180,30 @@ def test_names_in_tarfile(
 ) -> None:
     with common.open_tarfile(path=default_package_file[0], compression=None, mode="r") as tarfile:
         assert common.names_in_tarfile(tarfile=tarfile, names=names) is expectation
+
+
+@mark.parametrize(
+    "as_string, exists, expectation",
+    [
+        (True, True, does_not_raise()),
+        (False, True, does_not_raise()),
+        (False, False, raises(RepoManagementFileNotFoundError)),
+        (True, False, raises(RepoManagementFileNotFoundError)),
+    ],
+)
+def test_read_text_from_file(
+    as_string: bool,
+    exists: bool,
+    expectation: ContextManager[str],
+    text_file: Path,
+) -> None:
+
+    path: str | Path = text_file
+    if as_string:
+        path = str(text_file)
+
+    if not exists:
+        path = text_file.parent / "foo"
+
+    with expectation:
+        assert isinstance(common.read_text_from_file(path=path), StringIO)
