@@ -7,6 +7,7 @@ from pytest import mark, raises
 from pytest_lazyfixture import lazy_fixture
 
 from repod.common import models
+from repod.version.alpm import vercmp
 from tests.conftest import (
     create_default_full_version,
     create_default_invalid_full_version,
@@ -80,7 +81,7 @@ def test_epoch(value: str | int, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_epoch_vercmp(subj: int | str, obj: int | str, expectation: int) -> None:
-    assert models.Epoch(epoch=subj).vercmp(epoch=models.Epoch(epoch=obj)) == expectation
+    assert expectation == vercmp(a=str(models.Epoch(epoch=subj).epoch), b=str(models.Epoch(epoch=obj).epoch))
 
 
 @mark.parametrize(
@@ -150,19 +151,6 @@ def test_pkgrel(value: str, expectation: ContextManager[str]) -> None:
 
 
 @mark.parametrize(
-    "value, expectation",
-    [
-        ("1", ["1"]),
-        ("1.1", ["1", "1"]),
-        (1, ["1"]),
-        (1.1, ["1", "1"]),
-    ],
-)
-def test_pkgrel_as_list(value: str, expectation: list[str]) -> None:
-    assert models.PkgRel(pkgrel=value).as_list() == expectation
-
-
-@mark.parametrize(
     "subj, obj, expectation",
     [
         ("1", "1", 0),
@@ -178,7 +166,7 @@ def test_pkgrel_as_list(value: str, expectation: list[str]) -> None:
 @mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgrel_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
-        assert models.PkgRel(pkgrel=subj).vercmp(pkgrel=models.PkgRel(pkgrel=obj)) == expectation
+        assert expectation == vercmp(a=models.PkgRel(pkgrel=subj).pkgrel, b=models.PkgRel(pkgrel=obj).pkgrel)
 
 
 @mark.parametrize(
@@ -198,24 +186,6 @@ def test_pkgrel_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: boo
 def test_pkgver(value: str, expectation: ContextManager[str]) -> None:
     with expectation:
         assert isinstance(models.PkgVer(pkgver=value), models.PkgVer)
-
-
-@mark.parametrize(
-    "value, expectation",
-    [
-        ("1", ["1"]),
-        ("1.1", ["1", "1"]),
-        ("1.a", ["1", "a"]),
-        ("1.1a", ["1", "1a"]),
-        ("foo", ["foo"]),
-        ("1_1", ["1", "1"]),
-        ("1.1_1", ["1", "1", "1"]),
-        (1, ["1"]),
-        (1.1, ["1", "1"]),
-    ],
-)
-def test_pkgver_as_list(value: str, expectation: list[str]) -> None:
-    assert models.PkgVer(pkgver=value).as_list() == expectation
 
 
 @mark.parametrize(
@@ -269,7 +239,7 @@ def test_pkgver_as_list(value: str, expectation: list[str]) -> None:
 @mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgver_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
-        assert models.PkgVer(pkgver=subj).vercmp(pkgver=models.PkgVer(pkgver=obj)) == expectation
+        assert expectation == vercmp(a=models.PkgVer(pkgver=subj).pkgver, b=models.PkgVer(pkgver=obj).pkgver)
 
 
 @mark.parametrize(

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from email_validator import EmailNotValidError, validate_email
@@ -27,7 +26,6 @@ from repod.common.regex import (
     VERSION,
 )
 from repod.version import alpm
-from repod.version.util import cmp
 
 
 class Arch(BaseModel):
@@ -460,22 +458,7 @@ class Epoch(BaseModel):
         A string representing a valid epoch of a package
     """
 
-    epoch: PositiveInt
-
-    def vercmp(self, epoch: Epoch) -> int:
-        """Compare the epoch with another
-
-        The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
-
-        Returns
-        -------
-        int
-            -1 if self.epoch is older than epoch
-            0 if self.epoch is equal to epoch
-            1 if self.epoch is newer than epoch
-        """
-
-        return cmp(self.epoch, epoch.epoch)
+    epoch: PositiveInt | None
 
 
 class PkgRel(BaseModel):
@@ -491,34 +474,6 @@ class PkgRel(BaseModel):
 
     pkgrel: constr(regex=rf"^{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
 
-    def as_list(self) -> list[str]:
-        """Return the pkgrel components as list
-
-        The version string is split by "."
-
-        Returns
-        -------
-        list[str]
-            A list of strings representing the components of the pkgrel
-        """
-
-        return [str(part) for part in self.pkgrel.split(".")]
-
-    def vercmp(self, pkgrel: PkgRel) -> int:
-        """Compare the pkgrel with another
-
-        The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
-
-        Returns
-        -------
-        int
-            -1 if self.pkgrel is older than pkgrel
-            0 if self.pkgrel is equal to pkgrel
-            1 if self.pkgrel is newer than pkgrel
-        """
-
-        return alpm.vercmp(self.pkgrel, pkgrel.pkgrel)
-
 
 class PkgVer(BaseModel):
     """A model dscribing a single 'pkgver' attribute
@@ -532,35 +487,6 @@ class PkgVer(BaseModel):
     """
 
     pkgver: constr(regex=rf"^({VERSION})$")  # type: ignore[valid-type]  # noqa: F722
-
-    def as_list(self) -> list[str]:
-        """Return the pkgver components as list
-
-        The version string is split on none alpanum characters
-
-        Returns
-        -------
-        list[str]
-            A list of strings representing the components of the pkgver
-        """
-
-        return [part for part in re.split(r"[^a-zA-Z\d]", self.pkgver) if part]
-
-    def vercmp(self, pkgver: PkgVer) -> int:
-        """Compare the pkgver with another
-
-        The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
-        If PYALPM_VERCMP is True, pyalpm has been imported and its implementation of vercmp() is used.
-
-        Returns
-        -------
-        int
-            -1 if self.pkgver is older than pkgver
-            0 if self.pkgver is equal to pkgver
-            1 if self.pkgver is newer than pkgver
-        """
-
-        return alpm.vercmp(self.pkgver, pkgver.pkgver)
 
 
 class Version(BaseModel):
