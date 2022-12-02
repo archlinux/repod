@@ -8,12 +8,18 @@ from typing import Any
 from pydantic import BaseModel, NonNegativeInt, constr, root_validator, validator
 
 from repod.common.enums import ArchitectureEnum, FieldTypeEnum
-from repod.common.models import Packager, SchemaVersionV1, SchemaVersionV2
+from repod.common.models import (
+    Options,
+    Packager,
+    PkgBase,
+    PkgName,
+    SchemaVersionV1,
+    SchemaVersionV2,
+)
 from repod.common.regex import (
     ARCHITECTURE,
     BUILDENVS,
     EPOCH,
-    OPTIONS,
     PACKAGE_NAME,
     PKGREL,
     SHA256,
@@ -169,20 +175,6 @@ class Installed(BaseModel):
         ]
 
 
-class Options(BaseModel):
-    """A list of makepkg.conf OPTIONS used during the creation of a package
-
-    For valid values refer to the OPTIONS subsection in https://man.archlinux.org/man/makepkg.conf.5#OPTIONS
-
-    Attributes
-    ----------
-    options: list[str]
-        A list of strings representing makepkg.conf OPTIONS used during the creation of a package
-    """
-
-    options: list[constr(regex=rf"^{OPTIONS}$")]  # type: ignore[valid-type]  # noqa: F722
-
-
 class PkgArch(BaseModel):
     """A CPU architecture for a package
 
@@ -197,20 +189,6 @@ class PkgArch(BaseModel):
     pkgarch: constr(regex=rf"^{ARCHITECTURE}$")  # type: ignore[valid-type]  # noqa: F722
 
 
-class PkgBase(BaseModel):
-    """A pkgbase for a package
-
-    Refer to https://man.archlinux.org/man/PKGBUILD.5.en#PACKAGE_SPLITTING for details on pkgbase
-
-    Attributes
-    ----------
-    pkgbase: str
-        A string representing a valid pkgbase for a package
-    """
-
-    pkgbase: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
-
-
 class PkgBuildSha256Sum(BaseModel):
     """A SHA-256 checksum for a PKGBUILD file of a package
 
@@ -221,20 +199,6 @@ class PkgBuildSha256Sum(BaseModel):
     """
 
     pkgbuild_sha256sum: constr(regex=rf"{SHA256}")  # type: ignore[valid-type]  # noqa: F722
-
-
-class PkgName(BaseModel):
-    """A pkgname of a package
-
-    Refer to the pkgname section in https://man.archlinux.org/man/PKGBUILD.5.en#OPTIONS_AND_DIRECTIVES for details
-
-    Attributes
-    ----------
-    pkgname: str
-        A string representing a valid pkgname of a package
-    """
-
-    pkgname: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class PkgVer(BaseModel):

@@ -18,6 +18,7 @@ from repod.common.regex import (
     BASE64,
     EPOCH,
     MD5,
+    OPTIONS,
     PACKAGE_FILENAME,
     PACKAGE_NAME,
     PACKAGER_NAME,
@@ -309,6 +310,20 @@ class Name(BaseModel):
     name: constr(regex=f"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
+class Options(BaseModel):
+    """A list of makepkg.conf OPTIONS used during the creation of a package
+
+    For valid values refer to the OPTIONS subsection in https://man.archlinux.org/man/makepkg.conf.5#OPTIONS
+
+    Attributes
+    ----------
+    options: list[str] | None
+        An optional list of strings representing makepkg.conf OPTIONS used during the creation of a package
+    """
+
+    options: list[constr(regex=rf"^{OPTIONS}$")] | None  # type: ignore[valid-type]  # noqa: F722
+
+
 class Packager(BaseModel):
     """A model describing a single 'packager' attribute
 
@@ -344,6 +359,34 @@ class PgpSig(BaseModel):
     """
 
     pgpsig: constr(regex=f"^{BASE64}$") | None  # type: ignore[valid-type]  # noqa: F722
+
+
+class PkgBase(BaseModel):
+    """A pkgbase for a package
+
+    Refer to https://man.archlinux.org/man/PKGBUILD.5.en#PACKAGE_SPLITTING for details on pkgbase
+
+    Attributes
+    ----------
+    pkgbase: str
+        A string representing a valid pkgbase for a package
+    """
+
+    pkgbase: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
+
+
+class PkgName(BaseModel):
+    """A pkgname of a package
+
+    Refer to the pkgname section in https://man.archlinux.org/man/PKGBUILD.5.en#OPTIONS_AND_DIRECTIVES for details
+
+    Attributes
+    ----------
+    pkgname: str
+        A string representing a valid pkgname of a package
+    """
+
+    pkgname: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
 class Provides(BaseModel):
