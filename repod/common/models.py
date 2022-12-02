@@ -375,6 +375,18 @@ class PkgBase(BaseModel):
     pkgbase: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
 
 
+class PkgDesc(BaseModel):
+    """A model describing a single pkgdesc attribute
+
+    Attributes
+    ----------
+    pkgdesc: str
+        A string used as package description
+    """
+
+    pkgdesc: str
+
+
 class PkgName(BaseModel):
     """A pkgname of a package
 
