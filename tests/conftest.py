@@ -1715,3 +1715,82 @@ def usersettings(
                             tmp_dir_path / "data/repo/source",
                         ):
                             return UserSettings(repositories=[packagerepo_in_tmp_path])
+
+
+@fixture(scope="function")
+def srcinfov1_single_stringio(
+    default_arch: str,
+    url: str,
+    default_license: str,
+    default_package_name: str,
+    default_version: str,
+    default_packager: str,
+    sha256sum: str,
+) -> Generator[StringIO, None, None]:
+    buildinfov1_contents = f"""
+        # foo
+        pkgbase = {default_package_name}
+        \tpkgdesc = description
+        \tepoch = 1
+        \tpkgver = {default_version}
+        \tpkgrel = 1
+        \turl = {url}
+        \tarch = {default_arch}
+        \tlicense = {default_license}
+        \toptions = debug
+        \toptions = strip
+
+        pkgname = {default_package_name}
+        """
+
+    yield StringIO(initial_value=dedent(buildinfov1_contents).strip())
+
+
+@fixture(scope="function")
+def srcinfov1_split_stringio(
+    default_arch: str,
+    url: str,
+    default_license: str,
+    default_package_name: str,
+    default_version: str,
+    default_packager: str,
+    sha256sum: str,
+) -> Generator[StringIO, None, None]:
+    buildinfov1_contents = f"""
+        # foo
+        pkgbase = {default_package_name}
+        \tpkgdesc = description
+        \tpkgver = {default_version}
+        \tpkgrel = 1
+        \turl = {url}
+        \tarch = {default_arch}
+        \tlicense = {default_license}
+        \toptions = debug
+        \toptions = strip
+
+        pkgname = {default_package_name}
+        \tpkgdesc = other description
+
+        pkgname = {default_package_name}-b
+        \tpkgdesc = other description
+        """
+
+    yield StringIO(initial_value=dedent(buildinfov1_contents).strip())
+
+
+@fixture(scope="function")
+def srcinfov1_single_file(srcinfov1_single_stringio: StringIO) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="srcinfov1_single_") as buildinfo_file:
+        with open(buildinfo_file.name, mode="wt") as f:
+            print(srcinfov1_single_stringio.getvalue(), file=f)
+
+        yield Path(buildinfo_file.name)
+
+
+@fixture(scope="function")
+def srcinfov1_split_file(srcinfov1_split_stringio: StringIO, tmp_path: Path) -> Generator[Path, None, None]:
+    with NamedTemporaryFile(prefix="srcinfov1_split_", dir=tmp_path, delete=False) as buildinfo_file:
+        with open(buildinfo_file.name, mode="wt") as f:
+            print(srcinfov1_split_stringio.getvalue(), file=f)
+
+    yield Path(buildinfo_file.name)
