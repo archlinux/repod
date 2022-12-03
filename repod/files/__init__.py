@@ -9,6 +9,8 @@ from repod.files.package import Package  # noqa: F401
 from repod.files.package import export_schemas as package_export_schemas
 from repod.files.pkginfo import PkgInfo  # noqa: F401
 from repod.files.pkginfo import export_schemas as pkginfo_export_schemas
+from repod.files.srcinfo import PkgBaseSection, PkgNameSection, SrcInfo  # noqa: F401
+from repod.files.srcinfo import export_schemas as srcinfo_export_schemas
 
 
 def export_schemas(output: Path | str) -> None:
@@ -24,3 +26,4 @@ def export_schemas(output: Path | str) -> None:
     mtree_export_schemas(output=output)
     package_export_schemas(output=output)
     pkginfo_export_schemas(output=output)
+    srcinfo_export_schemas(output=output)
