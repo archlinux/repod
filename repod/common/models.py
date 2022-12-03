@@ -369,7 +369,7 @@ class PkgBase(BaseModel):
     Attributes
     ----------
     pkgbase: str
-        A string representing a valid pkgbase for a package
+        A string representing the pkgbase of a package
     """
 
     pkgbase: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
@@ -395,7 +395,7 @@ class PkgName(BaseModel):
     Attributes
     ----------
     pkgname: str
-        A string representing a valid pkgname of a package
+        A string representing the pkgname of a package
     """
 
     pkgname: constr(regex=rf"^{PACKAGE_NAME}$")  # type: ignore[valid-type]  # noqa: F722
@@ -509,8 +509,8 @@ class Epoch(BaseModel):
 
     Attributes
     ----------
-    epoch: PositiveInt
-        A string representing a valid epoch of a package
+    epoch: PositiveInt | None
+        An optional positive integer representing the epoch of a package
     """
 
     epoch: PositiveInt | None
@@ -524,7 +524,7 @@ class PkgRel(BaseModel):
     Attributes
     ----------
     pkgrel: str
-        A string representing a valid pkgrel of a package
+        A string representing the pkgrel (package release version) of a package
     """
 
     pkgrel: constr(regex=rf"^{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
@@ -538,7 +538,7 @@ class PkgVer(BaseModel):
     Attributes
     ----------
     pkgver: str
-        A string representing a valid pkgver of a package
+        A string representing the pkgver (upstream package version) of a package
     """
 
     pkgver: constr(regex=rf"^({VERSION})$")  # type: ignore[valid-type]  # noqa: F722
