@@ -61,6 +61,9 @@ Added
   all of their package repository directories, the same parent directory for
   all of their package pool directories and the same parent directory for all
   of their source pool directories.
+* A parser for ``.SRCINFO`` files can now be used to retrieve and validate data
+  of these files. This is useful when validating data of packages against the
+  data from their source repositories.
 
 Changed
 ^^^^^^^
