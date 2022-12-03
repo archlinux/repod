@@ -46,78 +46,105 @@ Global options provide the defaults for any repository that does not define
 them. For any undefined option defaults are assumed (see
 :ref:`repod.conf_default_options`).
 
-* *architecture*: A string setting the CPU architecture used for any
-  repository, which does not define it.
-  Understood values are
+architecture =
+^^^^^^^^^^^^^^
 
-  .. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
+A string setting the CPU architecture used for any
+repository, which does not define it.
+Understood values are
 
-* *archiving*: An optional table or boolean value, which defines the archiving
-  options used for any repository, that do not define them explicitly.
-  When unset or set to *true*, default archiving options are created. If set to
-  *false*, archiving is disabled by default, but may still be set per
-  repository.
-  When defined as a table, the option has to define the following key-value pairs:
+.. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
 
-  * *packages*: The name of the *package archive directory* (see
+archiving =
+^^^^^^^^^^^
+
+An optional table or boolean value, which defines the archiving options used
+for any repository, that do not define them explicitly.
+When unset or set to *true*, default archiving options are created. If set to
+*false*, archiving is disabled by default, but may still be set per repository.
+When defined as a table, the option has to define the following key-value
+pairs:
+
+  **packages =**
+    The name of the *package archive directory* (see
     :ref:`repod.conf_default_directories` for default values), below which
     directory structures and files for package and signature file archiving are
     created.
     This directory must be absolute.
 
-  * *sources*: The name of the *source archive directory* (see
+  **sources =**
+    The name of the *source archive directory* (see
     :ref:`repod.conf_default_directories` for default values), below which
     directory structures and files for source tarball archiving are created.
     This directory must be absolute.
 
-* *build_requirements_exist*: An optional boolean value, which defines whether
-  the build requirements of added packages must exist in the archive (if
-  configured), any of the stability layers of the target repository or the set
-  of packages being added.
-  When unset, the value will be set to the default (see
-  :ref:`repod.conf_default_options`).
-  When set to *false*, the build requirements of added packages are not
-  checked, when set to *true*, they are checked.
-  This setting may still be overriden per repository.
+build_requirements_exist =
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* *database_compression*: A string setting the database compression used for
-  any repository, which does not define it.
-  Understood values are
+An optional boolean value, which defines whether the build requirements of
+added packages must exist in the archive (if configured), any of the stability
+layers of the target repository or the set of packages being added.
+When unset, the value will be set to the default (see
+:ref:`repod.conf_default_options`).
+When set to *false*, the build requirements of added packages are not checked,
+when set to *true*, they are checked.
+This setting may still be overriden per repository.
 
-  .. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
+database_compression =
+^^^^^^^^^^^^^^^^^^^^^^
 
-* *management_repo*: A table providing configuration for the *management
-  repository* for any repository, which does not define one explicitly.
-  As each configured binary package repository is represented as a subdirectory
-  structure in the management repository, several repositories can share the
-  same *management_repo*.
+A string setting the database compression used for any repository, which does
+not define it.
+Understood values are
 
-  * *directory*: The name of the management repository in the *management
-    repository base directory* (see *DEFAULT DIRECTORIES*), below which per
-    binary package repository directories are created. If the string denotes an
-    absolute directory it is used directly and the default base directory is
-    disregarded.
+.. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
 
-  * *json_dumps*: An integer, defining the option for orjson's dumps() method
-    (see https://github.com/ijl/orjson#option). Defaults to:
+management_repo
+^^^^^^^^^^^^^^^
+
+A table providing configuration for the *management repository* for any
+repository, which does not define one explicitly.
+As each configured binary package repository is represented as a subdirectory
+structure in the management repository, several repositories can share the same
+*management_repo*.
+
+  **directory =**
+    The name of the management repository in the *management repository base
+    directory* (see *DEFAULT DIRECTORIES*), below which per binary package
+    repository directories are created. If the string denotes an absolute directory
+    it is used directly and the default base directory is disregarded.
+
+  **json_dumps =**
+    An integer, defining the option for orjson's dumps() [2] method. Defaults to:
 
     .. program-output:: python -c "from repod.config.defaults import ORJSON_OPTION; print(ORJSON_OPTION)"
 
-  * *url*: An optional url string, for the upstream repository of the management repository (currently not used)
+  **url =**
 
-* *package_pool*: A string setting a directory that serves as the package pool
-  for any repository, which does not define it.
+    An optional url string, for the upstream repository of the management repository (currently not used)
 
-* *package_verification*: An optional string setting the implementation of the
-  package signature verification for all repositories.
-  If a signature verification implementation is selected, packages that are
-  added to the repository must be signed.
-  Understood values are
+package_pool =
+^^^^^^^^^^^^^^
 
-  .. program-output:: python -c "from repod.common.enums import PkgVerificationTypeEnum; print('\"' + '\", \"'.join(e.value for e in PkgVerificationTypeEnum) + '\"')"
+A string setting a directory that serves as the package pool for any
+repository, which does not define it.
 
-* *source_pool*: A string setting a directory that serves as the source tarball
-  pool for any repository, which does not define it.
+package_verification =
+^^^^^^^^^^^^^^^^^^^^^^
+
+An optional string setting the implementation of the package signature
+verification for all repositories.
+If a signature verification implementation is selected, packages that are added
+to the repository must be signed.
+Understood values are
+
+.. program-output:: python -c "from repod.common.enums import PkgVerificationTypeEnum; print('\"' + '\", \"'.join(e.value for e in PkgVerificationTypeEnum) + '\"')"
+
+source_pool =
+^^^^^^^^^^^^^
+
+A string setting a directory that serves as the source tarball pool for any
+repository, which does not define it.
 
 .. _repod.conf_syncdb_settings:
 
@@ -125,20 +152,28 @@ SYNC DATABASE SETTINGS
 ----------------------
 
 Sync database settings offer control over the way data for repository sync
-databases is exported. For any undefined option defaults are assumed (see
+databases is exported. The below key-value pairs are configured below a global
+**syncdb_settings** table.
+For any undefined option defaults are assumed (see
 :ref:`repod.conf_default_options`).
 
-* *desc_version*: An integer setting the desc version used when exporting the
-  management repository to a repository sync database.
-  Understood values are
+desc_version =
+^^^^^^^^^^^^^^
 
-  .. program-output:: python -c "from repod.common.enums import PackageDescVersionEnum; print(', '.join(str(e.value) for e in PackageDescVersionEnum))"
+An integer setting the desc version used when exporting the management
+repository to a repository sync database.
+Understood values are
 
-* *files_version*: An integer setting the files version used when exporting the
-  management repository to a repository sync database.
-  Understood values are
+.. program-output:: python -c "from repod.common.enums import PackageDescVersionEnum; print(', '.join(str(e.value) for e in PackageDescVersionEnum))"
 
-  .. program-output:: python -c "from repod.common.enums import FilesVersionEnum; print(', '.join(str(e.value) for e in FilesVersionEnum))"
+files_version =
+^^^^^^^^^^^^^^^
+
+An integer setting the files version used when exporting the management
+repository to a repository sync database.
+Understood values are
+
+.. program-output:: python -c "from repod.common.enums import FilesVersionEnum; print(', '.join(str(e.value) for e in FilesVersionEnum))"
 
 .. _repod.conf_repository_options:
 
@@ -153,188 +188,237 @@ or defaults (see :ref:`repod.conf_default_options`) are assumed.
 The only exceptions to this rule are *package_pool*, *source_pool*,
 *archiving.packages* and *archiving.sources*.
 
-* *architecture* (optional): A string setting the CPU architecture.
-  Understood values are
+architecture =
+^^^^^^^^^^^^^^
 
-  .. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
+An optional string setting the CPU architecture.
+Understood values are
 
-* *archiving*: An optional table or boolean value, which defines the archiving
-  options.
-  When unset or set to *true*, the global archiving options are used. If set to
-  *false*, archiving is disabled.
+.. program-output:: python -c "from repod.common.enums import ArchitectureEnum; print('\"' + '\", \"'.join([arch.value for arch in ArchitectureEnum]) + '\"')"
 
-  **NOTE**: When repositories are used together, they should be using the same archiving options.
+archiving =
+^^^^^^^^^^^
 
-  When defined as a table, the option has to define the following key-value pairs:
+An optional inline table or boolean value, which defines the archiving options.
+When unset or set to *true*, the global archiving options are used. If set to
+*false*, archiving is disabled.
 
-  * *packages*: The name of the *package archive directory* (see
+**NOTE**: When repositories are used together, they should be using the same archiving options.
+
+When defined as an inline table, the option has to define the following key-value pairs:
+
+  **packages =**
+    The name of the *package archive directory* (see
     :ref:`repod.conf_default_directories` for default values), below which
     directory structures and files for package and signature file archiving are
     created.
     This directory must be absolute.
 
-  * *sources*: The name of the *source archive directory* (see
+  **sources =**
+    The name of the *source archive directory* (see
     :ref:`repod.conf_default_directories` for default values), below which
     directory structures and files for source tarball archiving are created.
     This directory must be absolute.
 
-* *build_requirements_exist*: An optional boolean value, which defines whether
-  the build requirements of added packages must exist in the archive (if
-  configured), any of the stability layers of the target repository or the set
-  of packages being added.
-  When unset, the value will be set to the value defined globally.
-  When set to *false*, the build requirements of added packages are not
-  checked, when set to *true*, they are checked.
+build_requirements_exist =
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* *database_compression* (optional): A string setting the database compression used for
-  the repository.
-  Understood values are
+An optional boolean value, which defines whether the build requirements of
+added packages must exist in the archive (if configured), any of the stability
+layers of the target repository or the set of packages being added.
+When unset, the value will be set to the value defined globally.
+When set to *false*, the build requirements of added packages are not checked,
+when set to *true*, they are checked.
 
-  .. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
+database_compression =
+^^^^^^^^^^^^^^^^^^^^^^
 
-* *group* (optional): An optional positive integer, which defines the group a
-  repository belongs to.
+An optional string setting the database compression used for the repository.
+Understood values are
 
-  **NOTE**: When repositories are grouped together, the *pkgbase* and *package*
-  names must be unique amongst them (i.e. the same package can not exist in two
-  repositories at the same time - this is different from the same package
-  existing in different stability layers of the same repository!). Furthermore,
-  the repositories must use the same management repository (which resides below
-  the *management repository base directory*), the same *package repository
-  base directory*, the same *package pool base directory* and the same *source
-  pool base directory*!
+.. program-output:: python -c "from repod.common.enums import CompressionTypeEnum; print('\"' + '\", \"'.join(e.value for e in CompressionTypeEnum) + '\"')"
 
-* *management_repo* (optional): An inline table providing configuration for the
-  *management repository* of the repository. If it is provided, it has
-  precedence over a globally defined *management_repo*. As each configured
-  repository is represented as a subdirectory structure in the management
-  repository, several repositories can share the same *management_repo*.
+group =
+^^^^^^^
 
-  * *directory*: The name of the management repository in the *management
+An optional positive integer, which defines the group a repository belongs to.
+
+**NOTE**: When repositories are grouped together, the *pkgbase* and *package*
+names must be unique amongst them (i.e. the same package can not exist in two
+repositories at the same time - this is different from the same package
+existing in different stability layers of the same repository!). Furthermore,
+the repositories must use the same management repository (which resides below
+the *management repository base directory*), the same *package repository base
+directory*, the same *package pool base directory* and the same *source pool
+base directory*!
+
+management_repo =
+^^^^^^^^^^^^^^^^^
+
+An optional inline table providing configuration for the *management
+repository* of the repository. If it is provided, it has precedence over a
+globally defined *management_repo*. As each configured repository is
+represented as a subdirectory structure in the management repository, several
+repositories can share the same *management_repo*.
+
+  **directory =**
+    The name of the management repository in the *management
     repository base directory* (see *DEFAULT DIRECTORIES*), below which per
     binary package repository directories are created. If the string denotes an
     absolute directory it is used directly and the default base directory is
     disregarded.
 
-  * *json_dumps*: An integer, defining the option for orjson's dumps() method
+  **json_dumps =**
+    An integer, defining the option for orjson's dumps() method
     (see https://github.com/ijl/orjson#option). Defaults to:
 
     .. program-output:: python -c "from repod.config.defaults import ORJSON_OPTION; print(ORJSON_OPTION)"
 
-  * *url*: An optional url string, for the upstream repository of the management repository (currently not used)
+  **url =**
 
-* *package_url_validation* (optional): An inline table providing configuration
-  for the validation of source URLs. Source URLs are links, that may be
-  provided per pkgbase using *repod-file* and serve as reference to the source
-  files (e.g. PKGBUILD) for each package.
+    An optional url string, for the upstream repository of the management repository (currently not used)
 
-  * *urls*: A list of URL strings, against which the source URLs provided to
+package_url_validation =
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+An optional inline table providing configuration
+for the validation of source URLs. Source URLs are links, that may be
+provided per pkgbase using *repod-file* and serve as reference to the source
+files (e.g. PKGBUILD) for each package.
+
+  **urls =**
+    A list of URL strings, against which the source URLs provided to
     *repod-file* must validate.
-  * *tls_required*: A boolean value, setting whether the URLS in the *urls*
-    list and any source URL provided to *repod-file* must use TLS or not.
+  **tls_required =**
+    A boolean value, setting whether the URLS in the *urls* list and any source
+    URL provided to *repod-file* must use TLS or not.
 
-* *name*: A string setting the name of the repository. It is used to construct
-  the location below which stable package data of the repository is stored.
+name =
+^^^^^^
 
-  **NOTE**: The *name* and *architecture* combination **must be unique**.
+A string setting the name of the repository. It is used to construct the
+location below which stable package data of the repository is stored.
 
-  If the string denotes a relative directory it is used below the default
-  *package repository base directory* and *management repository base
-  directory* (see :ref:`repod.conf_default_directories`).
+**NOTE**: The *name* and *architecture* combination **must be unique** among
+all repositories.
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+If the string denotes a relative directory it is used below the default
+*package repository base directory* and *management repository base
+directory* (see :ref:`repod.conf_default_directories`).
 
-* *debug*: A string setting the debug name of the repository. It is used to
-  construct the location below which stable debug package data of the
-  repository is stored.
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
 
-  **NOTE**: When using this option and also using the *staging* or *testing*
-  options, the *staging_debug* and *testing_debug* options (respectively) must
-  be set as well.
+debug =
+^^^^^^^
 
-  If the string denotes a relative directory it is used below the default
-  *package repository base directory* and *management repository base
-  directory* (see :ref:`repod.conf_default_directories`).
+An optional string setting the debug name of the repository. It is used to
+construct the location below which stable debug package data of the repository
+is stored.
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+**NOTE**: When using this option and also using the *staging* or *testing*
+options, the *staging_debug* and *testing_debug* options (respectively) must
+be set as well.
 
-* *package_pool* (optional): A string setting a directory that serves as the
-  package pool for the repository.
+If the string denotes a relative directory it is used below the default
+*package repository base directory* and *management repository base
+directory* (see :ref:`repod.conf_default_directories`).
 
-  **NOTE**: If repositories move packages amongst one another, they need to use
-  the same *package_pool*.
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
 
-  If the string denotes a relative directory it is used below the default
-  *package pool base directory* (see :ref:`repod.conf_default_directories`).
+package_pool =
+^^^^^^^^^^^^^^
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+An optional string setting a directory that serves as the package pool for the
+repository.
 
-* *source_pool* (optional): A string setting a directory that serves as the
-  source tarball pool for the repository.
+**NOTE**: If repositories move packages amongst one another, they need to use
+the same *package_pool*.
 
-  **NOTE**: If repositories move packages amongst one another, they need to use
-  the same *package_pool*.
+If the string denotes a relative directory it is used below the default
+*package pool base directory* (see :ref:`repod.conf_default_directories`).
 
-  If the string denotes a relative directory it is used below the default
-  *source pool base directory* (see :ref:`repod.conf_default_directories`).
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+source_pool =
+^^^^^^^^^^^^^
 
-* *staging* (optional): A string setting the staging name of the repository. It
-  is used to construct the location below which staging package data of the
-  repository is stored.
+An optional string setting a directory that serves as the source tarball pool
+for the repository.
 
-  If the string denotes a relative directory it is used below the
-  default *package repository base directory* and *management repository base
-  directory* (see :ref:`repod.conf_default_directories`).
+**NOTE**: If repositories move packages amongst one another, they need to use
+the same *source_pool*.
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+If the string denotes a relative directory it is used below the default
+*source pool base directory* (see :ref:`repod.conf_default_directories`).
 
-* *staging_debug* (optional): A string setting the staging debug name of the
-  repository. It is used to construct the location below which staging debug
-  package data of the repository is stored.
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
 
-  **NOTE**: The *staging* and *debug* option must be set when using this
-  option. Similarly, if *debug* and *staging* are configured for a repository,
-  this option also has to be configured.
+staging =
+^^^^^^^^^
 
-  If the string denotes a relative directory it is used below the
-  default *package repository base directory* and *management repository base
-  directory* (see :ref:`repod.conf_default_directories`).
+An optional string setting the staging name of the repository. It is used to
+construct the location below which staging package data of the repository is
+stored.
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+If the string denotes a relative directory it is used below the
+default *package repository base directory* and *management repository base
+directory* (see :ref:`repod.conf_default_directories`).
 
-* *testing* (optional): A string setting the testing name of the repository. It
-  is used to construct the location below which testing package data of the
-  repository is stored.
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
 
-  If the string denotes a relative directory it is used below the
-  default *package repository base directory* and *management repository base
-  directory* (see :ref:`repod.conf_default_directories`).
+staging_debug =
+^^^^^^^^^^^^^^^
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+An optional string setting the staging debug name of the repository. It is used
+to construct the location below which staging debug package data of the
+repository is stored.
 
-* *testing_debug* (optional): A string setting the testing debug name of the
-  repository. It is used to construct the location below which testing debug
-  package data of the repository is stored.
+**NOTE**: The *staging* and *debug* option must be set when using this
+option. Similarly, if *debug* and *staging* are configured for a repository,
+this option also has to be configured.
 
-  **NOTE**: The *testing* and *debug* option must be set when using this
-  option. Similarly, if *debug* and *testing* are configured for a repository,
-  this option also has to be configured.
+If the string denotes a relative directory it is used below the
+default *package repository base directory* and *management repository base
+directory* (see :ref:`repod.conf_default_directories`).
 
-  If the string denotes a relative directory it is used below the
-  default *package repository base directory* and *management repository base
-  directory* (see :ref:`repod.conf_default_directories`).
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
 
-  If the string denotes an absolute directory it is used directly and the
-  default base directories are disregarded.
+testing =
+^^^^^^^^^
+
+An optional string setting the testing name of the repository. It is used to
+construct the location below which testing package data of the repository is
+stored.
+
+If the string denotes a relative directory it is used below the
+default *package repository base directory* and *management repository base
+directory* (see :ref:`repod.conf_default_directories`).
+
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
+
+testing_debug =
+^^^^^^^^^^^^^^^
+An optional string setting the testing debug name of the repository. It is used
+to construct the location below which testing debug package data of the
+repository is stored.
+
+**NOTE**: The *testing* and *debug* option must be set when using this
+option. Similarly, if *debug* and *testing* are configured for a repository,
+this option also has to be configured.
+
+If the string denotes a relative directory it is used below the
+default *package repository base directory* and *management repository base
+directory* (see :ref:`repod.conf_default_directories`).
+
+If the string denotes an absolute directory it is used directly and the
+default base directories are disregarded.
 
 .. _repod.conf_defaults:
 
@@ -589,3 +673,7 @@ NOTES
 1. TOML specification
 
    https://toml.io/en/v1.0.0
+
+2. Orjson options
+
+   https://github.com/ijl/orjson#option)
