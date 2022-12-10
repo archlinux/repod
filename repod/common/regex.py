@@ -1,3 +1,4 @@
+"""Regular expressions used for matching strings in packages and sync databases."""
 from repod.common.enums import (
     ArchitectureEnum,
     tar_compression_types_for_filename_regex,

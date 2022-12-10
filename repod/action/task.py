@@ -1,3 +1,4 @@
+"""Tasks for chaining workflows in repod."""
 from __future__ import annotations
 
 import asyncio
@@ -59,7 +60,7 @@ def read_build_requirements_from_archive_dir(
     archive_dir: Path | None,
     pkgs_in_archive: set[str],
 ) -> None:
-    """Read build requirements of a list of OutputPackageBases from an archive directory
+    """Read build requirements of a list of OutputPackageBases from an archive directory.
 
     Parameters
     ----------
@@ -70,7 +71,6 @@ def read_build_requirements_from_archive_dir(
     pkgs_in_archive: set[str]
         A set of strings to which matching build requirements in the archive are appended
     """
-
     if not archive_dir:
         return
 
@@ -96,7 +96,7 @@ def read_build_requirements_from_management_repo_dirs(
     management_directories: list[Path],
     pkgs_in_repo: set[str],
 ) -> None:
-    """Read build requirements of a list of OutputPackageBases from management repository directories
+    """Read build requirements of a list of OutputPackageBases from management repository directories.
 
     Parameters
     ----------
@@ -112,7 +112,6 @@ def read_build_requirements_from_management_repo_dirs(
     TaskError
         If an error occurs while reading a file from the management repository directories
     """
-
     for pkgbase in pkgbases:
         for pkgname, pkgver, architecture in Installed.as_models(
             pkgbase.buildinfo.installed  # type: ignore[attr-defined]
@@ -158,7 +157,7 @@ def read_pkgbases_from_stability_layers(
     pkgbases_above: list[OutputPackageBase],
     pkgbases_below: list[OutputPackageBase],
 ) -> None:
-    """Read the pkgbases from all available stability layers
+    """Read the pkgbases from all available stability layers.
 
     Parameters
     ----------
@@ -185,7 +184,6 @@ def read_pkgbases_from_stability_layers(
     RepoManagementFileError
         If OutputPackageBase.from_file raises
     """
-
     for name in pkgbase_names:
         current_pkgbase_file = directory / Path(name + ".json")
         if current_pkgbase_file.exists():
@@ -210,7 +208,7 @@ def read_pkgbases_from_stability_layers(
 
 
 class SourceDestination(BaseModel):
-    """A model describing a source and a destination of a file
+    """A model describing a source and a destination of a file.
 
     Attributes
     ----------
@@ -231,7 +229,7 @@ class SourceDestination(BaseModel):
 
     @validator("source")
     def validate_source(cls, path: Path) -> Path:
-        """Validate the source attribute
+        """Validate the source attribute.
 
         Raises
         ------
@@ -249,7 +247,6 @@ class SourceDestination(BaseModel):
         Path
             A validated Path
         """
-
         if not path.is_absolute():
             raise ValueError(f"The path Path must be absolute, but {path} is not!")
         if not str(path).endswith(".tmp"):
@@ -259,7 +256,7 @@ class SourceDestination(BaseModel):
 
     @validator("destination")
     def validate_destination(cls, path: Path) -> Path:
-        """Validate the destination attribute
+        """Validate the destination attribute.
 
         Raises
         ------
@@ -277,7 +274,6 @@ class SourceDestination(BaseModel):
         Path
             A validated Path
         """
-
         if not path.is_absolute():
             raise ValueError(f"The destination Path must be absolute, but {path} is not!")
         if str(path).endswith(".tmp"):
@@ -289,7 +285,7 @@ class SourceDestination(BaseModel):
 
     @validator("destination_backup")
     def validate_destination_backup(cls, path: Path) -> Path:
-        """Validate the destination_backup attribute
+        """Validate the destination_backup attribute.
 
         Raises
         ------
@@ -316,7 +312,7 @@ class SourceDestination(BaseModel):
 
 
 class Task(ABC):
-    """An abstract base class to describe an operation
+    """An abstract base class to describe an operation.
 
     Tasks are Callables, that are used to run an operation (e.g. on an input) and may have pre and post checks. A Task
     tracks its own state, which indicates whether it ran successfully or not, using a member of ActionStateEnum.
@@ -349,7 +345,7 @@ class Task(ABC):
     state: ActionStateEnum = ActionStateEnum.NOT_STARTED
 
     def __call__(self) -> ActionStateEnum:  # pragma: no cover
-        """The call for a Task
+        """Call a Task.
 
         A Task has the following call order:
         - all of its dependency Tasks
@@ -366,7 +362,6 @@ class Task(ABC):
             ActionStateEnum.FAILED_TASK if the do() method of the Task fails,
             ActionStateEnum.FAILED_POST_CHECK if  any of the Checks in post_checks fails,
         """
-
         for dependency in self.dependencies:
             if dependency() != ActionStateEnum.SUCCESS:
                 self.state = ActionStateEnum.FAILED_DEPENDENCY
@@ -395,7 +390,7 @@ class Task(ABC):
 
     @abstractmethod
     def do(self) -> ActionStateEnum:  # pragma: no cover
-        """Run the Task's operation
+        """Run the Task's operation.
 
         This runs the Task's operation and sets its state property to ActionStateEnum.SUCCESS_TASK or
         ActionStateEnum.FAILED_TASK, depending on whether it runs successful or not.
@@ -406,12 +401,11 @@ class Task(ABC):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise.
         """
-
         pass
 
     @abstractmethod
     def undo(self) -> ActionStateEnum:  # pragma: no cover
-        """Undo the Task's operation
+        """Undo the Task's operation.
 
         This runs an operation to undo any actions done in a Task's do() call, sets the Task's state property to
         ActionStateEnum.NOT_STARTED if successful, otherwise to ActionStateEnum.FAILED_UNDO_TASK and returns the state.
@@ -426,11 +420,10 @@ class Task(ABC):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         pass
 
     def dependency_undo(self) -> ActionStateEnum:  # pragma: no cover
-        """Undo all dependency Tasks in reverse order
+        """Undo all dependency Tasks in reverse order.
 
         Returns
         -------
@@ -438,7 +431,6 @@ class Task(ABC):
             The ActionStateEnum member before calling the method,
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed
         """
-
         for dependency in reversed(self.dependencies):
             if dependency.undo() != ActionStateEnum.NOT_STARTED:
                 self.state = ActionStateEnum.FAILED_UNDO_DEPENDENCY
@@ -446,19 +438,18 @@ class Task(ABC):
         return self.state
 
     def is_done(self) -> bool:  # pragma: no cover
-        """Return the done state of the Task as a boolean value
+        """Return the done state of the Task as a boolean value.
 
         Returns
         -------
         bool
             True if the Task is done (self.state is ActionStateEnum.SUCCESS), False otherwise
         """
-
         return True if self.state == ActionStateEnum.SUCCESS else False
 
 
 class CreateOutputPackageBasesTask(Task):
-    """A Task to create a list of OutputPackageBase instances from a list of Paths
+    """A Task to create a list of OutputPackageBase instances from a list of Paths.
 
     If a pkgbase_urls dict is provided, the AnyUrl instances in it, which match the created pkgbases, will be added to
     the respective OutputPackageBase objects.
@@ -486,7 +477,7 @@ class CreateOutputPackageBasesTask(Task):
         package_verification: PkgVerificationTypeEnum | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of CreateOutputPackageBasesTask
+        """Initialize an instance of CreateOutputPackageBasesTask.
 
         Parameters
         ----------
@@ -506,7 +497,6 @@ class CreateOutputPackageBasesTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         pre_checks: list[Check] = []
         post_checks: list[Check] = []
 
@@ -534,7 +524,7 @@ class CreateOutputPackageBasesTask(Task):
         self.pkgbases: list[OutputPackageBase] = []
 
     def do(self) -> ActionStateEnum:
-        """Create instances of OutputPackageBase
+        """Create instances of OutputPackageBase.
 
         Returns
         -------
@@ -542,7 +532,6 @@ class CreateOutputPackageBasesTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise.
         """
-
         packages: list[Package] = []
 
         debug(f"Running Task to create a list of OutputPackageBase instances using {self.package_paths}...")
@@ -585,7 +574,7 @@ class CreateOutputPackageBasesTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the creation of OutputPackageBase instances
+        """Undo the creation of OutputPackageBase instances.
 
         Returns
         -------
@@ -594,7 +583,6 @@ class CreateOutputPackageBasesTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         debug(f"Undoing Task to create OutputPackageBase instances from packages {self.package_paths}... ")
 
         self.pkgbases.clear()
@@ -604,7 +592,7 @@ class CreateOutputPackageBasesTask(Task):
 
 
 class PrintOutputPackageBasesTask(Task):
-    """A Task to print instances of OutputPackageBase to stdout
+    """A Task to print instances of OutputPackageBase to stdout.
 
     Attributes
     ----------
@@ -625,7 +613,7 @@ class PrintOutputPackageBasesTask(Task):
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize and instance of PrintOutputPackageBasesTask
+        """Initialize and instance of PrintOutputPackageBasesTask.
 
         Parameters
         ----------
@@ -636,7 +624,6 @@ class PrintOutputPackageBasesTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.input_from_dependency = False
         self.pkgbases: list[OutputPackageBase] = []
 
@@ -657,7 +644,7 @@ class PrintOutputPackageBasesTask(Task):
         self.dumps_option = dumps_option
 
     def do(self) -> ActionStateEnum:
-        """Print OutputPackageBase instances in JSON representation
+        """Print OutputPackageBase instances in JSON representation.
 
         Returns
         -------
@@ -665,16 +652,16 @@ class PrintOutputPackageBasesTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise.
         """
-
         if self.input_from_dependency:
-            for dependency in self.dependencies:
-                if isinstance(dependency, CreateOutputPackageBasesTask):
-                    match dependency.state:
-                        case ActionStateEnum.SUCCESS:
-                            self.pkgbases = dependency.pkgbases
-                        case _:
-                            self.state = ActionStateEnum.FAILED_DEPENDENCY
-                            return self.state
+            for dependency in [
+                dependency for dependency in self.dependencies if isinstance(dependency, CreateOutputPackageBasesTask)
+            ]:
+                match dependency.state:
+                    case ActionStateEnum.SUCCESS:
+                        self.pkgbases += dependency.pkgbases
+                    case _:
+                        self.state = ActionStateEnum.FAILED_DEPENDENCY
+                        return self.state
 
         debug("Running Task to print OutputPackageBases in JSON format...")
         self.state = ActionStateEnum.STARTED_TASK
@@ -690,7 +677,7 @@ class PrintOutputPackageBasesTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the printing of OutputPackageBase instances
+        """Undo the printing of OutputPackageBase instances.
 
         Returns
         -------
@@ -699,7 +686,6 @@ class PrintOutputPackageBasesTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             debug("Undoing Task to print OutputPackageBase instances not possible, as it never ran...")
             return self.state
@@ -715,7 +701,7 @@ class PrintOutputPackageBasesTask(Task):
 
 
 class WriteOutputPackageBasesToTmpFileInDirTask(Task):
-    """A Task to write instances of OutputPackageBase to temporary JSON files in a directory
+    """A Task to write instances of OutputPackageBase to temporary JSON files in a directory.
 
     Attributes
     ----------
@@ -734,7 +720,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize and instance of WriteOutputPackageBasesToTmpFileInDirTask
+        """Initialize and instance of WriteOutputPackageBasesToTmpFileInDirTask.
 
         Parameters
         ----------
@@ -747,7 +733,6 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.pkgbases = []
         self.input_from_dependency = False
 
@@ -774,7 +759,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
             self.pkgbases = pkgbases
 
     def do(self) -> ActionStateEnum:
-        """Write instances of OutputPackageBase to temporary JSON files in a directory
+        """Write instances of OutputPackageBase to temporary JSON files in a directory.
 
         Returns
         -------
@@ -782,7 +767,6 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise.
         """
-
         pkgname_dir = self.directory / "pkgnames"
 
         self.state = ActionStateEnum.STARTED_TASK
@@ -827,7 +811,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the writing of OutputPackageBase instances to temporary JSON files in a directory
+        """Undo the writing of OutputPackageBase instances to temporary JSON files in a directory.
 
         Returns
         -------
@@ -836,7 +820,6 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         debug(
             "Undoing Task to create an OutputPackageBase instance from a list of packages and "
             "writing it to a management repository directory..."
@@ -859,7 +842,7 @@ class WriteOutputPackageBasesToTmpFileInDirTask(Task):
 
 
 class MoveTmpFilesTask(Task):
-    """A Task to move temporary files
+    """A Task to move temporary files.
 
     A backup of the destination (if it exists) is created prior to moving a file
 
@@ -879,7 +862,7 @@ class MoveTmpFilesTask(Task):
         paths: list[list[Path]] | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of MoveTmpFilesTask
+        """Initialize an instance of MoveTmpFilesTask.
 
         If a WriteOutputPackageBasesToTmpFileInDirTask or WriteSyncDbsToTmpFilesInDirTask is provided as dependency
         Task, paths is derived from it (the input ordering of the Tasks is honored and the first match is used), else
@@ -892,7 +875,6 @@ class MoveTmpFilesTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.paths = []
         self.input_from_dependency = False
 
@@ -923,7 +905,7 @@ class MoveTmpFilesTask(Task):
             ]
 
     def do(self) -> ActionStateEnum:
-        """Move files from their source to their destination (with potential backup of destination)
+        """Move files from their source to their destination (with potential backup of destination).
 
         Returns
         -------
@@ -931,7 +913,6 @@ class MoveTmpFilesTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise.
         """
-
         if self.input_from_dependency and len(self.dependencies) > 0:
             debug("Getting temporary files and their destinations from the output of another Task...")
             # NOTE: we can skip branch coverage here, as the only way to go through an empty list of dependencies is by
@@ -1006,7 +987,7 @@ class MoveTmpFilesTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the moving of a file from source to destination
+        """Undo the moving of a file from source to destination.
 
         Undo also all Tasks that have been run as a dependency.
 
@@ -1017,7 +998,6 @@ class MoveTmpFilesTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state in [ActionStateEnum.NOT_STARTED, ActionStateEnum.FAILED_DEPENDENCY]:
             info(f"Can not undo moving of files {self.paths}, as it never took place.")
             self.state = ActionStateEnum.NOT_STARTED
@@ -1072,7 +1052,7 @@ class MoveTmpFilesTask(Task):
 
 
 class FilesToRepoDirTask(Task):
-    """A Task to copy files to a package pool directory and create symlinks for them in package repository directories
+    """A Task to copy files to a package pool directory and create symlinks for them in package repository directories.
 
     Attributes
     ----------
@@ -1102,7 +1082,7 @@ class FilesToRepoDirTask(Task):
         repo_type: RepoTypeEnum,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of FilesToRepoDirTask
+        """Initialize an instance of FilesToRepoDirTask.
 
         Parameters
         ----------
@@ -1121,7 +1101,6 @@ class FilesToRepoDirTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         debug(f"Creating Task to move {files} to repo {name} ({architecture})...")
 
         if dependencies is not None:
@@ -1136,7 +1115,7 @@ class FilesToRepoDirTask(Task):
         self.repo_files: list[RepoFile] = []
 
     def do(self) -> ActionStateEnum:
-        """Copy files to a package pool directory and create symlinks for them in a package repository directory
+        """Copy files to a package pool directory and create symlinks for them in a package repository directory.
 
         Returns
         -------
@@ -1144,7 +1123,6 @@ class FilesToRepoDirTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise.
         """
-
         self.state = ActionStateEnum.STARTED_TASK
 
         debug(f"Running Task to move {self.files} to repo {self.name} ({self.architecture})...")
@@ -1192,8 +1170,7 @@ class FilesToRepoDirTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the copying of files to a package pool directory and create symlinks for them in a package repository
-        directory
+        """Undo copying files to a package pool directory and creating symlinks in a package repository directory.
 
         Returns
         -------
@@ -1202,7 +1179,6 @@ class FilesToRepoDirTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 f"Can not undo moving of packages {self.files} to repository {self.name} ({self.architecture}) "
@@ -1221,7 +1197,7 @@ class FilesToRepoDirTask(Task):
 
 
 class AddToRepoTask(Task):
-    """Add package files to a repository
+    """Add package files to a repository.
 
     Attributes
     ----------
@@ -1230,18 +1206,17 @@ class AddToRepoTask(Task):
     """
 
     def __init__(self, dependencies: list[Task]):
-        """Initialize an instance of AddToRepoTask
+        """Initialize an instance of AddToRepoTask.
 
         Parameters
         ----------
         dependencies: list[Task]
             A list of Tasks that are dependencies of this one
         """
-
         self.dependencies = dependencies
 
     def do(self) -> ActionStateEnum:
-        """Run Task to add package files to a repository
+        """Run Task to add package files to a repository.
 
         Returns
         -------
@@ -1249,12 +1224,11 @@ class AddToRepoTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         self.state = ActionStateEnum.SUCCESS_TASK
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the adding of packages to a repository
+        """Undo the adding of packages to a repository.
 
         Returns
         -------
@@ -1263,14 +1237,13 @@ class AddToRepoTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()
         return self.state
 
 
 class WriteSyncDbsToTmpFilesInDirTask(Task):
-    """A Task to write a repository's sync databases and their symlinks to temporary files in a directory
+    """A Task to write a repository's sync databases and their symlinks to temporary files in a directory.
 
     Attributes
     ----------
@@ -1303,7 +1276,7 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
         package_repo_dir: Path,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of WriteSyncDbsToTmpFilesInDirTask
+        """Initialize an instance of WriteSyncDbsToTmpFilesInDirTask.
 
         Parameters
         ----------
@@ -1320,7 +1293,6 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
         dependencies: list[Task] | None
             An optional list of Task lists which are executed before this Task (defaults to None)
         """
-
         self.compression = compression
         self.desc_version = desc_version
         self.files_version = files_version
@@ -1339,7 +1311,7 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
             self.dependencies = dependencies
 
     def do(self) -> ActionStateEnum:
-        """Run Task to write temporary repository sync databases to a package repository directory
+        """Run Task to write temporary repository sync databases to a package repository directory.
 
         Returns
         -------
@@ -1347,7 +1319,6 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         self.state = ActionStateEnum.STARTED_TASK
 
         debug(
@@ -1394,7 +1365,7 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the writing of temporary repository sync databases in a package repository directory
+        """Undo the writing of temporary repository sync databases in a package repository directory.
 
         Returns
         -------
@@ -1403,7 +1374,6 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 f"Can not undo writing of temporary repository sync databases {self.default_syncdb_path} and "
@@ -1427,7 +1397,7 @@ class WriteSyncDbsToTmpFilesInDirTask(Task):
 
 
 class RemoveBackupFilesTask(Task):
-    """A destructive(!) Task to remove backup files
+    """A destructive(!) Task to remove backup files.
 
     Attributes
     ----------
@@ -1438,7 +1408,7 @@ class RemoveBackupFilesTask(Task):
     """
 
     def __init__(self, paths: list[Path] | None = None, dependencies: list[Task] | None = None):
-        """Initialize an instance of RemoveBackupFilesTask
+        """Initialize an instance of RemoveBackupFilesTask.
 
         If instances of MoveTmpFilesTask are provided in dependencies, paths is populated from them.
 
@@ -1449,7 +1419,6 @@ class RemoveBackupFilesTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.input_from_dependency: bool = False
         if dependencies:
             self.dependencies = dependencies
@@ -1468,7 +1437,7 @@ class RemoveBackupFilesTask(Task):
             self.paths = paths
 
     def do(self) -> ActionStateEnum:
-        """Run Task to remove backup files
+        """Run Task to remove backup files.
 
         Returns
         -------
@@ -1476,7 +1445,6 @@ class RemoveBackupFilesTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         if self.input_from_dependency and len(self.dependencies) > 0:
             debug("Getting backup files from the output of another Task...")
             for dependency in self.dependencies:  # pragma: no branch
@@ -1498,7 +1466,7 @@ class RemoveBackupFilesTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo Task for the removal of backup files
+        """Undo Task for the removal of backup files.
 
         Returns
         -------
@@ -1507,7 +1475,6 @@ class RemoveBackupFilesTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(f"Can not undo removing of backup files {self.paths} as it has not happened yet!")
             self.dependency_undo()
@@ -1522,7 +1489,7 @@ class RemoveBackupFilesTask(Task):
 
 
 class ConsolidateOutputPackageBasesTask(Task):
-    """Task to compare OutputPackageBase instances with those in a management repository
+    """Task to compare OutputPackageBase instances with those in a management repository.
 
     Attributes
     ----------
@@ -1551,7 +1518,7 @@ class ConsolidateOutputPackageBasesTask(Task):
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of ConsolidateOutputPackageBasesTask
+        """Initialize an instance of ConsolidateOutputPackageBasesTask.
 
         If instances of CreateOutputPackageBasesTask are provided in dependencies, pkgbases is populated from them.
 
@@ -1570,7 +1537,6 @@ class ConsolidateOutputPackageBasesTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.directory = directory
         if not self.directory or not self.directory.exists():
             raise RuntimeError("The provided directory must exist!")
@@ -1605,7 +1571,7 @@ class ConsolidateOutputPackageBasesTask(Task):
         self.current_package_names: list[str] = []
 
     def do(self) -> ActionStateEnum:
-        """Run Task to compare OutputPackageBase instances with those in a management repository directory
+        """Run Task to compare OutputPackageBase instances with those in a management repository directory.
 
         Returns
         -------
@@ -1613,7 +1579,6 @@ class ConsolidateOutputPackageBasesTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         if self.input_from_dependency and len(self.dependencies) > 0:
             debug("Getting pkgbases from the output of another Task...")
             for dependency in self.dependencies:  # pragma: no branch
@@ -1694,7 +1659,7 @@ class ConsolidateOutputPackageBasesTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo Task to consolidate OutputPackageBase instances with those from a management repository directory
+        """Undo Task to consolidate OutputPackageBase instances with those from a management repository directory.
 
         Returns
         -------
@@ -1703,7 +1668,6 @@ class ConsolidateOutputPackageBasesTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 "Can not undo consolidation of OutputPackageBases "
@@ -1727,7 +1691,7 @@ class ConsolidateOutputPackageBasesTask(Task):
 
 
 class RemoveManagementRepoSymlinksTask(Task):
-    """Destructive Task to remove symlinks in a management repository directory
+    """Destructive Task to remove symlinks in a management repository directory.
 
     Attributes
     ----------
@@ -1738,7 +1702,7 @@ class RemoveManagementRepoSymlinksTask(Task):
     """
 
     def __init__(self, directory: Path, names: list[str] | None = None, dependencies: list[Task] | None = None):
-        """Initialize an instance of RemoveManagementRepoSymlinksTask
+        """Initialize an instance of RemoveManagementRepoSymlinksTask.
 
         If instances of ConsolidateOutputPackageBasesTask are provided in dependencies, names is populated from them.
 
@@ -1751,7 +1715,6 @@ class RemoveManagementRepoSymlinksTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.directory = directory
         if not self.directory or not self.directory.exists():
             raise RuntimeError("The provided directory must exist!")
@@ -1781,7 +1744,7 @@ class RemoveManagementRepoSymlinksTask(Task):
             self.names = names
 
     def do(self) -> ActionStateEnum:
-        """Run Task to remove symlinks in a management repository directory
+        """Run Task to remove symlinks in a management repository directory.
 
         Returns
         -------
@@ -1789,7 +1752,6 @@ class RemoveManagementRepoSymlinksTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         if self.input_from_dependency and len(self.dependencies) > 0:
             debug("Getting pkgbases from the output of another Task...")
             for dependency in self.dependencies:  # pragma: no branch
@@ -1812,7 +1774,7 @@ class RemoveManagementRepoSymlinksTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo Task to remove symlinks from a management repository directory
+        """Undo Task to remove symlinks from a management repository directory.
 
         Returns
         -------
@@ -1821,7 +1783,6 @@ class RemoveManagementRepoSymlinksTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 "Can not undo removing of symlinks for packages "
@@ -1840,7 +1801,7 @@ class RemoveManagementRepoSymlinksTask(Task):
 
 
 class RemovePackageRepoSymlinksTask(Task):
-    """Destructive Task to remove symlinks in a package repository directory
+    """Destructive Task to remove symlinks in a package repository directory.
 
     This Task removes symlinks for package files and their accompanying signature files.
 
@@ -1853,7 +1814,7 @@ class RemovePackageRepoSymlinksTask(Task):
     """
 
     def __init__(self, directory: Path, filenames: list[str] | None = None, dependencies: list[Task] | None = None):
-        """Initialize an instance of RemovePackageRepoSymlinksTask
+        """Initialize an instance of RemovePackageRepoSymlinksTask.
 
         If instances of ConsolidateOutputPackageBasesTask are provided in dependencies, filenames is populated from
         them.
@@ -1867,7 +1828,6 @@ class RemovePackageRepoSymlinksTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.directory = directory
         if not self.directory or not self.directory.exists():
             raise RuntimeError("The provided directory must exist!")
@@ -1896,7 +1856,7 @@ class RemovePackageRepoSymlinksTask(Task):
             self.filenames = filenames
 
     def do(self) -> ActionStateEnum:
-        """Run Task to remove symlinks in a package repository directory
+        """Run Task to remove symlinks in a package repository directory.
 
         Returns
         -------
@@ -1904,7 +1864,6 @@ class RemovePackageRepoSymlinksTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         if self.input_from_dependency and len(self.dependencies) > 0:
             debug("Getting pkgbases from the output of another Task...")
             for dependency in self.dependencies:  # pragma: no branch
@@ -1928,7 +1887,7 @@ class RemovePackageRepoSymlinksTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo Task to remove symlinks from a package repository directory
+        """Undo Task to remove symlinks from a package repository directory.
 
         Returns
         -------
@@ -1937,7 +1896,6 @@ class RemovePackageRepoSymlinksTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 "Can not undo removing of symlinks "
@@ -1956,7 +1914,7 @@ class RemovePackageRepoSymlinksTask(Task):
 
 
 class CleanupRepoTask(Task):
-    """Cleanup files in a repository
+    """Cleanup files in a repository.
 
     Attributes
     ----------
@@ -1965,18 +1923,17 @@ class CleanupRepoTask(Task):
     """
 
     def __init__(self, dependencies: list[Task]):
-        """Initialize an instance of AddToRepoTask
+        """Initialize an instance of AddToRepoTask.
 
         Parameters
         ----------
         dependencies: list[Task]
             A list of Tasks that are dependencies of this one
         """
-
         self.dependencies = dependencies
 
     def do(self) -> ActionStateEnum:
-        """Run Task to add package files to a repository
+        """Run Task to add package files to a repository.
 
         Returns
         -------
@@ -1984,12 +1941,11 @@ class CleanupRepoTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         self.state = ActionStateEnum.SUCCESS_TASK
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the adding of packages to a repository
+        """Undo the adding of packages to a repository.
 
         Returns
         -------
@@ -1998,14 +1954,13 @@ class CleanupRepoTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         self.state = ActionStateEnum.NOT_STARTED
         self.dependency_undo()
         return self.state
 
 
 class AddToArchiveTask(Task):
-    """Add files to an archive directory
+    """Add files to an archive directory.
 
     Attributes
     ----------
@@ -2019,7 +1974,7 @@ class AddToArchiveTask(Task):
         filenames: list[Path] | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of AddToArchiveTask
+        """Initialize an instance of AddToArchiveTask.
 
         If instances of FilesToRepoDirTask are added to dependencies, the list of files is derived from them
 
@@ -2039,7 +1994,6 @@ class AddToArchiveTask(Task):
             If not providing archive_dir
             or if not providing filenames when
         """
-
         if not archive_dir:
             raise RuntimeError("An archive directory must be provided!")
 
@@ -2072,7 +2026,7 @@ class AddToArchiveTask(Task):
             ]
 
     def do(self) -> ActionStateEnum:
-        """Run Task to add files to an archive directory
+        """Run Task to add files to an archive directory.
 
         Returns
         -------
@@ -2080,7 +2034,6 @@ class AddToArchiveTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         if self.input_from_dependency and len(self.dependencies) > 0:
             debug("Getting pkgbases from the output of another Task...")
             for dependency in self.dependencies:  # pragma: no branch
@@ -2107,7 +2060,7 @@ class AddToArchiveTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo the archiving of files
+        """Undo the archiving of files.
 
         Returns
         -------
@@ -2116,7 +2069,6 @@ class AddToArchiveTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 f"Can not undo archiving of {', '.join([str(obj.source) for obj in self.files])} "
@@ -2144,8 +2096,7 @@ class AddToArchiveTask(Task):
 
 
 class ReproducibleBuildEnvironmentTask(Task):
-    """Task to gather data related to an OutputPackageBase from local management repository, archive (if present) and
-    the other OutputPackageBase instances.
+    """Gather data on OutputPackageBase from management repo, archive (if present) and other OutputPackageBases.
 
     Attributes
     ----------
@@ -2172,7 +2123,7 @@ class ReproducibleBuildEnvironmentTask(Task):
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of ReproducibleBuildEnvironmentTask
+        """Initialize an instance of ReproducibleBuildEnvironmentTask.
 
         If instances of CreateOutputPackageBasesTask are provided in dependencies, pkgbases is populated from them.
 
@@ -2187,7 +2138,6 @@ class ReproducibleBuildEnvironmentTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         if not management_directories:
             raise RuntimeError("At least one management repository directory must be provided!")
 
@@ -2225,8 +2175,7 @@ class ReproducibleBuildEnvironmentTask(Task):
         self.pkgs_in_transaction: set[str] = set()
 
     def do(self) -> ActionStateEnum:  # noqa: C901
-        """Run Task to gather data related to an OutputPackageBase from local management repository, archive (if
-        present) and other new OutputPackageBase instances.
+        """Run gather data on OutputPackageBase from management repo, archive (if present) and other OutputPackageBases.
 
         Returns
         -------
@@ -2234,7 +2183,6 @@ class ReproducibleBuildEnvironmentTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         if self.input_from_dependency:
             debug("Getting pkgbases from the output of another Task...")
             for dependency in self.dependencies:
@@ -2299,8 +2247,7 @@ class ReproducibleBuildEnvironmentTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo Task to gather data related to an OutputPackageBase from local management repository, archive (if
-        present) and other new OutputPackageBase instances.
+        """Undo gather data on OutputPackageBase from management repo, archive and other OutputPackageBases.
 
         Returns
         -------
@@ -2309,7 +2256,6 @@ class ReproducibleBuildEnvironmentTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 "Can not undo consolidation of OutputPackageBases "
@@ -2334,7 +2280,7 @@ class ReproducibleBuildEnvironmentTask(Task):
 
 
 class RepoGroupTask(Task):
-    """A Task to retrieve information about repositories in a group
+    """A Task to retrieve information about repositories in a group.
 
     Attributes
     ----------
@@ -2358,7 +2304,7 @@ class RepoGroupTask(Task):
         pkgbases: list[OutputPackageBase] | None = None,
         dependencies: list[Task] | None = None,
     ):
-        """Initialize an instance of RepoGroupTask
+        """Initialize an instance of RepoGroupTask.
 
         If instances of CreateOutputPackageBasesTask are provided in dependencies, pkgbases is populated from them.
 
@@ -2371,7 +2317,6 @@ class RepoGroupTask(Task):
         dependencies: list[Task] | None
             An optional list of Task instances that are run before this task (defaults to None)
         """
-
         self.repositories = repositories
 
         self.input_from_dependency = False
@@ -2402,7 +2347,7 @@ class RepoGroupTask(Task):
         self.repo_management_dirs: dict[Path, list[Path]] = defaultdict(list)
 
     def do(self) -> ActionStateEnum:
-        """Run Task to gather data related to PackageRepos in a group
+        """Run Task to gather data related to PackageRepos in a group.
 
         Returns
         -------
@@ -2410,7 +2355,6 @@ class RepoGroupTask(Task):
             ActionStateEnum.SUCCESS_TASK if the Task ran successfully,
             ActionStateEnum.FAILED_TASK otherwise
         """
-
         if self.input_from_dependency:
             debug("Getting pkgbases from the output of another Task...")
             for dependency in self.dependencies:
@@ -2449,7 +2393,7 @@ class RepoGroupTask(Task):
         return self.state
 
     def undo(self) -> ActionStateEnum:
-        """Undo Task to gather data related to PackageRepos in a group
+        """Undo Task to gather data related to PackageRepos in a group.
 
         Returns
         -------
@@ -2458,7 +2402,6 @@ class RepoGroupTask(Task):
             ActionStateEnum.FAILED_UNDO_DEPENDENCY if undoing of any of the dependency Tasks failed,
             ActionStateEnum.FAILED_UNDO_TASK otherwise
         """
-
         if self.state == ActionStateEnum.NOT_STARTED:
             info(
                 "Can not undo gathering of repository group data for pkgbases "

@@ -1,3 +1,4 @@
+"""Pydantic models shared throughout the codebase."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -30,7 +31,7 @@ from repod.version import alpm
 
 
 class Arch(BaseModel):
-    """A model describing a single 'arch' attribute
+    """A model describing a single 'arch' attribute.
 
     Attributes
     ----------
@@ -43,7 +44,7 @@ class Arch(BaseModel):
 
 
 class Backup(BaseModel):
-    """A model describing a single 'backup' attribute
+    """A model describing a single 'backup' attribute.
 
     Attributes
     ----------
@@ -55,8 +56,8 @@ class Backup(BaseModel):
     backup: list[str] | None
 
     @validator("backup")
-    def validate_backup(cls, backup: list[str] | None) -> list[str] | None:
-        """Validate the backup attribute
+    def validate_backup(cls: Backup, backup: list[str] | None) -> list[str] | None:  # noqa: N805
+        """Validate the backup attribute.
 
         The backup attribute may not contain strings that represent absolute Paths or Paths in the home directory
 
@@ -70,7 +71,6 @@ class Backup(BaseModel):
         list[str] | None
             None if backup is None, empty list if backup is empty list, or a validated list of strings
         """
-
         if backup:
             for file in backup:
                 path = Path(file)
@@ -86,7 +86,7 @@ class Backup(BaseModel):
 
 
 class Base(BaseModel):
-    """A model describing a single 'base' attribute
+    """A model describing a single 'base' attribute.
 
     Attributes
     ----------
@@ -99,7 +99,7 @@ class Base(BaseModel):
 
 
 class BuildDate(BaseModel):
-    """A model describing a single 'builddate' attribute
+    """A model describing a single 'builddate' attribute.
 
     Attributes
     ----------
@@ -112,7 +112,7 @@ class BuildDate(BaseModel):
 
 
 class CheckDepends(BaseModel):
-    """A model describing a single 'checkdepends' attribute
+    """A model describing a single 'checkdepends' attribute.
 
     Attributes
     ----------
@@ -125,7 +125,7 @@ class CheckDepends(BaseModel):
 
 
 class Conflicts(BaseModel):
-    """A model describing a single 'conflicts' attribute
+    """A model describing a single 'conflicts' attribute.
 
     Attributes
     ----------
@@ -138,7 +138,7 @@ class Conflicts(BaseModel):
 
 
 class CSize(BaseModel):
-    """A model describing a single 'csize' attribute
+    """A model describing a single 'csize' attribute.
 
     Attributes
     ----------
@@ -151,7 +151,7 @@ class CSize(BaseModel):
 
 
 class Depends(BaseModel):
-    """A model describing a single 'depends' attribute
+    """A model describing a single 'depends' attribute.
 
     Attributes
     ----------
@@ -164,7 +164,7 @@ class Depends(BaseModel):
 
 
 class Desc(BaseModel):
-    """A model describing a single 'desc' attribute
+    """A model describing a single 'desc' attribute.
 
     Attributes
     ----------
@@ -177,7 +177,7 @@ class Desc(BaseModel):
 
 
 class FileName(BaseModel):
-    """A model describing a single 'filename' attribute
+    """A model describing a single 'filename' attribute.
 
     Attributes
     ----------
@@ -190,7 +190,7 @@ class FileName(BaseModel):
 
 
 class FileList(BaseModel):
-    """A model describing an optional list of files
+    """A model describing an optional list of files.
 
     Attributes
     ----------
@@ -202,8 +202,8 @@ class FileList(BaseModel):
     files: list[str] | None
 
     @validator("files")
-    def validate_files(cls, files: list[str] | None) -> list[str] | None:
-        """Validate the files attribute
+    def validate_files(cls: FileList, files: list[str] | None) -> list[str] | None:  # noqa: N805
+        """Validate the files attribute.
 
         The files attribute may not contain strings that represent absolute Paths or Paths in the home directory
 
@@ -217,7 +217,6 @@ class FileList(BaseModel):
         list[str] | None
             None if files is None, empty list if files is empty list, or a validated list of strings
         """
-
         if files:
             for file in files:
                 path = Path(file)
@@ -233,7 +232,7 @@ class FileList(BaseModel):
 
 
 class Groups(BaseModel):
-    """A model describing a single 'groups' attribute
+    """A model describing a single 'groups' attribute.
 
     Attributes
     ----------
@@ -246,7 +245,7 @@ class Groups(BaseModel):
 
 
 class ISize(BaseModel):
-    """A model describing a single 'isize' attribute
+    """A model describing a single 'isize' attribute.
 
     Attributes
     ----------
@@ -259,7 +258,7 @@ class ISize(BaseModel):
 
 
 class License(BaseModel):
-    """A model describing a single 'license' attribute
+    """A model describing a single 'license' attribute.
 
     Attributes
     ----------
@@ -268,11 +267,11 @@ class License(BaseModel):
         identifies a package's license(s)
     """
 
-    license: list[str]
+    license: list[str]  # noqa: A003
 
 
 class MakeDepends(BaseModel):
-    """A model describing a single 'makedepends' attribute
+    """A model describing a single 'makedepends' attribute.
 
     Attributes
     ----------
@@ -285,7 +284,7 @@ class MakeDepends(BaseModel):
 
 
 class Md5Sum(BaseModel):
-    """A model describing a single 'md5sum' attribute
+    """A model describing a single 'md5sum' attribute.
 
     Attributes
     ----------
@@ -298,7 +297,7 @@ class Md5Sum(BaseModel):
 
 
 class Name(BaseModel):
-    """A model describing a single 'name' attribute
+    """A model describing a single 'name' attribute.
 
     Attributes
     ----------
@@ -311,7 +310,7 @@ class Name(BaseModel):
 
 
 class Options(BaseModel):
-    """A list of makepkg.conf OPTIONS used during the creation of a package
+    """A list of makepkg.conf OPTIONS used during the creation of a package.
 
     For valid values refer to the OPTIONS subsection in https://man.archlinux.org/man/makepkg.conf.5#OPTIONS
 
@@ -325,7 +324,7 @@ class Options(BaseModel):
 
 
 class Packager(BaseModel):
-    """A model describing a single 'packager' attribute
+    """A model describing a single 'packager' attribute.
 
     Attributes
     ----------
@@ -337,19 +336,35 @@ class Packager(BaseModel):
     packager: constr(regex=(rf"^{PACKAGER_NAME}\s<(.*)>$"))  # type: ignore[valid-type]  # noqa: F722
 
     @validator("packager")
-    def validate_packager_has_valid_email(cls, packager: str) -> str:
+    def validate_packager_has_valid_email(cls: Packager, packager: str) -> str:  # noqa: N805
+        """Validate that Packager has an email in the UID.
 
+        Parameters
+        ----------
+        packager: str
+            The packager UID string
+
+        Raises
+        ------
+        ValuError
+            If no valid mail is found in packager
+
+        Returns
+        -------
+        str
+            A validated Packager UID string
+        """
         email = packager.replace(">", "").split("<")[1]
         try:
             validate_email(email, check_deliverability=False)
         except EmailNotValidError as e:
-            raise ValueError(f"The packager email is not valid: {email}\n{e}")
+            raise ValueError(f"The packager email is not valid: {email}\n{e}") from e
 
         return packager
 
 
 class PgpSig(BaseModel):
-    """A model describing a single 'pgpsig' attribute
+    """A model describing a single 'pgpsig' attribute.
 
     Attributes
     ----------
@@ -362,7 +377,7 @@ class PgpSig(BaseModel):
 
 
 class PkgBase(BaseModel):
-    """A pkgbase for a package
+    """A pkgbase for a package.
 
     Refer to https://man.archlinux.org/man/PKGBUILD.5.en#PACKAGE_SPLITTING for details on pkgbase
 
@@ -376,7 +391,7 @@ class PkgBase(BaseModel):
 
 
 class PkgDesc(BaseModel):
-    """A model describing a single pkgdesc attribute
+    """A model describing a single pkgdesc attribute.
 
     Attributes
     ----------
@@ -388,7 +403,7 @@ class PkgDesc(BaseModel):
 
 
 class PkgName(BaseModel):
-    """A pkgname of a package
+    """A pkgname of a package.
 
     Refer to the pkgname section in https://man.archlinux.org/man/PKGBUILD.5.en#OPTIONS_AND_DIRECTIVES for details
 
@@ -402,7 +417,7 @@ class PkgName(BaseModel):
 
 
 class Provides(BaseModel):
-    """A model describing a single 'provides' attribute
+    """A model describing a single 'provides' attribute.
 
     Attributes
     ----------
@@ -415,7 +430,7 @@ class Provides(BaseModel):
 
 
 class Replaces(BaseModel):
-    """A model describing a single 'replaces' attribute
+    """A model describing a single 'replaces' attribute.
 
     Attributes
     ----------
@@ -428,7 +443,7 @@ class Replaces(BaseModel):
 
 
 class SchemaVersionV1(BaseModel):
-    """A model describing a schema version 1
+    """A model describing a schema version 1.
 
     Attributes
     ----------
@@ -440,7 +455,7 @@ class SchemaVersionV1(BaseModel):
 
 
 class SchemaVersionV2(BaseModel):
-    """A model describing a schema version 2
+    """A model describing a schema version 2.
 
     Attributes
     ----------
@@ -452,7 +467,7 @@ class SchemaVersionV2(BaseModel):
 
 
 class Sha256Sum(BaseModel):
-    """A model describing a single 'sha256sum' attribute
+    """A model describing a single 'sha256sum' attribute.
 
     Attributes
     ----------
@@ -465,7 +480,7 @@ class Sha256Sum(BaseModel):
 
 
 class OptDepends(BaseModel):
-    """A model describing a single 'optdepends' attribute
+    """A model describing a single 'optdepends' attribute.
 
     Attributes
     ----------
@@ -478,7 +493,7 @@ class OptDepends(BaseModel):
 
 
 class Url(BaseModel):
-    """A model describing a single 'url' attribute
+    """A model describing a single 'url' attribute.
 
     Attributes
     ----------
@@ -491,7 +506,7 @@ class Url(BaseModel):
 
 
 class SourceUrl(BaseModel):
-    """A URL pointing at sources
+    """A URL pointing at sources.
 
     Attributes
     ----------
@@ -503,7 +518,7 @@ class SourceUrl(BaseModel):
 
 
 class Epoch(BaseModel):
-    """A model dscribing a single 'epoch' attribute
+    """A model dscribing a single 'epoch' attribute.
 
     The epoch denotes a downgrade in version of a given package (a version with an epoch trumps one without)
 
@@ -517,7 +532,7 @@ class Epoch(BaseModel):
 
 
 class PkgRel(BaseModel):
-    """A model dscribing a single 'pkgrel' attribute
+    """A model dscribing a single 'pkgrel' attribute.
 
     The pkgrel denotes the build version of a given package
 
@@ -531,7 +546,7 @@ class PkgRel(BaseModel):
 
 
 class PkgVer(BaseModel):
-    """A model dscribing a single 'pkgver' attribute
+    """A model dscribing a single 'pkgver' attribute.
 
     The pkgver denotes the upstream version of a given package
 
@@ -545,7 +560,7 @@ class PkgVer(BaseModel):
 
 
 class Version(BaseModel):
-    """A model describing a single 'version' attribute
+    """A model describing a single 'version' attribute.
 
     Attributes
     ----------
@@ -556,46 +571,43 @@ class Version(BaseModel):
 
     version: constr(regex=rf"^({EPOCH}|){VERSION}-{PKGREL}$")  # type: ignore[valid-type]  # noqa: F722
 
-    def get_epoch(self) -> Epoch | None:
-        """Return the epoch of the version
+    def get_epoch(self: Version) -> Epoch | None:
+        """Return the epoch of the version.
 
         Returns
         -------
         int | None
             An optional string representing the epoch of the version
         """
-
         if ":" in self.version:
             return Epoch(epoch=self.version.split(":")[0])
-        else:
-            return None
 
-    def get_pkgver(self) -> PkgVer:
-        """Return the pkgver of the version
+        return None
+
+    def get_pkgver(self: Version) -> PkgVer:
+        """Return the pkgver of the version.
 
         Returns
         -------
         PkgVer
             A PkgVer representing the pkgver of the version
         """
-
         pkgver_pkgrel = self.version.split(":")[1] if ":" in self.version else self.version
         return PkgVer(pkgver=str(pkgver_pkgrel.split("-")[0]))
 
-    def get_pkgrel(self) -> PkgRel:
-        """Return the pkgrel of the version
+    def get_pkgrel(self: Version) -> PkgRel:
+        """Return the pkgrel of the version.
 
         Returns
         -------
         PkgRel
             A PkgRel representing the pkgrel of the version
         """
-
         pkgver_pkgrel = self.version.split(":")[1] if ":" in self.version else self.version
         return PkgRel(pkgrel=str(pkgver_pkgrel.split("-")[1]))
 
-    def vercmp(self, version: Version) -> int:
-        """Compare the version with another
+    def vercmp(self: Version, version: Version) -> int:
+        """Compare the version with another.
 
         The comparison algorithm is based on pyalpm's/ pacman's vercmp behavior.
         If PYALPM_VERCMP is True, pyalpm has been imported and its implementation of vercmp() is used.
@@ -607,11 +619,10 @@ class Version(BaseModel):
             0 if self.version is equal to version
             1 if self.version is newer than version
         """
-
         return alpm.pkg_vercmp(self.version, version.version)
 
-    def is_older_than(self, version: Version) -> bool:
-        """Check whether the version is older than a provided version
+    def is_older_than(self: Version, version: Version) -> bool:
+        """Check whether the version is older than a provided version.
 
         Parameters
         ----------
@@ -622,11 +633,10 @@ class Version(BaseModel):
         -------
         True if self.version is older than the provided version, False otherwise.
         """
-
         return True if self.vercmp(version=version) < 0 else False
 
-    def is_newer_than(self, version: Version) -> bool:
-        """Check whether the version is newer than a provided version
+    def is_newer_than(self: Version, version: Version) -> bool:
+        """Check whether the version is newer than a provided version.
 
         Parameters
         ----------
@@ -637,5 +647,4 @@ class Version(BaseModel):
         -------
         True if self.version is newer than the provided version, False otherwise.
         """
-
         return True if self.vercmp(version=version) > 0 else False

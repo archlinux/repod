@@ -1,3 +1,4 @@
+"""Tests for repod.verification.pgp."""
 from logging import DEBUG
 from pathlib import Path
 from random import sample
@@ -15,6 +16,7 @@ from repod.verification import pgp
 def test_pacmankeyverifier_verify(
     run_command_mock: Mock, caplog: LogCaptureFixture, verifies: bool, result: bool
 ) -> None:
+    """Tests for repod.verification.pgp.Pacmankeyverifier.verify."""
     caplog.set_level(DEBUG)
     package = Path("package")
     signature = Path("signature")
@@ -26,7 +28,7 @@ def test_pacmankeyverifier_verify(
     print(result_mock)
 
     verifier = pgp.PacmanKeyVerifier()
-    assert verifier.verify(package=package, signature=signature) is result
+    assert verifier.verify(package=package, signature=signature) is result  # nosec: B101
 
 
 @mark.integration
@@ -36,6 +38,7 @@ def test_pacmankeyverifier_verify(
     reason="Package cache in /var/cache/pacman/pkg/ does not exist",
 )
 def test_pacmankeyverifier_verify_with_packages(caplog: LogCaptureFixture) -> None:
+    """Integration tests for repod.verification.pgp.Pacmankeyverifier.verify."""
     caplog.set_level(DEBUG)
     verifier = pgp.PacmanKeyVerifier()
 
@@ -52,7 +55,7 @@ def test_pacmankeyverifier_verify_with_packages(caplog: LogCaptureFixture) -> No
     if len(signatures) > 50:
         signatures = sample(signatures, 50)
     for signature in signatures:
-        assert (
+        assert (  # nosec: B101
             verifier.verify(
                 package=Path(str(signature).replace(".sig", "")),
                 signature=signature,

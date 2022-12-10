@@ -1,3 +1,4 @@
+"""Tests for repod.files.buildinfo."""
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from pathlib import Path
@@ -34,6 +35,7 @@ from tests.conftest import (
     ],
 )
 def test_builddate(number: int, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.buildinfo.BuildDate."""
     with expectation:
         buildinfo.BuildDate(builddate=number)
 
@@ -51,11 +53,13 @@ def test_builddir(
     path: str,
     expectation: ContextManager[str],
 ) -> None:
+    """Tests for repod.files.buildinfo.BuildDir."""
     with expectation:
         buildinfo.BuildDir(builddir=path)
 
 
 def test_buildenv(default_buildenv: str, default_invalid_buildenv: str) -> None:
+    """Tests for repod.files.buildinfo.BuildEnv."""
     with does_not_raise():
         buildinfo.BuildEnv(buildenv=[default_buildenv])
     with raises(ValidationError):
@@ -63,6 +67,7 @@ def test_buildenv(default_buildenv: str, default_invalid_buildenv: str) -> None:
 
 
 def test_buildtool(default_package_name: str, default_invalid_package_name: str) -> None:
+    """Tests for repod.files.buildinfo.BuildTool."""
     with does_not_raise():
         buildinfo.BuildTool(buildtool=default_package_name)
     with raises(ValidationError):
@@ -70,7 +75,8 @@ def test_buildtool(default_package_name: str, default_invalid_package_name: str)
 
 
 def test_buildtoolver() -> None:
-    assert buildinfo.BuildToolVer(buildtoolver="foo")
+    """Tests for repod.files.buildinfo.BuildToolVer."""
+    assert buildinfo.BuildToolVer(buildtoolver="foo")  # nosec: B101
 
 
 @mark.parametrize(
@@ -87,6 +93,7 @@ def test_buildtoolver() -> None:
     ],
 )
 def test_installed(installed: list[str], expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.buildinfo.Installed."""
     with expectation:
         buildinfo.Installed(installed=installed)
 
@@ -96,7 +103,8 @@ def test_installed_as_models(
     default_full_version: str,
     default_package_name: str,
 ) -> None:
-    assert [
+    """Tests for repod.files.buildinfo.Installed.as_models."""
+    assert [  # nosec: B101
         (
             buildinfo.PkgName(pkgname=default_package_name),
             buildinfo.PkgVer(pkgver=default_full_version),
@@ -106,6 +114,7 @@ def test_installed_as_models(
 
 
 def test_options(default_option: str, default_invalid_option: str) -> None:
+    """Tests for repod.files.buildinfo.Options."""
     with does_not_raise():
         buildinfo.Options(options=[default_option])
     with raises(ValidationError):
@@ -113,16 +122,19 @@ def test_options(default_option: str, default_invalid_option: str) -> None:
 
 
 def test_packager(default_packager: str) -> None:
+    """Tests for repod.files.buildinfo.Packager."""
     with does_not_raise():
         buildinfo.Packager(packager=default_packager)
 
 
 def test_invalid_packager(default_invalid_packager: str) -> None:
+    """Tests for repod.files.buildinfo.Packager."""
     with raises(ValidationError):
         buildinfo.Packager(packager=default_invalid_packager)
 
 
 def test_pkgarch(default_arch: str) -> None:
+    """Tests for repod.files.buildinfo.PkgArch."""
     with does_not_raise():
         buildinfo.PkgArch(pkgarch=default_arch)
     with raises(ValidationError):
@@ -130,6 +142,7 @@ def test_pkgarch(default_arch: str) -> None:
 
 
 def test_pkgbase(default_package_name: str, default_invalid_package_name: str) -> None:
+    """Tests for repod.files.buildinfo.PkgBase."""
     with does_not_raise():
         buildinfo.PkgBase(pkgbase=default_package_name)
     with raises(ValidationError):
@@ -137,6 +150,7 @@ def test_pkgbase(default_package_name: str, default_invalid_package_name: str) -
 
 
 def test_pkgbuildsha256sum(sha256sum: str) -> None:
+    """Tests for repod.files.buildinfo.PkgBuildSha256Sum."""
     with does_not_raise():
         buildinfo.PkgBuildSha256Sum(pkgbuild_sha256sum=sha256sum)
     with raises(ValidationError):
@@ -144,6 +158,7 @@ def test_pkgbuildsha256sum(sha256sum: str) -> None:
 
 
 def test_pkgname(default_package_name: str, default_invalid_package_name: str) -> None:
+    """Tests for repod.files.buildinfo.PkgName."""
     with does_not_raise():
         buildinfo.PkgName(pkgname=default_package_name)
     with raises(ValidationError):
@@ -151,6 +166,7 @@ def test_pkgname(default_package_name: str, default_invalid_package_name: str) -
 
 
 def test_pkgver(default_full_version: str, default_invalid_full_version: str) -> None:
+    """Tests for repod.files.buildinfo.PkgVer."""
     with does_not_raise():
         buildinfo.PkgVer(pkgver=default_full_version)
     with raises(ValidationError):
@@ -167,6 +183,7 @@ def test_pkgver(default_full_version: str, default_invalid_full_version: str) ->
     ],
 )
 def test_startdir(path: str, expectation: ContextManager[str]) -> None:
+    """Tests for invalid repod.files.buildinfo.StartDir."""
     with expectation:
         buildinfo.StartDir(startdir=path)
 
@@ -175,9 +192,14 @@ def test_buildinfo_from_file(
     buildinfov1_stringio: StringIO,
     buildinfov2_stringio: StringIO,
 ) -> None:
+    """Tests for repod.files.buildinfo.BuildInfo.from_file."""
     with does_not_raise():
-        assert isinstance(buildinfo.BuildInfo.from_file(data=buildinfov1_stringio), buildinfo.BuildInfoV1)
-        assert isinstance(buildinfo.BuildInfo.from_file(data=buildinfov2_stringio), buildinfo.BuildInfoV2)
+        assert isinstance(  # nosec: B101
+            buildinfo.BuildInfo.from_file(data=buildinfov1_stringio), buildinfo.BuildInfoV1
+        )
+        assert isinstance(  # nosec: B101
+            buildinfo.BuildInfo.from_file(data=buildinfov2_stringio), buildinfo.BuildInfoV2
+        )
 
     with raises(RepoManagementError):
         buildinfo.BuildInfo.from_file(data=StringIO(initial_value="foo = bar\n"))
@@ -189,6 +211,7 @@ def test_buildinfov2_validate_devtools_version(
     default_packager: str,
     sha256sum: str,
 ) -> None:
+    """Tests for repod.files.buildinfo.BuildInfoV2.validate_devtools_version."""
     with raises(ValidationError):
         buildinfo.BuildInfoV2(
             builddate=1,
@@ -209,6 +232,7 @@ def test_buildinfov2_validate_devtools_version(
 
 
 def test_export_schemas() -> None:
+    """Tests for repod.files.buildinfo.export_schemas."""
     with TemporaryDirectory() as tmp:
         buildinfo.export_schemas(output=str(tmp))
         buildinfo.export_schemas(output=tmp)
@@ -226,6 +250,7 @@ def test_export_schemas() -> None:
     reason="Package cache in /var/cache/pacman/pkg/ does not exist",
 )
 async def test_read_buildinfo_files() -> None:
+    """Integration tests for repod.files.buildinfo.BuildInfo.from_file."""
     packages = sorted(
         [
             path
@@ -237,7 +262,7 @@ async def test_read_buildinfo_files() -> None:
         packages = sample(packages, 50)
     for package in packages:
         print(f"DEBUG::: Reading .BUILDINFO file from package {package}...")
-        assert isinstance(
+        assert isinstance(  # nosec: B101
             buildinfo.BuildInfo.from_file(
                 await extract_file_from_tarfile(  # type: ignore[arg-type]
                     tarfile=open_tarfile(package),

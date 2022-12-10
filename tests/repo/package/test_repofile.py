@@ -85,7 +85,7 @@ from repod.repo.package import repofile
 def test_filename_parts(file: Path, output: dict[str, str], expectation: ContextManager[str]) -> None:
 
     with expectation:
-        assert repofile.filename_parts(file=file) == output
+        assert repofile.filename_parts(file=file) == output  # nosec: B101
 
 
 @mark.parametrize(
@@ -107,7 +107,7 @@ def test_shared_base_path(
 ) -> None:
     caplog.set_level(DEBUG)
     with expectation:
-        assert repofile.shared_base_path(path_a=path_a, path_b=path_b) == return_value
+        assert repofile.shared_base_path(path_a=path_a, path_b=path_b) == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -124,7 +124,7 @@ def test_relative_to_shared_base(
 ) -> None:
     caplog.set_level(DEBUG)
     with expectation:
-        assert repofile.relative_to_shared_base(path_a=path_a, path_b=path_b) == return_value
+        assert repofile.relative_to_shared_base(path_a=path_a, path_b=path_b) == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -158,7 +158,7 @@ def test_repofile(
             symlink_path = file_path
 
         with expectation:
-            assert repofile.RepoFile(file_type=file_type, file_path=file_path, symlink_path=symlink_path)
+            assert repofile.RepoFile(file_type=file_type, file_path=file_path, symlink_path=symlink_path)  # nosec: B101
 
 
 @mark.parametrize(
@@ -277,7 +277,7 @@ def test_repofile_copy_from(
     if not source_exists:
         source_path = empty_dir / "bar" / default_package_file[0].name
 
-    assert not destination_path.exists()
+    assert not destination_path.exists()  # nosec: B101
 
     file = repofile.RepoFile(
         file_type=RepoFileEnum.PACKAGE,
@@ -287,8 +287,8 @@ def test_repofile_copy_from(
 
     with expectation:
         file.copy_from(path=source_path)
-        assert source_path.exists()
-        assert destination_path.exists()
+        assert source_path.exists()  # nosec: B101
+        assert destination_path.exists()  # nosec: B101
 
 
 @mark.parametrize("source_exists, expectation", [(True, does_not_raise()), (False, raises(RepoManagementFileError))])
@@ -306,7 +306,7 @@ def test_repofile_move_from(
     if not source_exists:
         source_path = empty_dir / "bar" / default_package_file[0].name
 
-    assert not destination_path.exists()
+    assert not destination_path.exists()  # nosec: B101
 
     file = repofile.RepoFile(
         file_type=RepoFileEnum.PACKAGE,
@@ -316,8 +316,8 @@ def test_repofile_move_from(
 
     with expectation:
         file.move_from(path=source_path)
-        assert not source_path.exists()
-        assert destination_path.exists()
+        assert not source_path.exists()  # nosec: B101
+        assert destination_path.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -343,7 +343,7 @@ def test_repofile_link(
     if link_exists:
         symlink_path.touch()
     else:
-        assert not symlink_path.exists()
+        assert not symlink_path.exists()  # nosec: B101
 
     file = repofile.RepoFile(
         file_type=RepoFileEnum.PACKAGE,
@@ -353,7 +353,7 @@ def test_repofile_link(
 
     with expectation:
         file.link(check=check)
-        assert symlink_path.exists()
+        assert symlink_path.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -379,7 +379,7 @@ def test_repofile_unlink(
     if link_exists:
         symlink_path.touch()
     else:
-        assert not symlink_path.exists()
+        assert not symlink_path.exists()  # nosec: B101
 
     file = repofile.RepoFile(
         file_type=RepoFileEnum.PACKAGE,
@@ -389,7 +389,7 @@ def test_repofile_unlink(
 
     with expectation:
         file.unlink(check=check)
-        assert not symlink_path.exists()
+        assert not symlink_path.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -433,7 +433,7 @@ def test_repofile_remove(
 
     with expectation:
         file.remove(force=force, unlink=unlink)
-        assert not file_path.exists()
+        assert not file_path.exists()  # nosec: B101
 
         if (unlink and symlink_exists) or not symlink_exists:
-            assert not symlink_path.exists()
+            assert not symlink_path.exists()  # nosec: B101

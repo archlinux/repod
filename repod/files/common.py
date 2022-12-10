@@ -1,3 +1,4 @@
+"""Common function and tools to work with files."""
 from gzip import BadGzipFile
 from gzip import open as gzip_open
 from io import BytesIO, StringIO
@@ -15,7 +16,7 @@ from repod.errors import RepoManagementFileError, RepoManagementFileNotFoundErro
 
 
 class ZstdTarFile(TarFile):
-    """A class to provide reading and writing of zstandard files using TarFile functionality"""
+    """A class to provide reading and writing of zstandard files using TarFile functionality."""
 
     def __init__(  # type: ignore[no-untyped-def]
         self,
@@ -25,6 +26,7 @@ class ZstdTarFile(TarFile):
         zstd_dict: ZstdDict | None = None,
         **kwargs,
     ) -> None:
+        """Initialize an instance of ZstdTarFile."""
         self.zstd_file = ZstdFile(
             filename=name,
             mode=mode,
@@ -39,6 +41,7 @@ class ZstdTarFile(TarFile):
             raise RepoManagementFileError(f"An error occured while trying to open the file {name}!\n{e}")
 
     def close(self) -> None:
+        """Close the file."""
         try:
             super().close()
         finally:
@@ -46,7 +49,7 @@ class ZstdTarFile(TarFile):
 
 
 def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
-    """Retrieve the compression type of a tar file
+    """Retrieve the compression type of a tar file.
 
     Parameters
     ----------
@@ -63,7 +66,6 @@ def compression_type_of_tarfile(path: Path) -> CompressionTypeEnum:
     CompressionTypeEnum
         A member of CompressionTypeEnum, that reflects the compression type of tar file at path
     """
-
     with open(path, "rb") as f:
         file_start_bytes: bytes = f.read(2048)
 
@@ -99,7 +101,7 @@ def open_tarfile(
     compression: CompressionTypeEnum | None = None,
     mode: Literal["r", "w", "x"] = "r",
 ) -> TarFile:
-    """Open a file as a TarFile
+    """Open a file as a TarFile.
 
     This function distinguishes between bzip2, gzip, lzma and zstandard compression depending on file suffix.
     The detection can be overridden by providing either a file suffix or compression type.
@@ -130,7 +132,6 @@ def open_tarfile(
     tarfile.Tarfile
         An instance of Tarfile
     """
-
     debug(f"Opening file {path}...")
 
     if not path.is_absolute():
@@ -163,7 +164,7 @@ async def extract_file_from_tarfile(
     as_stringio: bool = False,
     gzip_compressed: bool = False,
 ) -> IO[bytes] | StringIO:
-    """Extract a file from a TarFile and return it as a bytes stream or text I/O buffer
+    """Extract a file from a TarFile and return it as a bytes stream or text I/O buffer.
 
     Parameters
     ----------
@@ -185,10 +186,9 @@ async def extract_file_from_tarfile(
 
     Returns
     -------
-    IO[bytes]
-        A bytes stream that represents the file to extract
+    IO[bytes] | StringIO
+        A bytes stream or StringIO that represents the file to extract
     """
-
     debug(f"Extracting file {file} from {str(tarfile.name)}...")
 
     try:
@@ -217,7 +217,7 @@ async def extract_file_from_tarfile(
 
 
 def names_in_tarfile(tarfile: TarFile, names: list[str] | set[str]) -> bool:
-    """Check whether a list of names is found in the list of names of a TarFile
+    """Check whether a list of names is found in the list of names of a TarFile.
 
     Parameters
     ----------
@@ -231,7 +231,6 @@ def names_in_tarfile(tarfile: TarFile, names: list[str] | set[str]) -> bool:
     bool
         True if all names can be found in the list of TarFile names, else False
     """
-
     if isinstance(names, list):
         names = set(names)
 
@@ -242,7 +241,7 @@ def names_in_tarfile(tarfile: TarFile, names: list[str] | set[str]) -> bool:
 
 
 def read_text_from_file(path: str | Path) -> StringIO:
-    """Read text from a file and return it in a StringIO
+    """Read text from a file and return it in a StringIO.
 
     Parameters
     ----------
@@ -259,7 +258,6 @@ def read_text_from_file(path: str | Path) -> StringIO:
     StringIO
         A string IO stream representing the contents of the file
     """
-
     if isinstance(path, str):
         path = Path(path)
 

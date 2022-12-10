@@ -1,3 +1,4 @@
+"""Tests for repod.action.workflow."""
 from logging import DEBUG
 from unittest.mock import Mock, patch
 
@@ -10,6 +11,7 @@ from repod.config.settings import UserSettings
 
 @patch("repod.action.workflow.exit")
 def test_exit_on_error(exit_mock: Mock) -> None:
+    """Tests for repod.action.workflow.exit_on_error."""
     message = "foo"
     workflow.exit_on_error(message=message)
     exit_mock.assert_called_once_with(1)
@@ -27,6 +29,7 @@ def test_add_packages_dryrun(
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.workflow.add_packages_dryrun."""
     caplog.set_level(DEBUG)
     createoutputpackagebasestask_mock.spec = workflow.CreateOutputPackageBasesTask
     printoutputpackagebasestask_mock.spec = workflow.PrintOutputPackageBasesTask
@@ -114,6 +117,7 @@ def test_add_packages(
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.workflow.add_packages."""
     caplog.set_level(DEBUG)
 
     removepackagereposymlinkstask_mock.spec = workflow.RemovePackageRepoSymlinksTask
@@ -176,6 +180,7 @@ def test_write_sync_databases(
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.workflow.write_sync_databases."""
     caplog.set_level(DEBUG)
 
     writesyncdbstotmpfilesindirtask_mock.spec = workflow.WriteSyncDbsToTmpFilesInDirTask

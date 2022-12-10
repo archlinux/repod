@@ -19,7 +19,7 @@ from repod.config import settings
 
 
 def test_architecture_validate_architecture(default_arch: str) -> None:
-    assert settings.Architecture(architecture=default_arch)
+    assert settings.Architecture(architecture=default_arch)  # nosec: B101
 
     with raises(ValueError):
         settings.Architecture(architecture="foo")
@@ -41,7 +41,7 @@ def test_mangement_repo(
     empty_dir: Path,
 ) -> None:
     with expectation:
-        assert settings.ManagementRepo(
+        assert settings.ManagementRepo(  # nosec: B101
             directory=empty_dir,
             url=url,
         )
@@ -148,7 +148,7 @@ def test_package_repo(
     caplog.set_level(DEBUG)
 
     with expectation:
-        assert settings.PackageRepo(
+        assert settings.PackageRepo(  # nosec: B101
             name=name,
             debug=debug_repo,
             staging=staging_repo,
@@ -374,8 +374,8 @@ def test_systemsettings(
                                 if has_repositories
                                 else [],
                             )
-                            assert isinstance(conf, settings.SystemSettings)
-                            assert len(conf.repositories) > 0
+                            assert isinstance(conf, settings.SystemSettings)  # nosec: B101
+                            assert len(conf.repositories) > 0  # nosec: B101
 
                             create_repository_directories_mock.assert_called_once()
                             ensure_non_overlapping_repositories_mock.assert_called_once()
@@ -456,8 +456,8 @@ def test_usersettings(
                                 if has_repositories
                                 else [],
                             )
-                            assert isinstance(conf, settings.UserSettings)
-                            assert len(conf.repositories) > 0
+                            assert isinstance(conf, settings.UserSettings)  # nosec: B101
+                            assert len(conf.repositories) > 0  # nosec: B101
 
                             create_repository_directories_mock.assert_called_once()
                             ensure_non_overlapping_repositories_mock.assert_called_once()
@@ -559,31 +559,31 @@ def test_settings_consolidate_repositories_with_defaults(  # noqa: C901
                             source_pool=tmp_path / "source_pool_dir",
                         )
 
-    assert (
+    assert (  # nosec: B101
         repos[0].architecture == packagerepo_in_tmp_path.architecture
         if repo_has_architecture
         else settings.DEFAULT_ARCHITECTURE
     )
 
-    assert (
+    assert (  # nosec: B101
         repos[0].database_compression == packagerepo_in_tmp_path.database_compression
         if repo_has_database_compression
         else settings.DEFAULT_DATABASE_COMPRESSION
     )
 
-    assert (
+    assert (  # nosec: B101
         repos[0].management_repo == packagerepo_in_tmp_path.management_repo
         if repo_has_management_repo
         else settings.ManagementRepo(directory=tmp_path / settings.DEFAULT_NAME)
     )
 
-    assert (
+    assert (  # nosec: B101
         repos[0].package_pool == packagerepo_in_tmp_path.package_pool
         if repo_has_package_pool
         else tmp_path / "package_pool_dir"
     )
 
-    assert (
+    assert (  # nosec: B101
         repos[0].source_pool == packagerepo_in_tmp_path.source_pool
         if repo_has_source_pool
         else tmp_path / "source_pool_dir"
@@ -688,32 +688,32 @@ def test_settings_create_repository_directories(  # noqa: C901
         packagerepo_in_tmp_path.testing_debug = None
 
     settings.Settings.create_repository_directories(repositories=[packagerepo_in_tmp_path])
-    assert packagerepo_in_tmp_path._stable_repo_dir.exists()
-    assert packagerepo_in_tmp_path._stable_source_repo_dir.exists()
-    assert packagerepo_in_tmp_path._package_pool_dir.exists()
-    assert packagerepo_in_tmp_path._source_pool_dir.exists()
-    assert packagerepo_in_tmp_path._stable_management_repo_dir.exists()
+    assert packagerepo_in_tmp_path._stable_repo_dir.exists()  # nosec: B101
+    assert packagerepo_in_tmp_path._stable_source_repo_dir.exists()  # nosec: B101
+    assert packagerepo_in_tmp_path._package_pool_dir.exists()  # nosec: B101
+    assert packagerepo_in_tmp_path._source_pool_dir.exists()  # nosec: B101
+    assert packagerepo_in_tmp_path._stable_management_repo_dir.exists()  # nosec: B101
 
     if debug_repo:
-        assert packagerepo_in_tmp_path._debug_repo_dir.exists()
-        assert packagerepo_in_tmp_path._debug_source_repo_dir.exists()
-        assert packagerepo_in_tmp_path._debug_management_repo_dir.exists()
+        assert packagerepo_in_tmp_path._debug_repo_dir.exists()  # nosec: B101
+        assert packagerepo_in_tmp_path._debug_source_repo_dir.exists()  # nosec: B101
+        assert packagerepo_in_tmp_path._debug_management_repo_dir.exists()  # nosec: B101
     if staging_repo:
-        assert packagerepo_in_tmp_path._staging_repo_dir.exists()
-        assert packagerepo_in_tmp_path._staging_source_repo_dir.exists()
-        assert packagerepo_in_tmp_path._staging_management_repo_dir.exists()
+        assert packagerepo_in_tmp_path._staging_repo_dir.exists()  # nosec: B101
+        assert packagerepo_in_tmp_path._staging_source_repo_dir.exists()  # nosec: B101
+        assert packagerepo_in_tmp_path._staging_management_repo_dir.exists()  # nosec: B101
         if staging_debug_repo:
-            assert packagerepo_in_tmp_path._staging_debug_repo_dir.exists()
-            assert packagerepo_in_tmp_path._staging_debug_source_repo_dir.exists()
-            assert packagerepo_in_tmp_path._staging_debug_management_repo_dir.exists()
+            assert packagerepo_in_tmp_path._staging_debug_repo_dir.exists()  # nosec: B101
+            assert packagerepo_in_tmp_path._staging_debug_source_repo_dir.exists()  # nosec: B101
+            assert packagerepo_in_tmp_path._staging_debug_management_repo_dir.exists()  # nosec: B101
     if testing_repo:
-        assert packagerepo_in_tmp_path._testing_repo_dir.exists()
-        assert packagerepo_in_tmp_path._testing_source_repo_dir.exists()
-        assert packagerepo_in_tmp_path._testing_management_repo_dir.exists()
+        assert packagerepo_in_tmp_path._testing_repo_dir.exists()  # nosec: B101
+        assert packagerepo_in_tmp_path._testing_source_repo_dir.exists()  # nosec: B101
+        assert packagerepo_in_tmp_path._testing_management_repo_dir.exists()  # nosec: B101
         if testing_debug_repo:
-            assert packagerepo_in_tmp_path._testing_debug_repo_dir.exists()
-            assert packagerepo_in_tmp_path._testing_debug_source_repo_dir.exists()
-            assert packagerepo_in_tmp_path._testing_debug_management_repo_dir.exists()
+            assert packagerepo_in_tmp_path._testing_debug_repo_dir.exists()  # nosec: B101
+            assert packagerepo_in_tmp_path._testing_debug_source_repo_dir.exists()  # nosec: B101
+            assert packagerepo_in_tmp_path._testing_debug_management_repo_dir.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -1446,7 +1446,7 @@ def test_get_default_managementrepo(
     with patch("repod.config.settings.PACKAGE_POOL_BASE", {settings_type: package_pool_base}):
         with patch("repod.config.settings.SOURCE_POOL_BASE", {settings_type: source_pool_base}):
             with expectation:
-                assert isinstance(
+                assert isinstance(  # nosec: B101
                     settings.get_default_managementrepo(settings_type=settings_type),
                     settings.ManagementRepo,
                 )
@@ -1472,7 +1472,10 @@ def test_get_default_packagerepo(
     with patch("repod.config.settings.PACKAGE_POOL_BASE", {settings_type: package_pool_base}):
         with patch("repod.config.settings.SOURCE_POOL_BASE", {settings_type: source_pool_base}):
             with expectation:
-                assert isinstance(settings.get_default_packagerepo(settings_type=settings_type), settings.PackageRepo)
+                assert isinstance(  # nosec: B101
+                    settings.get_default_packagerepo(settings_type=settings_type),
+                    settings.PackageRepo,
+                )
 
 
 @mark.parametrize(
@@ -1568,7 +1571,7 @@ def test_validate_repo_paths(
 )
 def test_to_absolute_path(path: Path, base_path: Path, output: Path, expectation: ContextManager[str]) -> None:
     with expectation:
-        assert settings.to_absolute_path(path=path, base_path=base_path) == output
+        assert settings.to_absolute_path(path=path, base_path=base_path) == output  # nosec: B101
 
 
 @mark.parametrize(
@@ -1649,7 +1652,7 @@ def test_settings_get_repo(
 
 
 def test_settings_get_repo_management_repo(usersettings: settings.UserSettings) -> None:
-    assert isinstance(
+    assert isinstance(  # nosec: B101
         usersettings.get_repo_management_repo(
             name=Path(settings.DEFAULT_NAME),
             architecture=settings.DEFAULT_ARCHITECTURE,
@@ -1659,7 +1662,7 @@ def test_settings_get_repo_management_repo(usersettings: settings.UserSettings) 
 
 
 def test_settings_get_repo_architecture(usersettings: settings.UserSettings) -> None:
-    assert isinstance(
+    assert isinstance(  # nosec: B101
         usersettings.get_repo_architecture(
             name=Path(settings.DEFAULT_NAME),
             architecture=settings.DEFAULT_ARCHITECTURE,
@@ -1669,7 +1672,7 @@ def test_settings_get_repo_architecture(usersettings: settings.UserSettings) -> 
 
 
 def test_settings_get_repo_database_compression(usersettings: settings.UserSettings) -> None:
-    assert isinstance(
+    assert isinstance(  # nosec: B101
         usersettings.get_repo_database_compression(
             name=Path(settings.DEFAULT_NAME),
             architecture=settings.DEFAULT_ARCHITECTURE,
@@ -1795,31 +1798,31 @@ def test_settings_get_repo_path(
 
         match repo_dir_type, repo_type:
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE:
-                assert path == usersettings.repositories[0]._stable_management_repo_dir
+                assert path == usersettings.repositories[0]._stable_management_repo_dir  # nosec: B101
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STABLE_DEBUG:
-                assert path == usersettings.repositories[0]._debug_management_repo_dir
+                assert path == usersettings.repositories[0]._debug_management_repo_dir  # nosec: B101
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STAGING:
-                assert path == usersettings.repositories[0]._staging_management_repo_dir
+                assert path == usersettings.repositories[0]._staging_management_repo_dir  # nosec: B101
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.STAGING_DEBUG:
-                assert path == usersettings.repositories[0]._staging_debug_management_repo_dir
+                assert path == usersettings.repositories[0]._staging_debug_management_repo_dir  # nosec: B101
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.TESTING:
-                assert path == usersettings.repositories[0]._testing_management_repo_dir
+                assert path == usersettings.repositories[0]._testing_management_repo_dir  # nosec: B101
             case RepoDirTypeEnum.MANAGEMENT, RepoTypeEnum.TESTING_DEBUG:
-                assert path == usersettings.repositories[0]._testing_debug_management_repo_dir
+                assert path == usersettings.repositories[0]._testing_debug_management_repo_dir  # nosec: B101
             case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STABLE:
-                assert path == usersettings.repositories[0]._stable_repo_dir
+                assert path == usersettings.repositories[0]._stable_repo_dir  # nosec: B101
             case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STABLE_DEBUG:
-                assert path == usersettings.repositories[0]._debug_repo_dir
+                assert path == usersettings.repositories[0]._debug_repo_dir  # nosec: B101
             case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STAGING:
-                assert path == usersettings.repositories[0]._staging_repo_dir
+                assert path == usersettings.repositories[0]._staging_repo_dir  # nosec: B101
             case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.STAGING_DEBUG:
-                assert path == usersettings.repositories[0]._staging_debug_repo_dir
+                assert path == usersettings.repositories[0]._staging_debug_repo_dir  # nosec: B101
             case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.TESTING:
-                assert path == usersettings.repositories[0]._testing_repo_dir
+                assert path == usersettings.repositories[0]._testing_repo_dir  # nosec: B101
             case RepoDirTypeEnum.PACKAGE, RepoTypeEnum.TESTING_DEBUG:
-                assert path == usersettings.repositories[0]._testing_debug_repo_dir
+                assert path == usersettings.repositories[0]._testing_debug_repo_dir  # nosec: B101
             case RepoDirTypeEnum.POOL, _:
-                assert path == usersettings.repositories[0]._package_pool_dir
+                assert path == usersettings.repositories[0]._package_pool_dir  # nosec: B101
 
 
 @mark.parametrize(
@@ -1897,33 +1900,39 @@ def test_settings_get_management_repo_stability_paths(
                 paths_above += [usersettings.repositories[0]._staging_management_repo_dir] if has_staging else []
                 paths_above += [usersettings.repositories[0]._testing_management_repo_dir] if has_testing else []
 
-                assert (paths_above, []) == return_value
+                assert (paths_above, []) == return_value  # nosec: B101
             case RepoTypeEnum.STABLE_DEBUG:
                 paths_above = []
                 paths_above += [usersettings.repositories[0]._staging_debug_management_repo_dir] if has_staging else []
                 paths_above += [usersettings.repositories[0]._testing_debug_management_repo_dir] if has_testing else []
 
-                assert (paths_above, []) == return_value
+                assert (paths_above, []) == return_value  # nosec: B101
             case RepoTypeEnum.STAGING:
                 paths_below = [usersettings.repositories[0]._stable_management_repo_dir]
                 paths_below += [usersettings.repositories[0]._testing_management_repo_dir] if has_testing else []
 
-                assert ([], paths_below) == return_value
+                assert ([], paths_below) == return_value  # nosec: B101
             case RepoTypeEnum.STAGING_DEBUG:
                 paths_below = [usersettings.repositories[0]._debug_management_repo_dir]
                 paths_below += [usersettings.repositories[0]._testing_debug_management_repo_dir] if has_testing else []
 
-                assert ([], paths_below) == return_value
+                assert ([], paths_below) == return_value  # nosec: B101
             case RepoTypeEnum.TESTING:
                 paths_above = []
                 paths_above += [usersettings.repositories[0]._staging_management_repo_dir] if has_staging else []
 
-                assert (paths_above, [usersettings.repositories[0]._stable_management_repo_dir]) == return_value
+                assert (  # nosec: B101
+                    paths_above,
+                    [usersettings.repositories[0]._stable_management_repo_dir],
+                ) == return_value
             case RepoTypeEnum.TESTING_DEBUG:
                 paths_above = []
                 paths_above += [usersettings.repositories[0]._staging_debug_management_repo_dir] if has_staging else []
 
-                assert (paths_above, [usersettings.repositories[0]._debug_management_repo_dir]) == return_value
+                assert (  # nosec: B101
+                    paths_above,
+                    [usersettings.repositories[0]._debug_management_repo_dir],
+                ) == return_value
 
 
 @mark.parametrize(
@@ -1976,7 +1985,7 @@ def test_urlvalidationsettings_validate_url(
 ) -> None:
     caplog.set_level(DEBUG)
 
-    assert validator.validate_url(url=url) == return_value
+    assert validator.validate_url(url=url) == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -2018,8 +2027,8 @@ def test_archivesettings_validate_packages(
     with expectation:
         archiving = settings.ArchiveSettings(packages=packages, sources=sources)
 
-        assert packages_return_value == archiving.packages
-        assert sources_return_value == archiving.sources
+        assert packages_return_value == archiving.packages  # nosec: B101
+        assert sources_return_value == archiving.sources  # nosec: B101
 
 
 @mark.parametrize(

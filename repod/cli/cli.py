@@ -1,3 +1,4 @@
+"""Functions for handling repod's CLI."""
 import asyncio
 from argparse import ArgumentParser, Namespace
 from logging import DEBUG, INFO, WARNING, StreamHandler, debug, getLogger
@@ -22,7 +23,7 @@ from repod.repo import SyncDatabase
 
 
 def exit_on_error(message: str, argparser: ArgumentParser | None = None) -> None:
-    """Print a message to stderr, optionally print argparse help and exit with return code 1
+    """Print a message to stderr, optionally print argparse help and exit with return code 1.
 
     Parameters
     ----------
@@ -31,7 +32,6 @@ def exit_on_error(message: str, argparser: ArgumentParser | None = None) -> None
     argparser: ArgumentParser | None
         An optional Argumentparser on which to call print_help()
     """
-
     print(message, file=stderr)
     if argparser:
         argparser.print_help()
@@ -39,7 +39,7 @@ def exit_on_error(message: str, argparser: ArgumentParser | None = None) -> None
 
 
 def repod_file_package(args: Namespace, settings: SystemSettings | UserSettings) -> None:
-    """Package related actions from the repod-file script
+    """Package related actions from the repod-file script.
 
     Parameters
     ----------
@@ -55,7 +55,6 @@ def repod_file_package(args: Namespace, settings: SystemSettings | UserSettings)
         successfully checked if PkgInfoV2 is used in the package).
         If an invalid subcommand is provided.
     """
-
     pretty = ORJSON_OPTION if hasattr(args, "pretty") and args.pretty else 0
     match args.package:
         case "inspect":
@@ -83,7 +82,7 @@ def repod_file_package(args: Namespace, settings: SystemSettings | UserSettings)
 
 
 def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSettings) -> None:
-    """Import a package (optionally with signature file) to a repository and write its sync databases
+    """Import a package (optionally with signature file) to a repository and write its sync databases.
 
     Parameters
     ----------
@@ -92,7 +91,6 @@ def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSe
     settings: SystemSettings | UserSettings
         A Settings instance that is used for deriving repository directories from
     """
-
     if args.dry_run:
         add_packages_dryrun(
             settings=settings,
@@ -119,7 +117,7 @@ def repod_file_repo_importpkg(args: Namespace, settings: SystemSettings | UserSe
 
 
 def repod_file_repo(args: Namespace, settings: SystemSettings | UserSettings) -> None:
-    """Repository related actions from the repod-file script
+    """Handle repository related actions from the repod-file script.
 
     Parameters
     ----------
@@ -133,7 +131,6 @@ def repod_file_repo(args: Namespace, settings: SystemSettings | UserSettings) ->
     RuntimeError
         If an invalid subcommand is provided.
     """
-
     match args.repo:
         case "importdb":
             management_repo_dir = settings.get_repo_path(
@@ -174,7 +171,7 @@ def repod_file_repo(args: Namespace, settings: SystemSettings | UserSettings) ->
 
 
 def repod_file_schema(args: Namespace) -> None:
-    """JSON schema related actions from the repod-file script
+    """Handle JSON schema related actions from the repod-file script.
 
     Parameters
     ----------
@@ -186,7 +183,6 @@ def repod_file_schema(args: Namespace) -> None:
     RuntimeError
         If an invalid subcommand is provided.
     """
-
     match args.schema:
         case "export":
             export_schemas(output=args.dir)
@@ -198,8 +194,7 @@ def repod_file_schema(args: Namespace) -> None:
 
 
 def repod_file() -> None:
-    """The entry point for the repod-file script"""
-
+    """Delegate calls to repod-file to underlying functions."""
     try:
         args = argparse.ArgParseFactory.repod_file().parse_args()
     except (argparse.ArgumentTypeError) as e:

@@ -1,3 +1,4 @@
+"""Reading and writing of OutputPackageBase and OutputPackage."""
 from __future__ import annotations
 
 from logging import debug
@@ -109,7 +110,7 @@ DEFAULT_OUTPUT_PACKAGE_BASE_VERSION = 1
 
 
 class OutputBuildInfo(BaseModel):
-    """A class tracking BuildInfo information of packages that are added to instances of OutputPackageBase
+    """A class tracking BuildInfo information of packages that are added to instances of OutputPackageBase.
 
     This class is a base template class and should not be used directly.
     Instead, instantiate one of its versioned child classes using the `from_buildinfo()` classmethod.
@@ -117,7 +118,7 @@ class OutputBuildInfo(BaseModel):
 
     @classmethod
     def from_buildinfo(cls, buildinfo: BuildInfo) -> OutputBuildInfo:
-        """Create and return an instance of one of OutputBuildInfo's versioned child classes
+        """Create and return an instance of one of OutputBuildInfo's versioned child classes.
 
         Parameters
         ----------
@@ -135,7 +136,6 @@ class OutputBuildInfo(BaseModel):
         OutputBuildInfo
             One of OutputBuildInfo's versioned child classes (e.g. OutputBuildInfoV1 or OutputBuildInfoV2)
         """
-
         if isinstance(buildinfo, BuildInfoV1):
             return OutputBuildInfoV1(
                 builddir=buildinfo.builddir,
@@ -173,7 +173,7 @@ class OutputBuildInfoV1(
     PkgBuildSha256Sum,
     SchemaVersionV1,
 ):
-    """OutputBuildInfo version 1
+    """OutputBuildInfo version 1.
 
     Attributes which are already covered by OutputPackageBase are ommitted.
     Instances of this class relate to OutputBuildInfo the same way as BuildinfoV1 relates to BuildInfo.
@@ -210,7 +210,7 @@ class OutputBuildInfoV2(
     SchemaVersionV2,
     StartDir,
 ):
-    """OutputBuildInfo version 2
+    """OutputBuildInfo version 2.
 
     Attributes which are already covered by OutputPackageBase are ommitted.
     Instances of this class relate to OutputBuildInfo the same way as BuildinfoV2 relates to BuildInfo.
@@ -242,14 +242,14 @@ class OutputBuildInfoV2(
 
 
 class OutputPackage(BaseModel):
-    """A template class to describe all required attributes that define a package in the context of an output file
+    """A template class to describe all required attributes that define a package in the context of an output file.
 
     This class should not be instantiated directly. Use one of its subclasses instead!
     """
 
     @classmethod
     def from_package(cls, package: package.Package) -> OutputPackage:
-        """Create an OutputPackage from a Package
+        """Create an OutputPackage from a Package.
 
         Parameters
         ----------
@@ -263,7 +263,6 @@ class OutputPackage(BaseModel):
         OutputPackage
             An instance of one of OutputPackage's child classes
         """
-
         outputpackage_version = 0
         data = package.top_level_dict()
         keys = set(data.keys())
@@ -340,7 +339,7 @@ class OutputPackageV1(
     Sha256Sum,
     Url,
 ):
-    """A model describing all required attributes that define a package in the context of an output file (version 1)
+    """A model describing all required attributes that define a package in the context of an output file (version 1).
 
     Attributes
     ----------
@@ -415,7 +414,7 @@ class OutputPackageV1(
 
 
 class OutputPackageBase(BaseModel):
-    """A template class with helper methods to create instances of one of its (versioned) subclasses
+    """A template class with helper methods to create instances of one of its (versioned) subclasses.
 
     This class should not be instantiated directly, as it only provides generic instance methods for its subclasses.
 
@@ -424,7 +423,7 @@ class OutputPackageBase(BaseModel):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any | list[Any]]) -> OutputPackageBase:
-        """Create an instance of one of OutputPackageBase's subclasses from a dict
+        """Create an instance of one of OutputPackageBase's subclasses from a dict.
 
         This method expects data derived from reading a pkgbase JSON file from the management repository.
         By default this method will prefer to create an instances of OutputPackageBase's subclasses as identified by
@@ -449,7 +448,7 @@ class OutputPackageBase(BaseModel):
         """
 
         def default_output_package_from_dict(version: int, package: dict[str, Any]) -> OutputPackage:
-            """Create the default OutputPackage subclass for a OutputPackageBase from a dict
+            """Create the default OutputPackage subclass for a OutputPackageBase from a dict.
 
             Parameters
             ----------
@@ -464,7 +463,6 @@ class OutputPackageBase(BaseModel):
             OutputPackage
                 A subclass of OutputPackage that is the default for the given OutputPackageBase schema_version
             """
-
             outputpackage_version = OutputPackageVersionEnum.DEFAULT.value
             files_version = FilesVersionEnum.DEFAULT.value
 
@@ -517,7 +515,7 @@ class OutputPackageBase(BaseModel):
 
     @classmethod
     async def from_file(cls, path: Path) -> OutputPackageBase:
-        """Initialize an OutputPackageBase from a JSON file
+        """Initialize an OutputPackageBase from a JSON file.
 
         Parameters
         ----------
@@ -534,7 +532,6 @@ class OutputPackageBase(BaseModel):
         OutputPackageBase
             An instance of OutputPackageBase based on path
         """
-
         async with async_open(path, "r") as input_file:
             try:
                 return OutputPackageBase.from_dict(data=loads(await input_file.read()))
@@ -543,7 +540,7 @@ class OutputPackageBase(BaseModel):
 
     @classmethod
     def from_package(cls, packages: list[package.Package]) -> OutputPackageBase:
-        """Create an OutputPackageBase from a list of Packages of the same pkgbase, pkgtype and version
+        """Create an OutputPackageBase from a list of Packages of the same pkgbase, pkgtype and version.
 
         Parameters
         ----------
@@ -564,7 +561,6 @@ class OutputPackageBase(BaseModel):
         OutputPackageBase
             An OutputPackageBase that is based on packages
         """
-
         if len(packages) == 0:
             raise ValueError("At least one Package needs to be provided to create an OutputPackageBase.")
 
@@ -649,7 +645,7 @@ class OutputPackageBase(BaseModel):
                 )
 
     def add_packages(self, packages: list[OutputPackage]) -> None:
-        """Add packages to an instance of one of OutputPackageBase's subclasses
+        """Add packages to an instance of one of OutputPackageBase's subclasses.
 
         NOTE: This method only operates successfully if the instance of the class using it actually defines the
         `packages` field! The OutputPackageBase class does not do that!
@@ -664,7 +660,6 @@ class OutputPackageBase(BaseModel):
         RuntimeError
             If called on the OutputPackageBase template class
         """
-
         if hasattr(self, "packages"):
             # TODO: only add OutputPackage subclasses that are compatible with the OutputPackageBase version, else
             # attempt conversion
@@ -673,7 +668,7 @@ class OutputPackageBase(BaseModel):
             raise RuntimeError("It is not possible to add packages to the template class OutputPackageBase!")
 
     def get_version(self) -> str:
-        """Get version of an instance of one of OutputPackage's subclasses
+        """Get version of an instance of one of OutputPackage's subclasses.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the `get_version`
         field! The OutputPackageBase class does not do that!
@@ -688,7 +683,6 @@ class OutputPackageBase(BaseModel):
         str
             The version string of the OutputPackageBase
         """
-
         if hasattr(self, "version"):
             return str(self.version)
         else:
@@ -701,7 +695,7 @@ class OutputPackageBase(BaseModel):
         packagedesc_version: PackageDescVersionEnum = PackageDescVersionEnum.DEFAULT,
         files_version: FilesVersionEnum = FilesVersionEnum.DEFAULT,
     ) -> list[tuple[PackageDesc, Files]]:
-        """Return the list of packages as tuples of PackageDesc and Files models
+        """Return the list of packages as tuples of PackageDesc and Files models.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
         The OutputPackageBase class does not do that!
@@ -725,7 +719,6 @@ class OutputPackageBase(BaseModel):
         list[tuple[PackageDesc, Files]]
             A list of tuples with one PackageDesc and one Files each
         """
-
         if not hasattr(self, "schema_version"):
             raise RuntimeError(
                 "Packages and their files can not be retrieved from the templatae class OutputPackageBase!"
@@ -817,8 +810,7 @@ class OutputPackageBaseV1(
     SourceUrl,
     Version,
 ):
-    """A model describing all required attributes for an output file, that describes a list of packages based upon a
-    pkgbase (version 1)
+    """A model for an output file format, that describes a list of packages based upon a pkgbase (version 1).
 
     Attributes
     ----------
@@ -850,7 +842,7 @@ class OutputPackageBaseV1(
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema of selected pydantic models to an output directory
+    """Export the JSON schema of selected pydantic models to an output directory.
 
     Parameters
     ----------
@@ -862,7 +854,6 @@ def export_schemas(output: Path | str) -> None:
     RuntimeError
         If output is not an existing directory
     """
-
     classes = [OutputBuildInfoV1, OutputBuildInfoV2, OutputPackageV1, OutputPackageBaseV1]
 
     if isinstance(output, str):

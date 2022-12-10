@@ -79,7 +79,7 @@ async def test_output_package_base_v1_get_packages_as_models(
             output_package_base = OutputPackageBaseV9999()
 
     with expectation:
-        assert [(packagedesc, files)] == await output_package_base.get_packages_as_models(
+        assert [(packagedesc, files)] == await output_package_base.get_packages_as_models(  # nosec: B101
             packagedesc_version=packagedesc_version,
             files_version=files_version,
         )
@@ -190,7 +190,9 @@ async def test_output_package_base_v1_get_packages_as_models(
 )
 def test_outputpackagebase_from_dict(data: dict[str, Any | list[Any]], expectation: ContextManager[str]) -> None:
     with expectation:
-        assert isinstance(outputpackage.OutputPackageBase.from_dict(data=data), outputpackage.OutputPackageBase)
+        assert isinstance(  # nosec: B101
+            outputpackage.OutputPackageBase.from_dict(data=data), outputpackage.OutputPackageBase
+        )
 
 
 @mark.asyncio
@@ -207,12 +209,12 @@ def test_outputpackagebase_from_package() -> None:
 
 
 def test_outputpackagebase_from_packagev1(packagev1: Package) -> None:
-    assert outputpackage.OutputPackageBase.from_package(packages=[packagev1])
+    assert outputpackage.OutputPackageBase.from_package(packages=[packagev1])  # nosec: B101
 
 
 def test_outputpackagebase_from_package_raise_on_no_package() -> None:
     with raises(ValueError):
-        assert outputpackage.OutputPackageBase.from_package(packages=[])
+        assert outputpackage.OutputPackageBase.from_package(packages=[])  # nosec: B101
 
 
 def test_outputpackagebase_from_packagev1_raise_on_multiple_pkgbases(packagev1: Package) -> None:
@@ -318,6 +320,6 @@ def test_outputbuildinfo_from_buildinfo(
 
         match buildinfo_version:
             case 1:
-                assert isinstance(outputbuildinfo, outputpackage.OutputBuildInfoV1)
+                assert isinstance(outputbuildinfo, outputpackage.OutputBuildInfoV1)  # nosec: B101
             case 2:
-                assert isinstance(outputbuildinfo, outputpackage.OutputBuildInfoV2)
+                assert isinstance(outputbuildinfo, outputpackage.OutputBuildInfoV2)  # nosec: B101

@@ -1,3 +1,4 @@
+"""An implementation of libalpm functionality for version comparison."""
 from itertools import takewhile
 
 from .util import cmp
@@ -25,7 +26,6 @@ def vercmp(a: str, b: str) -> int:  # noqa: C901
          0 if a and b are the same version
          1 if b is newer than a
     """
-
     if PYALPM_VERCMP:  # pragma: no-cover-nonlinux
         return int(pyalpm_vercmp(a, b))  # pragma: no-cover-nonlinux
 
@@ -136,8 +136,7 @@ def vercmp(a: str, b: str) -> int:  # noqa: C901
 
 
 def pkg_vercmp(a: str, b: str) -> int:
-    """Compare individual components of two versions by splitting them
-    based in alpm's version schema into epoch, pkgver, pkgrel.
+    """Compare individual components of versions by splitting based on alpm's version scheme into epoch, pkgver, pkgrel.
 
     The comparison algorithm is based on libalpm pacman's vercmp behavior.
 
@@ -150,7 +149,6 @@ def pkg_vercmp(a: str, b: str) -> int:
          0 if a and b are the same version
          1 if b is newer than a
     """
-
     if PYALPM_VERCMP:  # pragma: no-cover-nonlinux
         return int(pyalpm_vercmp(a, b))  # pragma: no-cover-nonlinux
 

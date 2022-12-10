@@ -1,3 +1,4 @@
+"""Handling of .SRCINFO files."""
 from __future__ import annotations
 
 from io import StringIO
@@ -80,7 +81,7 @@ SRCINFO_ASSIGNMENTS: dict[str, tuple[str, FieldTypeEnum]] = {
 
 
 def parse_pairs(line: str, separator: str = " = ") -> tuple[str, str, FieldTypeEnum]:
-    """Parse key-value pairs from a line of text
+    """Parse key-value pairs from a line of text.
 
     The line of text represents the data contained in a .SRCINFO file.
     Keys are resolved based on SRCINFO_ASSIGMENTS.
@@ -103,7 +104,6 @@ def parse_pairs(line: str, separator: str = " = ") -> tuple[str, str, FieldTypeE
         A tuple of two strings and a member of FieldTypeEnum, which represent key, value and field type extracted from
         the line of text
     """
-
     debug(f"Parsing: {line}")
     line = line.strip()
 
@@ -130,7 +130,7 @@ def pairs_to_entries(
     field_type: FieldTypeEnum,
     entries: dict[str, int | str | list[str]],
 ) -> None:
-    """Append key value-pairs to a dict
+    """Append key value-pairs to a dict.
 
     Values are cast based on their provided field types.
     Nested values for xdata are understood and are initialized as their target types (e.g. PkgType).
@@ -151,7 +151,6 @@ def pairs_to_entries(
     RuntimeError
         If an invalid key/ field type combination is encountered
     """
-
     debug(f"Attempting to add key {key} and value {value} of field type {field_type.value} to a dict...")
     match field_type:
         case FieldTypeEnum.INT if entries.get(key):
@@ -186,7 +185,7 @@ def pairs_to_entries(
 
 
 class B2Sums(BaseModel):
-    """The representation of an optional list of blake2 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of blake2 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -198,7 +197,7 @@ class B2Sums(BaseModel):
 
 
 class CkSums(BaseModel):
-    """The representation of an optional list of CRC-32 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of CRC-32 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -210,7 +209,7 @@ class CkSums(BaseModel):
 
 
 class Changelog(BaseModel):
-    """The representation of an optional changelog file string in a .SRCINFO file
+    """The representation of an optional changelog file string in a .SRCINFO file.
 
     Attributes
     ----------
@@ -222,7 +221,7 @@ class Changelog(BaseModel):
 
 
 class Install(BaseModel):
-    """The representation of an optional install file string in a .SRCINFO file
+    """The representation of an optional install file string in a .SRCINFO file.
 
     Attributes
     ----------
@@ -234,7 +233,7 @@ class Install(BaseModel):
 
 
 class Md5Sums(BaseModel):
-    """The representation of an optional list of MD5 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of MD5 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -246,7 +245,7 @@ class Md5Sums(BaseModel):
 
 
 class Noextract(BaseModel):
-    """The representation of an optional list of file strings in a .SRCINFO file marked for no extraction
+    """The representation of an optional list of file strings in a .SRCINFO file marked for no extraction.
 
     Attributes
     ----------
@@ -258,7 +257,7 @@ class Noextract(BaseModel):
 
 
 class Sha1Sums(BaseModel):
-    """The representation of an optional list of SHA-1 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of SHA-1 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -270,7 +269,7 @@ class Sha1Sums(BaseModel):
 
 
 class Sha224Sums(BaseModel):
-    """The representation of an optional list of SHA-224 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of SHA-224 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -282,7 +281,7 @@ class Sha224Sums(BaseModel):
 
 
 class Sha256Sums(BaseModel):
-    """The representation of an optional list of SHA-256 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of SHA-256 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -294,7 +293,7 @@ class Sha256Sums(BaseModel):
 
 
 class Sha384Sums(BaseModel):
-    """The representation of an optional list of SHA-384 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of SHA-384 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -306,7 +305,7 @@ class Sha384Sums(BaseModel):
 
 
 class Sha512Sums(BaseModel):
-    """The representation of an optional list of SHA-512 checksum or 'SKIP' strings in a .SRCINFO file
+    """The representation of an optional list of SHA-512 checksum or 'SKIP' strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -318,7 +317,7 @@ class Sha512Sums(BaseModel):
 
 
 class Source(BaseModel):
-    """The representation of an optional list of source (file or remote artifact) strings in a .SRCINFO file
+    """The representation of an optional list of source (file or remote artifact) strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -330,7 +329,7 @@ class Source(BaseModel):
 
 
 class ValidPGPKeys(BaseModel):
-    """The representation of an optional list of valid PGP key ID strings in a .SRCINFO file
+    """The representation of an optional list of valid PGP key ID strings in a .SRCINFO file.
 
     Attributes
     ----------
@@ -338,11 +337,11 @@ class ValidPGPKeys(BaseModel):
         An optional list of PGP key ID strings
     """
 
-    validpgpkeys: list[constr(regex=PGP_KEY_ID)] | None  # type: ignore[valid-type]
+    validpgpkeys: list[constr(regex=PGP_KEY_ID)] | None  # type: ignore[valid-type]  # noqa: F722
 
 
 class OptionalArch(BaseModel):
-    """The representation of an optional architecture string in a .SRCINFO file
+    """The representation of an optional architecture string in a .SRCINFO file.
 
     Attributes
     ----------
@@ -354,7 +353,7 @@ class OptionalArch(BaseModel):
 
 
 class OptionalLicense(BaseModel):
-    """A model describing a single 'license' attribute
+    """A model describing a single 'license' attribute.
 
     Attributes
     ----------
@@ -366,7 +365,7 @@ class OptionalLicense(BaseModel):
 
 
 class OptionalPkgDesc(BaseModel):
-    """The representation of an optional package description string in a .SRCINFO file
+    """The representation of an optional package description string in a .SRCINFO file.
 
     Attributes
     ----------
@@ -378,7 +377,7 @@ class OptionalPkgDesc(BaseModel):
 
 
 class OptionalUrl(BaseModel):
-    """The representation of an optional HTTP URL in a .SRCINFO file
+    """The representation of an optional HTTP URL in a .SRCINFO file.
 
     Attributes
     ----------
@@ -390,7 +389,7 @@ class OptionalUrl(BaseModel):
 
 
 class PkgBaseSection(BaseModel):
-    """The representation of a pkgbase section in a .SRCINFO file
+    """The representation of a pkgbase section in a .SRCINFO file.
 
     Refer to specific implementations (e.g. PkgBaseSectionV1) for attributes.
     """
@@ -432,7 +431,7 @@ class PkgBaseSectionV1(
     Url,
     ValidPGPKeys,
 ):
-    """The representation of a pkgbase section in a .SRCINFO file (version 1)
+    """The representation of a pkgbase section in a .SRCINFO file (version 1).
 
     Attributes
     ----------
@@ -504,7 +503,7 @@ class PkgBaseSectionV1(
 
 
 class PkgNameSection(BaseModel):
-    """The representation of a pkgname section in a .SRCINFO file (version 1)
+    """The representation of a pkgname section in a .SRCINFO file (version 1).
 
     Refer to specific implementations (e.g. PkgNameSectionV1) for attributes.
     """
@@ -528,7 +527,7 @@ class PkgNameSectionV1(
     Provides,
     Replaces,
 ):
-    """The representation of a pkgname section in a .SRCINFO file (version 1)
+    """The representation of a pkgname section in a .SRCINFO file (version 1).
 
     Attributes
     ----------
@@ -564,14 +563,14 @@ class PkgNameSectionV1(
 
 
 class SrcInfo(BaseModel):
-    """The representation of a .SRCINFO file
+    """The representation of a .SRCINFO file.
 
     Refer to specific implementations (e.g. SrcInfoV1) for attributes.
     """
 
     @classmethod
     def from_file(cls, data: Path | StringIO) -> SrcInfo:
-        """Factory method to create a SrcInfo from a file path or StringIO
+        """Create a SrcInfo from a file path or StringIO.
 
         Parameters
         ----------
@@ -583,7 +582,6 @@ class SrcInfo(BaseModel):
         SrcInfo
             An instance of SrcInfo
         """
-
         if isinstance(data, (str, Path)):
             data = read_text_from_file(path=data)
 
@@ -625,7 +623,7 @@ class SrcInfo(BaseModel):
 
 
 class SrcInfoV1(SrcInfo):
-    """The representation of a .SRCINFO file (version 1)
+    """The representation of a .SRCINFO file (version 1).
 
     Attributes
     ----------
@@ -640,7 +638,7 @@ class SrcInfoV1(SrcInfo):
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema of selected pydantic models to an output directory
+    """Export the JSON schema of selected pydantic models to an output directory.
 
     Parameters
     ----------
@@ -652,7 +650,6 @@ def export_schemas(output: Path | str) -> None:
     RuntimeError
         If output is not an existing directory
     """
-
     classes = [SrcInfoV1, PkgBaseSectionV1, PkgNameSectionV1]
 
     if isinstance(output, str):

@@ -1,3 +1,4 @@
+"""Tests for repod.common.enums."""
 from contextlib import nullcontext as does_not_raise
 from typing import ContextManager
 
@@ -22,32 +23,37 @@ from repod.common import enums
     ],
 )
 def test_compressiontypeenum(input_: str, result: enums.CompressionTypeEnum, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.enums.CompressionTypeEnum.from_string."""
     with expectation:
-        assert enums.CompressionTypeEnum.from_string(input_=input_) == result
+        assert enums.CompressionTypeEnum.from_string(input_=input_) == result  # nosec: B101
 
 
 @mark.parametrize("files", [(True), (False)])
 def test_compressiontypeenum_db_tar_suffix(files: bool) -> None:
+    """Tests for repod.common.enums.CompressionTypeEnum.db_tar_suffix."""
     for compression_type in enums.CompressionTypeEnum:
         return_value = enums.CompressionTypeEnum.db_tar_suffix(compression_type=compression_type, files=files)
         if files:
-            assert return_value.startswith(".files.tar")
+            assert return_value.startswith(".files.tar")  # nosec: B101
         else:
-            assert return_value.startswith(".db.tar")
+            assert return_value.startswith(".db.tar")  # nosec: B101
 
-        assert return_value.endswith(compression_type.value)
+        assert return_value.endswith(compression_type.value)  # nosec: B101
 
 
 def test_compressiontypeenum_as_db_file_suffixes() -> None:
-    assert enums.CompressionTypeEnum.as_db_file_suffixes()
+    """Tests for repod.common.enums.CompressionTypeEnum.as_db_file_suffixes."""
+    assert enums.CompressionTypeEnum.as_db_file_suffixes()  # nosec: B101
 
 
 def test_compressiontypeenum_as_files_file_suffixes() -> None:
-    assert enums.CompressionTypeEnum.as_files_file_suffixes()
+    """Tests for repod.common.enums.CompressionTypeEnum.as_files_file_suffixes."""
+    assert enums.CompressionTypeEnum.as_files_file_suffixes()  # nosec: B101
 
 
 def test_architectureenum_as_or_regex() -> None:
-    assert enums.ArchitectureEnum.as_or_regex()
+    """Tests for repod.common.enums.ArchitectureEnum.as_or_regex."""
+    assert enums.ArchitectureEnum.as_or_regex()  # nosec: B101
 
 
 @mark.parametrize(
@@ -69,5 +75,8 @@ def test_repotypeenum_from_bool(
     return_value: enums.RepoTypeEnum,
     expectation: ContextManager[str],
 ) -> None:
+    """Tests for repod.common.enums.RepoTypeEnum.from_bool."""
     with expectation:
-        assert enums.RepoTypeEnum.from_bool(debug=debug, staging=staging, testing=testing) == return_value
+        assert (  # nosec: B101
+            enums.RepoTypeEnum.from_bool(debug=debug, staging=staging, testing=testing) == return_value
+        )

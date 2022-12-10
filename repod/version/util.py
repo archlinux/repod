@@ -1,9 +1,9 @@
-from typing import Any
+"""A version utility module."""
 
 
-def cmp(a: Any, b: Any) -> int:
+def cmp(a: int | str, b: int | str) -> int:
     """
-    C style cmp function returning the compare result as int
+    C style cmp function returning the compare result as int.
 
     Compare the two objects a and b and return an integer according to
     the outcome. The return value is negative if x < b, zero if a == b
@@ -23,4 +23,4 @@ def cmp(a: Any, b: Any) -> int:
          0 if both are equal
          1 if 'a' is greater
     """
-    return int(a > b) - int(a < b)
+    return int(str(a) > str(b)) - int(str(a) < str(b))

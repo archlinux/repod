@@ -1,3 +1,4 @@
+"""Tests for repod.cli.cli."""
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
 from logging import DEBUG
 from pathlib import Path
@@ -29,6 +30,7 @@ from repod.config.defaults import DEFAULT_DATABASE_COMPRESSION
 )
 @patch("repod.cli.cli.exit")
 def test_exit_on_error(exit_mock: Mock, message: str, argparser: ArgumentParser | None) -> None:
+    """Tests for repod.cli.cli.exit_on_error."""
     cli.exit_on_error(message=message, argparser=argparser)
     exit_mock.assert_called_once_with(1)
 
@@ -56,6 +58,7 @@ def test_repod_file_package(
     args: Namespace,
     calls_exit_on_error: bool,
 ) -> None:
+    """Tests for repod.cli.cli.repod_file_package."""
     caplog.set_level(DEBUG)
 
     settings_mock = Mock()
@@ -113,6 +116,7 @@ def test_repod_file_repo(
     args: Namespace,
     calls_exit_on_error: bool,
 ) -> None:
+    """Tests for repod.cli.cli.repod_file_repo."""
     caplog.set_level(DEBUG)
 
     settings_mock = Mock()
@@ -148,6 +152,7 @@ def test_repod_file_repo_importpkg(
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.cli.cli.repod_file_importpkg."""
     caplog.set_level(DEBUG)
 
     file: list[Path] = []
@@ -205,6 +210,7 @@ def test_repod_file_schema(
     args: Namespace,
     calls_exit_on_error: bool,
 ) -> None:
+    """Tests for repod.cli.cli.repod_file_schema."""
     if args.schema == "export":
         args.dir = tmp_path
 
@@ -298,6 +304,7 @@ def test_repod_file(
     args: Namespace,
     calls_exit_on_error: bool,
 ) -> None:
+    """Tests for repod.cli.cli.repod_file."""
     user_settings = Mock()
     usersettings_mock.return_value = user_settings
     system_settings = Mock()
@@ -329,12 +336,25 @@ def test_repod_file(
 
 @patch("repod.cli.argparse.ArgumentParser.parse_args")
 def test_repod_file_raise_on_argumenterror(parse_args_mock: Mock) -> None:
+    """Tests for repod.cli.cli.repod_file raising on ArgumentTypeError."""
     parse_args_mock.side_effect = ArgumentTypeError
     with raises(RuntimeError):
         cli.repod_file()
 
 
 def transform_databases(repo_name: str, base_path: Path) -> None:
+    """Transform a repository sync database to management repository and back.
+
+    Repository sync databases in default locations on pacman based distributions (i.e. /var/lib/pacman/sync/) are
+    considered by name.
+
+    Parameters
+    ----------
+    repo_name: str
+        Name of the repository (identifying a local repository sync database)
+    base_path: Path
+        The base directory below which repod specific data is stored
+    """
     custom_config = f"""
     [[repositories]]
 
@@ -386,6 +406,19 @@ def transform_databases(repo_name: str, base_path: Path) -> None:
 
 
 def list_database(repo_name: str, base_path: Path, architecture: str) -> None:
+    """List contents (packages) of a repository sync database and files tracked in a files database of a repository.
+
+    First all package names of the repository are printed, afterwards all files.
+
+    Parameters
+    ----------
+    repo_name: str
+        Name of the repository (identifying a local repository sync database)
+    base_path: Path
+        The base directory below which repod specific data is stored
+    architecture: str
+        The architecture of the repository
+    """
     syncdb_path = Path(f"{base_path}/data/repo/package/{repo_name}/{architecture}/")
     with TemporaryDirectory(prefix="pacman_", dir=base_path) as dbpath:
         (Path(dbpath) / "sync").symlink_to(syncdb_path)
@@ -445,6 +478,7 @@ def list_database(repo_name: str, base_path: Path, architecture: str) -> None:
     reason="/var/lib/pacman/sync/core.files does not exist",
 )
 def test_transform_core_databases(tmp_path: Path) -> None:
+    """Integration tests for transforming the packages of a repository named core."""
     name = "core"
     transform_databases(repo_name=name, base_path=tmp_path)
     list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
@@ -456,6 +490,7 @@ def test_transform_core_databases(tmp_path: Path) -> None:
     reason="/var/lib/pacman/sync/extra.files does not exist",
 )
 def test_transform_extra_databases(tmp_path: Path) -> None:
+    """Integration tests for transforming the packages of a repository named extra."""
     name = "extra"
     transform_databases(repo_name=name, base_path=tmp_path)
     list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
@@ -467,6 +502,7 @@ def test_transform_extra_databases(tmp_path: Path) -> None:
     reason="/var/lib/pacman/sync/community.files does not exist",
 )
 def test_transform_community_databases(tmp_path: Path) -> None:
+    """Integration tests for transforming the packages of a repository named community."""
     name = "community"
     transform_databases(repo_name="community", base_path=tmp_path)
     list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
@@ -478,6 +514,7 @@ def test_transform_community_databases(tmp_path: Path) -> None:
     reason="/var/lib/pacman/sync/multilib.files does not exist",
 )
 def test_transform_multilib_databases(tmp_path: Path) -> None:
+    """Integration tests for transforming the packages of a repository named multilib."""
     name = "multilib"
     transform_databases(repo_name=name, base_path=tmp_path)
     list_database(repo_name=name, base_path=tmp_path, architecture="x86_64")
@@ -489,6 +526,7 @@ def test_transform_multilib_databases(tmp_path: Path) -> None:
     reason="Package cache in /var/cache/pacman/pkg/ does not exist",
 )
 def test_import_into_default_repo(tmp_path: Path) -> None:
+    """Integration tests for importing a set of packages into a repod managed repository."""
     packages = sorted(
         [
             str(path)
@@ -542,6 +580,7 @@ def test_import_into_default_repo(tmp_path: Path) -> None:
 
 @mark.integration
 def test_write_empty_sync_db(tmp_path: Path) -> None:
+    """Integration tests for writing an empty repository sync database."""
     custom_config = f"""
     [[repositories]]
 

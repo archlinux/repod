@@ -1,3 +1,4 @@
+"""Tests for repod.files.common."""
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from pathlib import Path
@@ -40,6 +41,7 @@ def test_open_tarfile(
     xz_file: Path,
     zst_file: Path,
 ) -> None:
+    """Tests for repod.files.common.open_tarfile."""
     match file_type:
         case ".bz2":
             path = bz2_file
@@ -58,26 +60,28 @@ def test_open_tarfile(
             path=path,
             compression=compression_override,
         ) as tarfile_file:
-            assert isinstance(tarfile_file, TarFile)
+            assert isinstance(tarfile_file, TarFile)  # nosec: B101
 
 
 def test_open_tarfile_sync_db_file(
     default_sync_db_file: tuple[Path, Path],
     files_sync_db_file: tuple[Path, Path],
 ) -> None:
+    """Tests for opening sync database files using repod.files.common.open_tarfile."""
     for path in default_sync_db_file + files_sync_db_file:
         with common.open_tarfile(
             path=path,
         ) as tarfile_file:
-            assert isinstance(tarfile_file, TarFile)
+            assert isinstance(tarfile_file, TarFile)  # nosec: B101
 
 
 def test_open_tarfile_relative_path() -> None:
+    """Tests for opening relative paths using repod.files.common.open_tarfile."""
     with raises(RepoManagementFileError):
         with common.open_tarfile(
             path=Path("foo"),
         ) as tarfile_file:
-            assert isinstance(tarfile_file, TarFile)
+            assert isinstance(tarfile_file, TarFile)  # nosec: B101
 
 
 @mark.parametrize(
@@ -101,6 +105,7 @@ async def test_extract_file_from_tarfile(
     expectation: ContextManager[str],
     default_package_file: tuple[Path, ...],
 ) -> None:
+    """Tests for repod.files.common.extract_file_from_tarfile."""
     with common.open_tarfile(path=default_package_file[0], compression=None, mode="r") as tarfile:
         with expectation:
             await common.extract_file_from_tarfile(
@@ -112,6 +117,7 @@ async def test_extract_file_from_tarfile(
 
 
 def test_zstdtarfile_raises(zst_file: Path) -> None:
+    """Tests for failing repod.files.common.ZstdTarFile."""
     with patch.object(common.TarFile, "__init__") as tarfile_mock:
         tarfile_mock.side_effect = Exception("FAIL")
         with raises(RepoManagementFileError):
@@ -139,6 +145,7 @@ def test_compression_type_of_tarfile(
     xz_file: Path,
     zst_file: Path,
 ) -> None:
+    """Tests for repod.files.common.compression_type_of_tarfile."""
     match file_type:
         case ".bz2":
             path = bz2_file
@@ -161,7 +168,7 @@ def test_compression_type_of_tarfile(
         case ".foo":
             path = Path("foo.foo")
     with expectation:
-        assert common.compression_type_of_tarfile(path=path) == result
+        assert common.compression_type_of_tarfile(path=path) == result  # nosec: B101
 
 
 @mark.parametrize(
@@ -178,8 +185,9 @@ def test_names_in_tarfile(
     expectation: bool,
     default_package_file: tuple[Path, ...],
 ) -> None:
+    """Tests for repod.files.common.names_in_tarfile."""
     with common.open_tarfile(path=default_package_file[0], compression=None, mode="r") as tarfile:
-        assert common.names_in_tarfile(tarfile=tarfile, names=names) is expectation
+        assert common.names_in_tarfile(tarfile=tarfile, names=names) is expectation  # nosec: B101
 
 
 @mark.parametrize(
@@ -197,7 +205,7 @@ def test_read_text_from_file(
     expectation: ContextManager[str],
     text_file: Path,
 ) -> None:
-
+    """Tests for repod.files.common.read_text_from_file."""
     path: str | Path = text_file
     if as_string:
         path = str(text_file)
@@ -206,4 +214,4 @@ def test_read_text_from_file(
         path = text_file.parent / "foo"
 
     with expectation:
-        assert isinstance(common.read_text_from_file(path=path), StringIO)
+        assert isinstance(common.read_text_from_file(path=path), StringIO)  # nosec: B101

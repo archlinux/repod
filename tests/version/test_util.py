@@ -1,3 +1,4 @@
+"""Tests for repod.version.util."""
 from pytest import mark
 
 from repod.version.util import cmp
@@ -21,4 +22,5 @@ from repod.version.util import cmp
     ],
 )
 def test_cmp(first: int | str, second: int | str, expectation: int) -> None:
-    assert cmp(first, second) == expectation
+    """Test repod.version.util.cmp."""
+    assert cmp(first, second) == expectation  # nosec: B101

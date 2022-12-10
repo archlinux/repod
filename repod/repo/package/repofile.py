@@ -1,3 +1,4 @@
+"""Functions and helpers to work with files in repod managed repositories."""
 from itertools import zip_longest
 from logging import debug, info
 from pathlib import Path
@@ -13,7 +14,7 @@ from repod.errors import RepoManagementFileError
 
 
 def filename_parts(file: Path) -> dict[str, str]:
-    """Split a package or signature name and return its specific metadata in a dict
+    """Split a package or signature name and return its specific metadata in a dict.
 
     Parameters
     ----------
@@ -38,7 +39,6 @@ def filename_parts(file: Path) -> dict[str, str]:
         - epoch: The epoch of the package (if any)
         - name: The name of the package
     """
-
     debug(f"Retrieving data from filename {file}")
     name = file.name
     output_dict: dict[str, str] = {}
@@ -64,7 +64,7 @@ def filename_parts(file: Path) -> dict[str, str]:
 
 
 def shared_base_path(path_a: Path, path_b: Path) -> Path:
-    """Return the shared base path of two absolute paths
+    """Return the shared base path of two absolute paths.
 
     Parameters
     ----------
@@ -83,7 +83,6 @@ def shared_base_path(path_a: Path, path_b: Path) -> Path:
     Path
         The shared base path of path_a and path_b
     """
-
     debug(f"Calculating the shared base path of {path_a} and {path_b}...")
     for path in (path_a, path_b):
         if not path.is_absolute():
@@ -103,7 +102,7 @@ def shared_base_path(path_a: Path, path_b: Path) -> Path:
 
 
 def relative_to_shared_base(path_a: Path, path_b: Path) -> Path:
-    """Return a Path to path_a, relative to the shared base path of path_a and path_b
+    """Return a Path to path_a, relative to the shared base path of path_a and path_b.
 
     This function calls shared_base_path() to determine the shared base path of path_a and path_b.
 
@@ -119,7 +118,6 @@ def relative_to_shared_base(path_a: Path, path_b: Path) -> Path:
     Path
         The path to path_a, relative to the shared base path of path_a and path_b
     """
-
     debug(f"Calculating a path relative to the shared base path of {path_a} and {path_b}...")
     shared_base = shared_base_path(path_a=path_a, path_b=path_b)
     parent_distance = len(path_b.parent.parts) - len(shared_base.parts)
@@ -136,7 +134,7 @@ def relative_to_shared_base(path_a: Path, path_b: Path) -> Path:
 
 
 class RepoFile(BaseModel):
-    """Class to interact with files in a repository
+    """Class to interact with files in a repository.
 
     Attributes
     ----------
@@ -154,7 +152,7 @@ class RepoFile(BaseModel):
 
     @classmethod
     def validate_path(cls, path: Path, file_type: RepoFileEnum) -> None:
-        """Validate path to match regex
+        """Validate path to match regex.
 
         Parameters
         ----------
@@ -168,7 +166,6 @@ class RepoFile(BaseModel):
         ValueError
             If path can not be validated
         """
-
         match file_type:
             case RepoFileEnum.PACKAGE:
                 if not path.is_absolute():
@@ -188,7 +185,7 @@ class RepoFile(BaseModel):
 
     @root_validator
     def validate_paths(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Validator for absolute Paths
+        """Validate absolute Paths.
 
         Parameters
         ----------
@@ -206,7 +203,6 @@ class RepoFile(BaseModel):
         Path
             The validated Path
         """
-
         file_type: RepoFileEnum = values.get("file_type")  # type: ignore[assignment]
 
         paths: list[Path] = []
@@ -224,7 +220,7 @@ class RepoFile(BaseModel):
         return values
 
     def check_file_path_exists(self, exists: bool = True) -> None:
-        """Ensure that file_path exists
+        """Ensure that file_path exists.
 
         Parameters
         ----------
@@ -236,7 +232,6 @@ class RepoFile(BaseModel):
         RepoManagementFileError
             If self.file_path does not exist
         """
-
         if exists:
             if not self.file_path.exists():
                 raise RepoManagementFileError(
@@ -249,7 +244,7 @@ class RepoFile(BaseModel):
                 )
 
     def check_symlink_path_exists(self, exists: bool = True) -> None:
-        """Ensure that symlink_path exists
+        """Ensure that symlink_path exists.
 
         Parameters
         ----------
@@ -261,7 +256,6 @@ class RepoFile(BaseModel):
         RepoManagementFileError
             If self.symlink_path does not exist
         """
-
         if exists:
             if not self.symlink_path.exists():
                 raise RepoManagementFileError(
@@ -274,7 +268,7 @@ class RepoFile(BaseModel):
                 )
 
     def copy_from(self, path: Path) -> None:
-        """Copy file from a provided Path to file_path
+        """Copy file from a provided Path to file_path.
 
         Before doing further checks, RepoFile.validate_path() is run on path.
 
@@ -288,7 +282,6 @@ class RepoFile(BaseModel):
         RepoManagementFileError
             If path does not exist
         """
-
         info(f"Copy {self.file_path} from {path}...")
         RepoFile.validate_path(path=path, file_type=self.file_type)
         if not path.exists():
@@ -298,7 +291,7 @@ class RepoFile(BaseModel):
         copy2(src=path, dst=self.file_path)
 
     def move_from(self, path: Path) -> None:
-        """Move file from a provided Path to file_path
+        """Move file from a provided Path to file_path.
 
         Before doing further checks, RepoFile.validate_path() is run on path.
 
@@ -312,7 +305,6 @@ class RepoFile(BaseModel):
         RepoManagementFileError
             If path does not exist
         """
-
         info(f"Move {self.file_path} from {path}...")
         RepoFile.validate_path(path=path, file_type=self.file_type)
         if not path.exists():
@@ -322,7 +314,7 @@ class RepoFile(BaseModel):
         path.rename(target=self.file_path)
 
     def link(self, check: bool = True) -> None:
-        """Link the symlink_path to file_path using a relative symlink
+        """Link the symlink_path to file_path using a relative symlink.
 
         Parameters
         ----------
@@ -334,7 +326,6 @@ class RepoFile(BaseModel):
         RepoManagementFileError
             If the file exists already
         """
-
         info(f"Link {self.symlink_path} to {self.file_path}...")
         if check:
             debug(f"Checking that {self.symlink_path} does not yet exist...")
@@ -349,7 +340,7 @@ class RepoFile(BaseModel):
             )
 
     def unlink(self, check: bool = True) -> None:
-        """Unlink the symlink_path from file_path
+        """Unlink the symlink_path from file_path.
 
         Parameters
         ----------
@@ -361,7 +352,6 @@ class RepoFile(BaseModel):
         RepoManagementFileError
             If the file does not exist and check = True
         """
-
         info(f"Unlink {self.symlink_path} from {self.file_path}...")
         if check:
             debug(f"Checking that {self.symlink_path} exists...")
@@ -370,7 +360,7 @@ class RepoFile(BaseModel):
         self.symlink_path.unlink(missing_ok=not check)
 
     def remove(self, force: bool = False, unlink: bool = False) -> None:
-        """Remove file_path and optionally unlink symlink_path from file_path
+        """Remove file_path and optionally unlink symlink_path from file_path.
 
         Parameters
         ----------
@@ -378,7 +368,6 @@ class RepoFile(BaseModel):
             Whether to not check for path existence before unlinking and to ignore errors on removing non-existing files
             (defaults to False)
         """
-
         info(f"Removing {self.file_path}...")
         if not force:
             debug(f"Checking that {self.file_path} exists...")

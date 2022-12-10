@@ -38,7 +38,7 @@ def test_pacmankeypackagessignatureverificationcheck(
         else [[default_package_file[0]]],
     )
     with patch("repod.action.check.PacmanKeyVerifier.verify", return_value=verifies):
-        assert check_() == return_value
+        assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -79,7 +79,7 @@ def test_debugpackagescheck(
         packages=packages,
     )
 
-    assert check_() == return_value
+    assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -103,7 +103,7 @@ def test_matchingarchitecturecheck(
 
     packagev1.pkginfo.arch = package_arch.value  # type: ignore[attr-defined]
     check_ = check.MatchingArchitectureCheck(architecture=repo_arch, packages=[packagev1])
-    assert check_() == return_value
+    assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -134,7 +134,7 @@ def test_matchingfilenamecheck(
     packagev1.pkginfo.version = version  # type: ignore[attr-defined]
     packagev1.pkginfo.arch = arch  # type: ignore[attr-defined]
     check_ = check.MatchingFilenameCheck(packages_and_paths=[(packagev1, Path(filename))])
-    assert check_() == return_value
+    assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -163,7 +163,7 @@ def test_pkgbasesversionupdatecheck(
         new_pkgbases=[new_outputpackagebase1, new_outputpackagebase2],
         current_pkgbases=[outputpackagebasev1],
     )
-    assert check_() == return_value
+    assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -206,9 +206,9 @@ def test_packagesneworupdatedcheck(
     )
     if from_file_raises:
         with patch("repod.action.check.OutputPackageBase.from_file", side_effect=RepoManagementFileError):
-            assert check_() == return_value
+            assert check_() == return_value  # nosec: B101
     else:
-        assert check_() == return_value
+        assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -253,7 +253,7 @@ def test_sourceurlcheck(
         else None,
     )
 
-    assert check_() == return_value
+    assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -298,7 +298,7 @@ def test_stabilitylayercheck(
         pkgbases_above=pkgbases_above,
         pkgbases_below=pkgbases_below,
     )
-    assert check_() == return_value
+    assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -322,7 +322,7 @@ def test_reproduciblebuildenvironmentcheck(
         if in_available_requirements
         else {},
     )
-    assert check_() == return_value
+    assert check_() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -359,4 +359,4 @@ def test_uniqueinrepogroupcheck(
         repo_management_dirs=repo_management_dirs,
     )
 
-    assert return_value == check_()
+    assert return_value == check_()  # nosec: B101

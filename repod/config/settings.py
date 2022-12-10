@@ -1,3 +1,4 @@
+"""Settings management for repod."""
 from __future__ import annotations
 
 import os
@@ -51,7 +52,7 @@ CUSTOM_CONFIG: Path | None = None
 
 
 def to_absolute_path(path: Path, base_path: Path) -> Path:
-    """Turn provided directory into absolute Path
+    """Turn provided directory into absolute Path.
 
     Parameters
     ----------
@@ -70,7 +71,6 @@ def to_absolute_path(path: Path, base_path: Path) -> Path:
     Path
         An absolute directory Path
     """
-
     if not base_path.is_absolute():
         raise ValueError(f"The base_path must be absolute, but '{base_path}' is provided!")
 
@@ -82,7 +82,7 @@ def to_absolute_path(path: Path, base_path: Path) -> Path:
 
 
 def create_and_validate_directory(directory: Path) -> None:
-    """Create a directory (if it does not exist yet) and ensure that it is writable
+    """Create a directory (if it does not exist yet) and ensure that it is writable.
 
     Parameters
     ----------
@@ -94,7 +94,6 @@ def create_and_validate_directory(directory: Path) -> None:
     Path
         An absolute path
     """
-
     if not directory.exists():
         debug(f"Creating directory {directory}...")
         try:
@@ -109,7 +108,7 @@ def create_and_validate_directory(directory: Path) -> None:
 
 
 class Architecture(BaseModel):
-    """A model describing a single "architecture" attribute
+    """A model describing a single "architecture" attribute.
 
     Attributes
     ----------
@@ -121,7 +120,7 @@ class Architecture(BaseModel):
 
 
 class DatabaseCompression(BaseModel):
-    """Compression type for repository sync databases
+    """Compression type for repository sync databases.
 
     Attributes
     ----------
@@ -133,7 +132,7 @@ class DatabaseCompression(BaseModel):
 
 
 class BuildRequirementsExist(BaseModel):
-    """A model indicating whether build requirements must exist
+    """A model indicating whether build requirements must exist.
 
     Attribute
     ---------
@@ -146,7 +145,7 @@ class BuildRequirementsExist(BaseModel):
 
 
 class PackagePool(BaseModel):
-    """A model describing a single "package_pool" attribute
+    """A model describing a single "package_pool" attribute.
 
     Attributes
     ----------
@@ -158,7 +157,7 @@ class PackagePool(BaseModel):
 
 
 class SourcePool(BaseModel):
-    """A model describing a single "source_pool" attribute
+    """A model describing a single "source_pool" attribute.
 
     Attributes
     ----------
@@ -170,7 +169,7 @@ class SourcePool(BaseModel):
 
 
 class ArchiveSettings(BaseModel):
-    """Settings for archiving of repositories
+    """Settings for archiving of repositories.
 
     Attributes
     ----------
@@ -189,7 +188,7 @@ class ArchiveSettings(BaseModel):
 
     @validator("packages", "sources")
     def validate_paths(cls, path: Path) -> Path:
-        """Validate and expand archive paths
+        """Validate and expand archive paths.
 
         If path starts with `~` the validation attempts to expand it to an absolute Path.
 
@@ -209,7 +208,6 @@ class ArchiveSettings(BaseModel):
         Path
             A validated, absolute Path
         """
-
         if str(path).startswith("~"):
             try:
                 debug(f"Expanding user home in archive path {path}...")
@@ -224,7 +222,7 @@ class ArchiveSettings(BaseModel):
 
 
 class SyncDbSettings(BaseModel):
-    """Settings for repository sync databases
+    """Settings for repository sync databases.
 
     Attributes
     ----------
@@ -239,7 +237,7 @@ class SyncDbSettings(BaseModel):
 
 
 class UrlValidationSettings(BaseModel):
-    """Settings for URL validation
+    """Settings for URL validation.
 
     Attributes
     ----------
@@ -254,7 +252,7 @@ class UrlValidationSettings(BaseModel):
 
     @root_validator
     def validate_urls(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Validate the URLs
+        """Validate the URLs.
 
         Parameters
         ----------
@@ -271,7 +269,6 @@ class UrlValidationSettings(BaseModel):
         values: dict[str, Any]
             The unmodified dict with all values of the UrlValidationSettings instance
         """
-
         urls: list[HttpUrl] = values.get("urls")  # type: ignore[assignment]
         tls_required: bool = values.get("tls_required")  # type: ignore[assignment]
 
@@ -282,7 +279,7 @@ class UrlValidationSettings(BaseModel):
         return values
 
     def validate_url(self, url: AnyUrl) -> bool:
-        """Validate a URL
+        """Validate a URL.
 
         Parameters
         ----------
@@ -294,7 +291,6 @@ class UrlValidationSettings(BaseModel):
         bool
             True if the URL validates against the UrlValidationSettings object, False otherwise
         """
-
         if self.tls_required and url.scheme != "https":
             debug(f"The URL {url} does not provide TLS!")
             return False
@@ -308,8 +304,7 @@ class UrlValidationSettings(BaseModel):
 
 
 class ManagementRepo(BaseModel):
-    """A model describing all required attributes to describe a repository used for managing one or more package
-    repositories
+    """A model describing a repository used for managing one or more package repositories.
 
     Attributes
     ----------
@@ -327,7 +322,7 @@ class ManagementRepo(BaseModel):
 
     @validator("url")
     def validate_url(cls, url: AnyUrl | None) -> AnyUrl | None:
-        """A validator for the url attribute
+        """Validate the url attribute.
 
         Parameters
         ----------
@@ -345,7 +340,6 @@ class ManagementRepo(BaseModel):
         AnyUrl | None
             A validated instance of AnyUrl or None
         """
-
         if url is None:
             return url
         valid_schemes = ["https", "ssh"]
@@ -360,7 +354,7 @@ class ManagementRepo(BaseModel):
 
 
 class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, PackagePool, SourcePool):
-    """A model providing all required attributes to describe a package repository
+    """A model providing all required attributes to describe a package repository.
 
     Attributes
     ----------
@@ -510,7 +504,7 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
 
     @validator("name", pre=True)
     def validate_repo_name(cls, name: Path | str) -> Path:
-        """A validator for the name attribute, which converts string input to a valid Path
+        """Validate the name attribute.
 
         Parameters
         ----------
@@ -527,7 +521,6 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
         Path
             A validated name string
         """
-
         if isinstance(name, str):
             name = Path(name)
 
@@ -559,7 +552,7 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
 
     @validator("debug", "staging", "staging_debug", "testing", "testing_debug")
     def validate_optional_staging_testing(cls, name: Path | None) -> Path | None:
-        """A validator for the optional debug, staging, staging_debug, testing and testing_debug attributes
+        """Validate the optional debug, staging, staging_debug, testing and testing_debug attributes.
 
         Parameters
         ----------
@@ -571,7 +564,6 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
         Path | None
             A validated name string, else None
         """
-
         if name is not None:
             name = Path(PackageRepo.validate_repo_name(name=name))
 
@@ -579,8 +571,7 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
 
     @root_validator(skip_on_failure=True)
     def validate_unique_repository_dirs(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """A root validator for the optional debug, staging, staging_debug, testing and testing_debug attributes
-        ensuring all are not the same string
+        """Validate the optional debug, staging, staging_debug, testing and testing_debug attributes.
 
         Parameters
         ----------
@@ -597,7 +588,6 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
         values: dict[str, Any]
             The unmodified dict with all values of the PackageRepo instance
         """
-
         stable_repo: Path = values.get("name")  # type: ignore[assignment]
         debug_repo: Path | None = values.get("debug")
         staging_repo: Path | None = values.get("staging")
@@ -669,14 +659,13 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
         return values
 
     def get_all_management_repo_dirs(self) -> list[Path]:
-        """Return all management repository directories of the PackageRepo
+        """Return all management repository directories of the PackageRepo.
 
         Returns
         -------
         list[Path]
             A list of Paths, representing all management repository directories that the repository uses
         """
-
         dirs: list[Path] = [self._stable_management_repo_dir]
         if self.debug:
             dirs.append(self._debug_management_repo_dir)
@@ -692,14 +681,13 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
         return dirs
 
     def get_all_package_repo_dirs(self) -> list[Path]:
-        """Return all package repository directories of the PackageRepo
+        """Return all package repository directories of the PackageRepo.
 
         Returns
         -------
         list[Path]
             A list of Paths, representing all package repository directories that the repository uses
         """
-
         dirs: list[Path] = [self._stable_repo_dir]
         if self.debug:
             dirs.append(self._debug_repo_dir)
@@ -716,7 +704,7 @@ class PackageRepo(Architecture, BuildRequirementsExist, DatabaseCompression, Pac
 
 
 def raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
-    """Raise on two Path instances pointing at the same file
+    """Raise on two Path instances pointing at the same file.
 
     Parameters
     ----------
@@ -734,7 +722,6 @@ def raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_na
     ValueError
         If path and other point at the same file
     """
-
     if path == other:
         raise ValueError(
             f"The {path_name} directory '{path}' can not be the same as the {other_name} directory '{other}'."
@@ -742,7 +729,7 @@ def raise_on_path_equals_other(path: Path, path_name: str, other: Path, other_na
 
 
 def raise_on_path_in_other(path: Path, path_name: str, other: Path, other_name: str) -> None:
-    """Raise when a Path instance is located in another
+    """Raise when a Path instance is located in another.
 
     Parameters
     ----------
@@ -760,7 +747,6 @@ def raise_on_path_in_other(path: Path, path_name: str, other: Path, other_name: 
     ValueError
         If path is located below other
     """
-
     try:
         path.relative_to(other)
     except ValueError:
@@ -775,7 +761,7 @@ def raise_on_path_in_list_of_paths(
     path_list: list[Path],
     other_name: str,
 ) -> None:
-    """Raise when a Path instance is in a list of Path instances
+    """Raise when a Path instance is in a list of Path instances.
 
     Parameters
     ----------
@@ -793,7 +779,6 @@ def raise_on_path_in_list_of_paths(
     ValueError
         If path is in path_list
     """
-
     debug(f"Testing if {path} is located in or equals to any of {', '.join([str(path) for path in path_list])}...")
     if not path:
         return
@@ -810,7 +795,7 @@ def validate_repo_paths(
     self_dup_ok: bool = False,
     self_nested_ok: bool = False,
 ) -> None:
-    """Validate repository directories of the same type against themselves and others
+    """Validate repository directories of the same type against themselves and others.
 
     Parameters
     ----------
@@ -831,7 +816,6 @@ def validate_repo_paths(
     ValueError
         If repo_dirs contains a duplicate entry or if the call to raise_on_path_in_list_of_paths() raises.
     """
-
     if not self_dup_ok:
         dupes = [repo_dir for repo_dir in repo_dirs if repo_dirs.count(repo_dir) > 1]
         if dupes:
@@ -861,7 +845,7 @@ def validate_repo_paths(
 
 
 def read_toml_configuration_settings(settings: BaseSettings) -> dict[str, Any]:
-    """Read the configuration file(s)
+    """Read the configuration file(s).
 
     Parameters
     ----------
@@ -873,7 +857,6 @@ def read_toml_configuration_settings(settings: BaseSettings) -> dict[str, Any]:
     dict[str, Any]
         A dict containing the data from the read out configuration file(s)
     """
-
     output_dict: dict[str, Any] = {}
     config_files: list[Path] = []
     if CUSTOM_CONFIG:
@@ -906,7 +889,7 @@ def read_toml_configuration_settings(settings: BaseSettings) -> dict[str, Any]:
 
 
 class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompression, PackagePool, SourcePool):
-    """A class to describe a configuration for repod
+    """A class to describe a configuration for repod.
 
     NOTE: Do not initialize this class directly and instead use UserSettings (for per-user configuration) or
     SystemSettings (for system-wide configuration) instead, as the Settings class lacks the required private attributes
@@ -983,6 +966,8 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
     syncdb_settings: SyncDbSettings = SyncDbSettings()
 
     class Config:
+        """BaseSettings configuration for setting defaults."""
+
         env_file_encoding = "utf-8"
 
         @classmethod
@@ -992,6 +977,23 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
             env_settings: SettingsSourceCallable,
             file_secret_settings: SettingsSourceCallable,
         ) -> tuple[SettingsSourceCallable, ...]:
+            """Customize the way settings input is merged.
+
+            Parameters
+            ----------
+            init_settings: SettingsSourceCallable
+                Apply attributes from the Settings initialization.
+            env_settings: SettingsSourceCallable
+                Apply attributes from the environment.
+            file_secret_settings: SettingsSourceCallable
+                Apply attributes from the secrets location.
+
+            Returns
+            -------
+            tuple[SettingsSourceCallable]
+                A tuple of callables, that define which attributes are merged in what order for the resulting Settings
+                object.
+            """
             return (
                 init_settings,
                 read_toml_configuration_settings,
@@ -1001,7 +1003,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
 
     @validator("archiving")
     def validate_archiving(cls, archiving: ArchiveSettings | bool | None) -> ArchiveSettings | None:
-        """Validate the ManagementRepo and return a default if none is set
+        """Validate the ManagementRepo and return a default if none is set.
 
         Return a default ManagementRepo created by a call to get_default_managementrepo() if none is set.
 
@@ -1016,7 +1018,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         ManagementRepo
             The instance's ManagementRepo or a default one
         """
-
         match archiving:
             case None | True:
                 debug("No configured archiving settings found! Setting up default...")
@@ -1031,7 +1032,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
 
     @validator("build_requirements_exist")
     def validate_build_requirements_exist(cls, build_requirements_exist: bool | None) -> bool:
-        """Validate settings whether build requirements must exist and set defaults
+        """Validate settings whether build requirements must exist and set defaults.
 
         Parameters
         ----------
@@ -1043,7 +1044,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         bool
             A validated boolean value
         """
-
         if build_requirements_exist is None:
             build_requirements_exist = DEFAULT_BUILD_REQUIREMENTS_EXIST
 
@@ -1051,7 +1051,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
 
     @validator("management_repo")
     def validate_management_repo(cls, management_repo: ManagementRepo | None) -> ManagementRepo:
-        """Validate the ManagementRepo and return a default if none is set
+        """Validate the ManagementRepo and return a default if none is set.
 
         Return a default ManagementRepo created by a call to get_default_managementrepo() if none is set.
 
@@ -1065,7 +1065,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         ManagementRepo
             The instance's ManagementRepo or a default one
         """
-
         if not management_repo:
             debug("No configured global management repository found! Setting up default...")
             management_repo = get_default_managementrepo(settings_type=cls._settings_type)
@@ -1074,7 +1073,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
 
     @validator("repositories")
     def validate_repositories(cls, repositories: list[PackageRepo]) -> list[PackageRepo]:
-        """Validator for the repositories attribute
+        """Validate the repositories attribute.
 
         If the attribute is not set or is an empty list, it will be populated with a default generated by
         get_default_packagerepo()
@@ -1089,7 +1088,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         list[PackageRepo]
             A validated list of PackageRepo instances
         """
-
         if not repositories:
             debug("No configured package repository found! Setting up default...")
             repositories = [get_default_packagerepo(settings_type=cls._settings_type)]
@@ -1101,7 +1099,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         cls,
         values: dict[str, Any],
     ) -> dict[str, Any]:
-        """Consolidate repositories with global data and create respective directories
+        """Consolidate repositories with global data and create respective directories.
 
         Private attributes of each PackageRepo are consolidated with the global defaults provided by the Settings
         object.
@@ -1118,7 +1116,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         dict[str, Any]
             A dict of validated keys and values of the Settings object
         """
-
         debug("Consolidating and creating repository directories...")
 
         repositories = cls.consolidate_repositories_with_defaults(
@@ -1146,7 +1143,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
 
     @classmethod
     def check_repository_groups_dirs(cls, repositories: list[PackageRepo]) -> None:
-        """Check that directories of repositories of the same group are used consistently
+        """Check that directories of repositories of the same group are used consistently.
 
         Ensure that
         * all management repository directories have the same parent directory (i.e. reside in the same management
@@ -1161,7 +1158,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         ValueError
             If the repositories in a group do not share the same management repository
         """
-
         repo_groups: dict[int, list[PackageRepo]] = defaultdict(list)
         for repository in repositories:
             if repository.group:
@@ -1243,7 +1239,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         repositories: list[PackageRepo],
         source_pool: Path,
     ) -> list[PackageRepo]:
-        """Consolidate each repository with global defaults
+        """Consolidate each repository with global defaults.
 
         The settings-wide defaults are used if a repository does not define the respective attribute.
         The consolidated attributes (e.g. canonicalized paths) are persisted using the dedicated private attribute of
@@ -1273,7 +1269,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         list[PackageRepo]
             The validated and consolidated list of PackageRepo objects
         """
-
         debug("Consolidating repositories with defaults...")
 
         for repo in repositories:
@@ -1421,7 +1416,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
 
     @classmethod
     def create_repository_directories(cls, repositories: list[PackageRepo]) -> None:
-        """Create the directories associated with package repositories
+        """Create the directories associated with package repositories.
 
         Create directories only if the do not exist yet and validate that the directories are writeable.
 
@@ -1430,7 +1425,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         repositories: list[PackageRepo]
             A list of package repositories for which to create directories
         """
-
         for repo in repositories:
             debug(f"Creating directories of repo {repo.name}...")
             create_and_validate_directory(directory=repo._stable_management_repo_dir)
@@ -1468,8 +1462,8 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
                 create_and_validate_directory(directory=repo._source_archive_dir)
 
     @classmethod
-    def ensure_non_overlapping_repositories(cls, repositories: list[PackageRepo]) -> None:  # noqa: C901
-        """Ensure that all repositories do not have overlapping directories
+    def ensure_non_overlapping_repositories(cls, repositories: list[PackageRepo]) -> None:
+        """Ensure that all repositories do not have overlapping directories.
 
         Ensure that
             * there are no duplicate repository names
@@ -1482,7 +1476,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         repositories: list[PackageRepo]
             A list of package repositories for which to create directories
         """
-
         debug("Ensuring package repositories have no overlapping directories...")
 
         stable_repo_dirs: list[Path] = [repo._stable_repo_dir for repo in repositories]
@@ -1802,7 +1795,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         )
 
     def get_repo(self, name: Path, architecture: ArchitectureEnum | None) -> PackageRepo:
-        """Get a repository
+        """Return a repository by name and architecture.
 
         Parameters
         ----------
@@ -1822,7 +1815,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         PackageRepo
             A package repository
         """
-
         names_arches = [(repo.name, repo.architecture) for repo in self.repositories]
         name_matches = [data for data in names_arches if data[0] == name]
         if not architecture and len(name_matches) > 1:
@@ -1845,7 +1837,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         )
 
     def get_repo_architecture(self, name: Path, architecture: ArchitectureEnum | None) -> ArchitectureEnum:
-        """Get a repository's configured CPU architecture
+        """Return a repository's configured CPU architecture.
 
         Parameters
         ----------
@@ -1859,7 +1851,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         ArchitectureEnum
             A member of ArchitectureEnum, which represents the CPU architecture of the repository
         """
-
         repo = self.get_repo(name=name, architecture=architecture)
         return repo.architecture  # type: ignore[return-value]
 
@@ -1868,7 +1859,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         name: Path,
         architecture: ArchitectureEnum | None,
     ) -> CompressionTypeEnum:
-        """Return the database compression type of a repository
+        """Return the database compression type of a repository.
 
         Parameters
         ----------
@@ -1882,7 +1873,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         CompressionTypeEnum
             The database compression type of the repository identified by name and architecture
         """
-
         repo = self.get_repo(name=name, architecture=architecture)
         return repo.database_compression  # type: ignore[return-value]
 
@@ -1893,7 +1883,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         architecture: ArchitectureEnum | None,
         repo_type: RepoTypeEnum,
     ) -> Path:
-        """Return an absolute Path of a repository
+        """Return an absolute Path of a repository.
 
         Parameters
         ----------
@@ -1919,7 +1909,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
             directory of a binary package repository, a management repository directory or the package pool directory of
             a PackageRepo
         """
-
         repo = self.get_repo(name=name, architecture=architecture)
 
         match repo_dir_type, repo_type:
@@ -1986,7 +1975,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         architecture: ArchitectureEnum | None,
         repo_type: RepoTypeEnum,
     ) -> tuple[list[Path], list[Path]]:
-        """Return the management repository directories of stability layers above and below the current
+        """Return the management repository directories of stability layers above and below the current.
 
         Parameters
         ----------
@@ -2008,7 +1997,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
             A tuple of two Path lists that represent the stability layers above (first list) and below (second list) the
             stability layer represented by repo_type.
         """
-
         repo = self.get_repo(name=name, architecture=architecture)
 
         match repo_type:
@@ -2082,7 +2070,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         name: Path,
         architecture: ArchitectureEnum | None,
     ) -> ManagementRepo:
-        """Get the ManagementRepo of a PackageRepo
+        """Return the ManagementRepo of a PackageRepo.
 
         Parameters
         ----------
@@ -2096,7 +2084,6 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         ManagementRepo
             The ManagementRepo of the repository identified by name and architecture
         """
-
         repo = self.get_repo(name=name, architecture=architecture)
         return repo.management_repo  # type: ignore[return-value]
 
@@ -2105,7 +2092,7 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         group: PositiveInt | None,
         exclude_repo: PackageRepo | None = None,
     ) -> list[PackageRepo]:
-        """Get the PackageRepos belonging to a group
+        """Return the PackageRepos belonging to a group.
 
         Parameters
         ----------
@@ -2119,12 +2106,11 @@ class Settings(Architecture, BaseSettings, BuildRequirementsExist, DatabaseCompr
         list[PackageRepo]
             A list of PackageRepo instances
         """
-
         return [repo for repo in self.repositories if repo.group == group and exclude_repo is not repo]
 
 
 class UserSettings(Settings):
-    """User-level Settings, which assume XDG compliant configuration locations and defaults
+    """User-level Settings, which assume XDG compliant configuration locations and defaults.
 
     Attributes
     ----------
@@ -2185,7 +2171,7 @@ class UserSettings(Settings):
 
 
 class SystemSettings(Settings):
-    """System-level Settings, which assume system-wide configuration locations and defaults
+    """System-level Settings, which assume system-wide configuration locations and defaults.
 
     Attributes
     ----------
@@ -2246,8 +2232,7 @@ class SystemSettings(Settings):
 
 
 def get_default_managementrepo(settings_type: SettingsTypeEnum) -> ManagementRepo:
-    """Return a default ManagementRepo instance depending on settings type
-
+    """Return a default ManagementRepo instance depending on settings type.
 
     Parameters
     ----------
@@ -2265,7 +2250,6 @@ def get_default_managementrepo(settings_type: SettingsTypeEnum) -> ManagementRep
         A ManagementRepo using system-wide locations if SettingsTypeEnum.SYSTEM is provided, or a ManagementRepo using
         per-user locations if SettingsTypeEnum.USER is provided.
     """
-
     debug(f"Creating default ManagementRepo for settings_type {settings_type.value}...")
     match settings_type:
         case SettingsTypeEnum.SYSTEM:
@@ -2277,7 +2261,7 @@ def get_default_managementrepo(settings_type: SettingsTypeEnum) -> ManagementRep
 
 
 def get_default_packagerepo(settings_type: SettingsTypeEnum) -> PackageRepo:
-    """Return a default PackageRepo
+    """Return a default PackageRepo.
 
     If SettingsTypeEnum.SYSTEM is provided as settings_type, a PackageRepo using system wide default directories is
     returned.
@@ -2298,7 +2282,6 @@ def get_default_packagerepo(settings_type: SettingsTypeEnum) -> PackageRepo:
     PackageRepo
         A PackageRepo instance with defaults based upon settings_type
     """
-
     debug(f"Creating default PackageRepo for settings_type: {settings_type.value}...")
     match settings_type:
         case SettingsTypeEnum.USER:
@@ -2322,7 +2305,7 @@ def get_default_packagerepo(settings_type: SettingsTypeEnum) -> PackageRepo:
 
 
 def get_default_archive_settings(settings_type: SettingsTypeEnum) -> ArchiveSettings:
-    """Return a default ArciveSettings
+    """Return a default ArchiveSettings.
 
     If settings_type is SettingsTypeEnum.SYSTEM, an ArchiveSettings using system wide default directories is returned.
     If settings_type is SettingsTypeEnum.USER, an ArchiveSettings using per-user default directories is returned.
@@ -2342,7 +2325,6 @@ def get_default_archive_settings(settings_type: SettingsTypeEnum) -> ArchiveSett
     ArchiveSettings
         An ArchiveSettings instance with defaults based upon settings_type
     """
-
     match settings_type:
         case SettingsTypeEnum.USER:
             return ArchiveSettings(

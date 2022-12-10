@@ -1,3 +1,4 @@
+"""Tests for repod.files.mtree."""
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from logging import DEBUG
@@ -20,12 +21,13 @@ from repod.files.common import extract_file_from_tarfile, open_tarfile
 @mark.parametrize(
     "gid, expectation",
     [
-        (randrange(0, 1000, 1), does_not_raise()),
-        (randrange(1000, 65535, 1), raises(ValidationError)),
-        (randrange(-65535, 0, 1), raises(ValidationError)),
+        (randrange(0, 1000, 1), does_not_raise()),  # nosec: B311
+        (randrange(1000, 65535, 1), raises(ValidationError)),  # nosec: B311
+        (randrange(-65535, 0, 1), raises(ValidationError)),  # nosec: B311
     ],
 )
 def test_systemgid(gid: int, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.SystemGID."""
     with expectation:
         mtree.SystemGID(gid=gid)
 
@@ -41,6 +43,7 @@ def test_systemgid(gid: int, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_linktarget(link: str | None, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.LinkTarget."""
     with expectation:
         mtree.LinkTarget(link=link)
 
@@ -49,13 +52,14 @@ def test_linktarget(link: str | None, expectation: ContextManager[str]) -> None:
     "md5, expectation",
     [
         (None, does_not_raise()),
-        ("".join(choice("abcdef" + digits) for x in range(32)), does_not_raise()),
-        ("".join(choice("abcdef" + digits) for x in range(33)), raises(ValidationError)),
-        ("".join(choice("abcdef" + digits) for x in range(31)), raises(ValidationError)),
-        ("".join(choice(ascii_lowercase + digits) for x in range(32)), raises(ValidationError)),
+        ("".join(choice("abcdef" + digits) for x in range(32)), does_not_raise()),  # nosec: B311
+        ("".join(choice("abcdef" + digits) for x in range(33)), raises(ValidationError)),  # nosec: B311
+        ("".join(choice("abcdef" + digits) for x in range(31)), raises(ValidationError)),  # nosec: B311
+        ("".join(choice(ascii_lowercase + digits) for x in range(32)), raises(ValidationError)),  # nosec: B311
     ],
 )
 def test_md5(md5: str | None, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.Md5."""
     with expectation:
         mtree.Md5(md5=md5)
 
@@ -63,15 +67,16 @@ def test_md5(md5: str | None, expectation: ContextManager[str]) -> None:
 @mark.parametrize(
     "mode, expectation",
     [
-        ("".join(choice("01234567") for x in range(3)), does_not_raise()),
-        ("".join(choice("01234567") for x in range(4)), does_not_raise()),
-        ("".join(choice("01234567") for x in range(2)), raises(ValidationError)),
-        ("".join(choice("01234567") for x in range(5)), raises(ValidationError)),
-        ("".join(choice("89") for x in range(3)), raises(ValidationError)),
-        ("".join(choice("89") for x in range(4)), raises(ValidationError)),
+        ("".join(choice("01234567") for x in range(3)), does_not_raise()),  # nosec: B311
+        ("".join(choice("01234567") for x in range(4)), does_not_raise()),  # nosec: B311
+        ("".join(choice("01234567") for x in range(2)), raises(ValidationError)),  # nosec: B311
+        ("".join(choice("01234567") for x in range(5)), raises(ValidationError)),  # nosec: B311
+        ("".join(choice("89") for x in range(3)), raises(ValidationError)),  # nosec: B311
+        ("".join(choice("89") for x in range(4)), raises(ValidationError)),  # nosec: B311
     ],
 )
 def test_filemode(mode: str, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.FileMode."""
     with expectation:
         mtree.FileMode(mode=mode)
 
@@ -80,13 +85,14 @@ def test_filemode(mode: str, expectation: ContextManager[str]) -> None:
     "sha256, expectation",
     [
         (None, does_not_raise()),
-        ("".join(choice("abcdef" + digits) for x in range(64)), does_not_raise()),
-        ("".join(choice("abcdef" + digits) for x in range(65)), raises(ValidationError)),
-        ("".join(choice("abcdef" + digits) for x in range(63)), raises(ValidationError)),
-        ("".join(choice(ascii_lowercase + digits) for x in range(64)), raises(ValidationError)),
+        ("".join(choice("abcdef" + digits) for x in range(64)), does_not_raise()),  # nosec: B311
+        ("".join(choice("abcdef" + digits) for x in range(65)), raises(ValidationError)),  # nosec: B311
+        ("".join(choice("abcdef" + digits) for x in range(63)), raises(ValidationError)),  # nosec: B311
+        ("".join(choice(ascii_lowercase + digits) for x in range(64)), raises(ValidationError)),  # nosec: B311
     ],
 )
 def test_sha256(sha256: str | None, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.Sha256."""
     with expectation:
         mtree.Sha256(sha256=sha256)
 
@@ -95,11 +101,12 @@ def test_sha256(sha256: str | None, expectation: ContextManager[str]) -> None:
     "size, expectation",
     [
         (None, does_not_raise()),
-        (randrange(0, 1000, 1), does_not_raise()),
-        (randrange(-1000, 0, 1), raises(ValidationError)),
+        (randrange(0, 1000, 1), does_not_raise()),  # nosec: B311
+        (randrange(-1000, 0, 1), raises(ValidationError)),  # nosec: B311
     ],
 )
 def test_filesize(size: int | None, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.FileSize."""
     with expectation:
         mtree.FileSize(size=size)
 
@@ -112,6 +119,7 @@ def test_filesize(size: int | None, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_unixtime(time: float | None, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.UnixTime."""
     with expectation:
         mtree.UnixTime(time=time)
 
@@ -130,6 +138,7 @@ def test_unixtime(time: float | None, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_mtreefiletype(type_: str, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.MTreeEntryType."""
     with expectation:
         mtree.MTreeEntryType(type_=type_)
 
@@ -137,23 +146,26 @@ def test_mtreefiletype(type_: str, expectation: ContextManager[str]) -> None:
 @mark.parametrize(
     "uid, expectation",
     [
-        (randrange(0, 1000, 1), does_not_raise()),
-        (randrange(1000, 65535, 1), raises(ValidationError)),
-        (randrange(-65535, 0, 1), raises(ValidationError)),
+        (randrange(0, 1000, 1), does_not_raise()),  # nosec: B311
+        (randrange(1000, 65535, 1), raises(ValidationError)),  # nosec: B311
+        (randrange(-65535, 0, 1), raises(ValidationError)),  # nosec: B311
     ],
 )
 def test_systemuid(uid: int, expectation: ContextManager[str]) -> None:
+    """Tests for repod.files.mtree.SystemUID."""
     with expectation:
         mtree.SystemUID(uid=uid)
 
 
 def test_mtreefile_get_file_path() -> None:
+    """Tests for repod.files.mtree.MTreeEntry.get_file_path."""
     mtreefile = mtree.MTreeEntry()
     with raises(RuntimeError):
         mtreefile.get_file_path()
 
 
 def test_mtreefile_get_link_path() -> None:
+    """Tests for repod.files.mtree.MTreeEntry.get_link_path."""
     mtreefile = mtree.MTreeEntry()
     with raises(RuntimeError):
         mtreefile.get_link_path()
@@ -167,10 +179,10 @@ def test_mtreefile_get_link_path() -> None:
                 mode="0644",
                 size="1000",
                 link=None,
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo\\040bar",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -182,10 +194,10 @@ def test_mtreefile_get_link_path() -> None:
                 mode="0644",
                 size="1000",
                 link=None,
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/" + "".join(map(str, set(range(0x20, 0x7E)) - {ord("#"), ord(" "), ord("="), ord("\\")})),
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -197,23 +209,24 @@ def test_mtreefile_get_link_path() -> None:
                 mode="0644",
                 size="1000",
                 link=None,
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/\\320\\220\\321\\202\\320\\273\\320\\260\\321\\201\\320\\275\\321\\213\\320\\265.svgz",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
             ),
-            Path("/Атласные.svgz"),
+            Path("/Атласные.svgz"),  # noqa: RUF001
         ),
     ],
 )
 def test_mtreefilev1_get_file_path(
     mtreefilev1: mtree.MTreeEntryV1, return_value: Path, caplog: LogCaptureFixture
 ) -> None:
+    """Tests for repod.files.mtree.MTreeEntryV1.get_file_path."""
     caplog.set_level(DEBUG)
-    assert mtreefilev1.get_file_path() == return_value
+    assert mtreefilev1.get_file_path() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -225,10 +238,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="/bar\\040baz",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo\\040bar",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -241,10 +254,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="bar\\040baz",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo\\040bar",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -257,10 +270,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="../bar\\040baz",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo/bar/baz",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -273,10 +286,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="/bar\\040baz",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo\\040bar",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -289,10 +302,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="bar\\040baz",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo\\040bar",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -305,10 +318,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="../bar\\040baz",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo/bar/baz",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -321,15 +334,15 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="../\\320\\220\\321\\202\\320\\273\\320\\260\\321\\201\\320\\275\\321\\213\\320\\265.svgz",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo/bar/baz",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
             ),
-            Path("/foo/bar/Атласные.svgz"),
+            Path("/foo/bar/Атласные.svgz"),  # noqa: RUF001
         ),
         (
             False,
@@ -337,10 +350,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link="/foo",
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo/bar/baz",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -353,10 +366,10 @@ def test_mtreefilev1_get_file_path(
                 mode="0644",
                 size="1000",
                 link=None,
-                md5="".join(choice("abcdef" + digits) for x in range(32)),
+                md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
                 name="/foo\\040bar",
                 type_="file",
-                sha256="".join(choice("abcdef" + digits) for x in range(64)),
+                sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
                 time=200,
                 gid=0,
                 uid=0,
@@ -366,25 +379,28 @@ def test_mtreefilev1_get_file_path(
     ],
 )
 def test_mtreefilev1_get_link_path(resolve: bool, mtreefilev1: mtree.MTreeEntryV1, return_value: Path) -> None:
-    assert mtreefilev1.get_link_path(resolve=resolve) == return_value
+    """Tests for repod.files.mtree.MTreeEntryV1.get_link_path."""
+    assert mtreefilev1.get_link_path(resolve=resolve) == return_value  # nosec: B101
 
 
 def test_mtreefile_get_type() -> None:
+    """Tests for repod.files.mtree.MTreeEntry.get_type."""
     mtreefile = mtree.MTreeEntry()
     with raises(RuntimeError):
         mtreefile.get_type()
 
 
 def test_mtreefilev1_get_type() -> None:
-    assert (
+    """Tests for repod.files.mtree.MTreeEntryV1.get_type."""
+    assert (  # nosec: B101
         mtree.MTreeEntryV1(
             mode="0644",
             size="1000",
             link=None,
-            md5="".join(choice("abcdef" + digits) for x in range(32)),
+            md5="".join(choice("abcdef" + digits) for x in range(32)),  # nosec: B311
             name="/foo\\040bar",
             type_="file",
-            sha256="".join(choice("abcdef" + digits) for x in range(64)),
+            sha256="".join(choice("abcdef" + digits) for x in range(64)),  # nosec: B311
             time=200,
             gid=0,
             uid=0,
@@ -394,7 +410,8 @@ def test_mtreefilev1_get_type() -> None:
 
 
 def test_mtree_get_paths(valid_mtree: mtree.MTree) -> None:
-    assert valid_mtree.get_paths()
+    """Tests for repod.files.mtree.MTreeEntryV1.get_paths."""
+    assert valid_mtree.get_paths()  # nosec: B101
 
 
 @mark.parametrize("valid, expectation", [(True, does_not_raise()), (False, raises(RepoManagementValidationError))])
@@ -405,6 +422,7 @@ def test_mtree_from_file(
     invalid_mtreeentryv1_stringio: StringIO,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.files.mtree.MTree.from_file."""
     caplog.set_level(DEBUG)
 
     if valid:
@@ -413,10 +431,11 @@ def test_mtree_from_file(
         data = invalid_mtreeentryv1_stringio
 
     with expectation:
-        assert isinstance(mtree.MTree.from_file(data=data), mtree.MTree)
+        assert isinstance(mtree.MTree.from_file(data=data), mtree.MTree)  # nosec: B101
 
 
 def test_export_schemas() -> None:
+    """Tests for repod.files.mtree.export_schemas."""
     with TemporaryDirectory() as tmp:
         mtree.export_schemas(output=str(tmp))
         mtree.export_schemas(output=tmp)
@@ -434,6 +453,7 @@ def test_export_schemas() -> None:
     reason="Package cache in /var/cache/pacman/pkg/ does not exist",
 )
 async def test_read_mtree_files() -> None:
+    """Integration tests for repod.files.mtree.MTree.from_file."""
     packages = sorted(
         [
             path
@@ -444,7 +464,7 @@ async def test_read_mtree_files() -> None:
     if len(packages) > 50:
         packages = sample(packages, 50)
     for package in packages:
-        assert isinstance(
+        assert isinstance(  # nosec: B101
             mtree.MTree.from_file(
                 await extract_file_from_tarfile(  # type: ignore[arg-type]
                     tarfile=open_tarfile(package),

@@ -1,3 +1,4 @@
+"""Tests for repod.common.models."""
 from contextlib import nullcontext as does_not_raise
 from typing import ContextManager
 from unittest.mock import patch
@@ -26,6 +27,7 @@ from tests.conftest import (
     ],
 )
 def test_backup_validate_backup(backup: list[str] | None, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.Backup.validate_backup."""
     with expectation:
         models.Backup(backup=backup)
 
@@ -38,8 +40,9 @@ def test_backup_validate_backup(backup: list[str] | None, expectation: ContextMa
     ],
 )
 def test_builddate(builddate: int, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.BuildDate."""
     with expectation:
-        assert builddate == models.BuildDate(builddate=builddate).builddate
+        assert builddate == models.BuildDate(builddate=builddate).builddate  # nosec: B101
 
 
 @mark.parametrize(
@@ -50,8 +53,9 @@ def test_builddate(builddate: int, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_csize(csize: int, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.CSize."""
     with expectation:
-        assert csize == models.CSize(csize=csize).csize
+        assert csize == models.CSize(csize=csize).csize  # nosec: B101
 
 
 @mark.parametrize(
@@ -65,8 +69,9 @@ def test_csize(csize: int, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_epoch(value: str | int, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.Epoch."""
     with expectation:
-        assert isinstance(models.Epoch(epoch=value), models.Epoch)
+        assert isinstance(models.Epoch(epoch=value), models.Epoch)  # nosec: B101
 
 
 @mark.parametrize(
@@ -81,7 +86,10 @@ def test_epoch(value: str | int, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_epoch_vercmp(subj: int | str, obj: int | str, expectation: int) -> None:
-    assert expectation == vercmp(a=str(models.Epoch(epoch=subj).epoch), b=str(models.Epoch(epoch=obj).epoch))
+    """Tests for repod.common.models.Epoch compared using vercmp."""
+    assert expectation == vercmp(  # nosec: B101
+        a=str(models.Epoch(epoch=subj).epoch), b=str(models.Epoch(epoch=obj).epoch)
+    )
 
 
 @mark.parametrize(
@@ -96,6 +104,7 @@ def test_epoch_vercmp(subj: int | str, obj: int | str, expectation: int) -> None
     ],
 )
 def test_filelist_validate_files(file_list: list[str] | None, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.FileList."""
     with expectation:
         models.FileList(files=file_list)
 
@@ -108,8 +117,9 @@ def test_filelist_validate_files(file_list: list[str] | None, expectation: Conte
     ],
 )
 def test_isize(isize: int, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.ISize."""
     with expectation:
-        assert isize == models.ISize(isize=isize).isize
+        assert isize == models.ISize(isize=isize).isize  # nosec: B101
 
 
 @mark.parametrize(
@@ -122,11 +132,13 @@ def test_isize(isize: int, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_name(name: str, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.ISize."""
     with expectation:
-        assert name == models.Name(name=name).name
+        assert name == models.Name(name=name).name  # nosec: B101
 
 
 def test_packager(default_packager: str, default_invalid_packager: str) -> None:
+    """Tests for repod.common.models.Packager."""
     with does_not_raise():
         models.Packager(packager=default_packager)
     with raises(ValidationError):
@@ -146,8 +158,9 @@ def test_packager(default_packager: str, default_invalid_packager: str) -> None:
     ],
 )
 def test_pkgrel(value: str, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.PkgRel."""
     with expectation:
-        assert isinstance(models.PkgRel(pkgrel=value), models.PkgRel)
+        assert isinstance(models.PkgRel(pkgrel=value), models.PkgRel)  # nosec: B101
 
 
 @mark.parametrize(
@@ -165,8 +178,11 @@ def test_pkgrel(value: str, expectation: ContextManager[str]) -> None:
 )
 @mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgrel_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    """Tests for repod.common.models.PkgRel comparing using vercmp."""
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
-        assert expectation == vercmp(a=models.PkgRel(pkgrel=subj).pkgrel, b=models.PkgRel(pkgrel=obj).pkgrel)
+        assert expectation == vercmp(  # nosec: B101
+            a=models.PkgRel(pkgrel=subj).pkgrel, b=models.PkgRel(pkgrel=obj).pkgrel
+        )
 
 
 @mark.parametrize(
@@ -184,8 +200,9 @@ def test_pkgrel_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: boo
     ],
 )
 def test_pkgver(value: str, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.PkgVer."""
     with expectation:
-        assert isinstance(models.PkgVer(pkgver=value), models.PkgVer)
+        assert isinstance(models.PkgVer(pkgver=value), models.PkgVer)  # nosec: B101
 
 
 @mark.parametrize(
@@ -238,8 +255,11 @@ def test_pkgver(value: str, expectation: ContextManager[str]) -> None:
 )
 @mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgver_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    """Tests for repod.common.models.PkgVer comparing using vercmp."""
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
-        assert expectation == vercmp(a=models.PkgVer(pkgver=subj).pkgver, b=models.PkgVer(pkgver=obj).pkgver)
+        assert expectation == vercmp(  # nosec: B101
+            a=models.PkgVer(pkgver=subj).pkgver, b=models.PkgVer(pkgver=obj).pkgver
+        )
 
 
 @mark.parametrize(
@@ -250,8 +270,9 @@ def test_pkgver_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: boo
     ],
 )
 def test_version(value: str, expectation: ContextManager[str]) -> None:
+    """Tests for repod.common.models.Version."""
     with expectation:
-        assert isinstance(models.Version(version=value), models.Version)
+        assert isinstance(models.Version(version=value), models.Version)  # nosec: B101
 
 
 @mark.parametrize(
@@ -262,7 +283,8 @@ def test_version(value: str, expectation: ContextManager[str]) -> None:
     ],
 )
 def test_version_get_epoch(value: str, expectation: models.Epoch | None) -> None:
-    assert models.Version(version=value).get_epoch() == expectation
+    """Tests for repod.common.models.Version.get_epoch."""
+    assert models.Version(version=value).get_epoch() == expectation  # nosec: B101
 
 
 @mark.parametrize(
@@ -275,7 +297,8 @@ def test_version_get_epoch(value: str, expectation: models.Epoch | None) -> None
     ],
 )
 def test_version_get_pkgver(value: str, expectation: models.PkgVer | None) -> None:
-    assert models.Version(version=value).get_pkgver() == expectation
+    """Tests for repod.common.models.Version.get_pkgver."""
+    assert models.Version(version=value).get_pkgver() == expectation  # nosec: B101
 
 
 @mark.parametrize(
@@ -292,7 +315,8 @@ def test_version_get_pkgver(value: str, expectation: models.PkgVer | None) -> No
     ],
 )
 def test_version_get_pkgrel(value: str, expectation: models.PkgRel | None) -> None:
-    assert models.Version(version=value).get_pkgrel() == expectation
+    """Tests for repod.common.models.Version.get_pkgrel."""
+    assert models.Version(version=value).get_pkgrel() == expectation  # nosec: B101
 
 
 @mark.parametrize(
@@ -316,8 +340,9 @@ def test_version_get_pkgrel(value: str, expectation: models.PkgRel | None) -> No
 )
 @mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_version_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    """Tests for repod.common.models.Version.vercmp."""
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
-        assert models.Version(version=subj).vercmp(version=models.Version(version=obj)) == expectation
+        assert models.Version(version=subj).vercmp(version=models.Version(version=obj)) == expectation  # nosec: B101
 
 
 @mark.parametrize(
@@ -328,7 +353,8 @@ def test_version_vercmp(subj: str, obj: str, expectation: int, pyalpm_vercmp: bo
     ],
 )
 def test_version_is_older_than(subj: str, obj: str, expectation: bool) -> None:
-    assert models.Version(version=subj).is_older_than(version=models.Version(version=obj)) is expectation
+    """Tests for repod.common.models.Version.is_older_than."""
+    assert models.Version(version=subj).is_older_than(version=models.Version(version=obj)) is expectation  # nosec: B101
 
 
 @mark.parametrize(
@@ -339,4 +365,5 @@ def test_version_is_older_than(subj: str, obj: str, expectation: bool) -> None:
     ],
 )
 def test_version_is_newer_than(subj: str, obj: str, expectation: bool) -> None:
-    assert models.Version(version=subj).is_newer_than(version=models.Version(version=obj)) is expectation
+    """Tests for repod.common.models.Version.is_newer_than."""
+    assert models.Version(version=subj).is_newer_than(version=models.Version(version=obj)) is expectation  # nosec: B101

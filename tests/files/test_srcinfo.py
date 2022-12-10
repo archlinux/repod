@@ -76,7 +76,7 @@ def test_srcinfo_from_file(
 
     print()
     with expectation:
-        assert isinstance(srcinfo.SrcInfo.from_file(data=data), srcinfo.SrcInfo)  # pyright: ignore
+        assert isinstance(srcinfo.SrcInfo.from_file(data=data), srcinfo.SrcInfo)  # pyright: ignore  # nosec: B101
 
 
 @mark.parametrize(
@@ -105,7 +105,7 @@ def test_parse_pairs(
     caplog.set_level(DEBUG)
 
     with expectation:
-        assert (key, value, field_type) == srcinfo.parse_pairs(line=line)
+        assert (key, value, field_type) == srcinfo.parse_pairs(line=line)  # nosec: B101
 
 
 @mark.parametrize(

@@ -1,18 +1,18 @@
+"""Utility functions for running external commands."""
 from pathlib import Path
-from subprocess import PIPE, STDOUT, CalledProcessError
+from subprocess import PIPE, STDOUT, CalledProcessError  # nosec: B404
 
-from subprocess_tee import CompletedProcess, run
+from subprocess_tee import CompletedProcess, run  # nosec: B404
 
 
 def _print_env(env: dict[str, str] | None) -> None:
-    """Print the environment variables from a dict
+    """Print the environment variables from a dict.
 
     Parameters
     ----------
     env: dict[str, str] | None
         An optional dict with environment variables and their values
     """
-
     if env:
         for (key, value) in sorted(env.items()):
             print(f"{key}: {value}")
@@ -27,7 +27,7 @@ def run_command(
     check: bool = False,
     cwd: str | Path | None = None,
 ) -> CompletedProcess:
-    """Run a command
+    """Run a command.
 
     Parameters
     ----------
@@ -56,7 +56,6 @@ def run_command(
     CompletedProcess
         The result of the command
     """
-
     if debug:
         _print_env(env)
 

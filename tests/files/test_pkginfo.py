@@ -1,3 +1,4 @@
+"""Tests for repod.files.pkginfo."""
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from logging import DEBUG
@@ -35,10 +36,11 @@ def test_parse_pairs(
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.files.pkginfo.parse_pairs."""
     caplog.set_level(DEBUG)
 
     with expectation:
-        assert (key, value, field_type) == pkginfo.parse_pairs(line=line, separator=separator)
+        assert (key, value, field_type) == pkginfo.parse_pairs(line=line, separator=separator)  # nosec: B101
 
 
 @mark.parametrize(
@@ -82,6 +84,7 @@ def test_pairs_to_entries(
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.files.pkginfo.pairs_to_entries."""
     caplog.set_level(DEBUG)
 
     with expectation:
@@ -91,10 +94,11 @@ def test_pairs_to_entries(
             field_type=field_type,
             entries=input_entries,
         )
-        assert input_entries == output_entries
+        assert input_entries == output_entries  # nosec: B101
 
 
 def test_fakerootversion(default_version: str, default_invalid_version: str) -> None:
+    """Tests for repod.files.pkginfo.FakerootVersion."""
     with does_not_raise():
         pkginfo.FakerootVersion(fakeroot_version=default_version)
     with raises(ValidationError):
@@ -102,6 +106,7 @@ def test_fakerootversion(default_version: str, default_invalid_version: str) -> 
 
 
 def test_makepkgversion(default_version: str, default_invalid_version: str) -> None:
+    """Tests for repod.files.pkginfo.MakepkgVersion."""
     with does_not_raise():
         pkginfo.MakepkgVersion(makepkg_version=default_version)
     with raises(ValidationError):
@@ -109,6 +114,7 @@ def test_makepkgversion(default_version: str, default_invalid_version: str) -> N
 
 
 def test_pkgtype(default_pkgtype: str, default_invalid_pkgtype: str) -> None:
+    """Tests for repod.files.pkginfo.PkgType."""
     with does_not_raise():
         pkginfo.PkgType(pkgtype=default_pkgtype)
     with raises(ValidationError):
@@ -116,6 +122,7 @@ def test_pkgtype(default_pkgtype: str, default_invalid_pkgtype: str) -> None:
 
 
 def test_export_schemas(tmp_path: Path) -> None:
+    """Tests for repod.files.pkginfo.export_schemas."""
     pkginfo.export_schemas(output=str(tmp_path))
     pkginfo.export_schemas(output=tmp_path)
 
@@ -131,20 +138,21 @@ def test_pkginfo_from_file(
     pkginfov1_stringio: StringIO,
     pkginfov2_stringio: StringIO,
 ) -> None:
+    """Tests for repod.files.pkginfo.PkgInfo.from_file."""
     caplog.set_level(DEBUG)
     with does_not_raise():
-        assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov2_stringio), pkginfo.PkgInfoV2)
+        assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov2_stringio), pkginfo.PkgInfoV2)  # nosec: B101
 
     with patch(
         "repod.files.pkginfo.PKGINFO_VERSIONS",
         pkginfo.PKGINFO_VERSIONS | {len(pkginfo.PKGINFO_VERSIONS) + 1: {"required": {"foo"}}},
     ):
         with raises(RepoManagementError):
-            assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov2_stringio), pkginfo.PkgInfoV2)
+            assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov2_stringio), pkginfo.PkgInfoV2)  # nosec: B101
 
     with patch("repod.files.pkginfo.PKGINFO_VERSIONS", {1: pkginfo.PKGINFO_VERSIONS[1]}):
         with does_not_raise():
-            assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov1_stringio), pkginfo.PkgInfoV1)
+            assert isinstance(pkginfo.PkgInfo.from_file(data=pkginfov1_stringio), pkginfo.PkgInfoV1)  # nosec: B101
 
     with raises(RepoManagementError):
         pkginfo.PkgInfo.from_file(data=StringIO(initial_value="base = foo\n"))
@@ -156,6 +164,7 @@ def test_pkginfo_from_file(
     reason="Package cache in /var/cache/pacman/pkg/ does not exist",
 )
 async def test_read_pkginfo_files() -> None:
+    """Integration tests for repod.files.pkginfo.PkgInfo.from_file."""
     packages = sorted(
         [
             path
@@ -167,7 +176,7 @@ async def test_read_pkginfo_files() -> None:
         packages = sample(packages, 50)
     for package in packages:
         print(f"DEBUG::: Reading .PKGINFO file from package {package}...")
-        assert isinstance(
+        assert isinstance(  # nosec: B101
             pkginfo.PkgInfo.from_file(
                 await extract_file_from_tarfile(  # type: ignore[arg-type]
                     tarfile=open_tarfile(package),

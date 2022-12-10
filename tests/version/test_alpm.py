@@ -1,3 +1,4 @@
+"""Tests for repod.version.alpm."""
 from unittest.mock import patch
 
 from pytest import mark
@@ -59,8 +60,9 @@ from repod.version.alpm import pkg_vercmp, vercmp
 )
 @mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_vercmp(first: str, second: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    """Tests for repod.version.alpm.vercmp."""
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
-        assert vercmp(a=first, b=second) == expectation
+        assert vercmp(a=first, b=second) == expectation  # nosec: B101
 
 
 @mark.parametrize(
@@ -73,5 +75,6 @@ def test_vercmp(first: str, second: str, expectation: int, pyalpm_vercmp: bool) 
 )
 @mark.parametrize("pyalpm_vercmp", [lazy_fixture("pyalpm_vercmp_fun")])
 def test_pkgver_vercmp(first: str, second: str, expectation: int, pyalpm_vercmp: bool) -> None:
+    """Tests for repod.version.alpm.pkg_vercmp."""
     with patch("repod.version.alpm.PYALPM_VERCMP", pyalpm_vercmp):
-        assert pkg_vercmp(a=first, b=second) == expectation
+        assert pkg_vercmp(a=first, b=second) == expectation  # nosec: B101

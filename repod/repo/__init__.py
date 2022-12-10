@@ -1,3 +1,4 @@
+"""Handling of management and package repository files."""
 from pathlib import Path
 
 from repod.repo.management import (  # noqa: F401
@@ -24,13 +25,12 @@ from repod.repo.package import (  # noqa: F401
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema files of the repod.repo package to a directory
+    """Export the JSON schema files of the repod.repo package to a directory.
 
     Parameters
     ----------
     output: Path
         A directory to write the JSON schema files to
     """
-
     management_export_schemas(output=output)
     package_export_schemas(output=output)

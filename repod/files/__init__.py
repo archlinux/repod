@@ -1,3 +1,4 @@
+"""File handling in repod."""
 from pathlib import Path
 
 from repod.files.buildinfo import BuildInfo  # noqa: F401
@@ -14,14 +15,13 @@ from repod.files.srcinfo import export_schemas as srcinfo_export_schemas
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema files of the repod.files package to a directory
+    """Export the JSON schema files of the repod.files package to a directory.
 
     Parameters
     ----------
     output: Path
         A directory to write the JSON schema files to
     """
-
     buildinfo_export_schemas(output=output)
     mtree_export_schemas(output=output)
     package_export_schemas(output=output)

@@ -1,3 +1,6 @@
+"""Argparser factory for repod's CLI."""
+from __future__ import annotations
+
 import os
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
@@ -9,7 +12,7 @@ from repod.common.enums import ArchitectureEnum
 
 
 class ArgParseFactory:
-    """A factory class to create different types of ArgumentParser instances
+    """A factory class to create different types of ArgumentParser instances.
 
     Attributes
     ----------
@@ -19,6 +22,13 @@ class ArgParseFactory:
     """
 
     def __init__(self, description: str = "default") -> None:
+        """Initialize an instance of ArgParseFactory.
+
+        Parameters
+        ----------
+        description: str
+            The description string of the resulting self.parser (an ArgumentParser)
+        """
         self.parser = ArgumentParser(description=description)
         self.parser.add_argument(
             "-c",
@@ -49,14 +59,13 @@ class ArgParseFactory:
 
     @classmethod
     def repod_file(cls) -> ArgumentParser:
-        """A class method to create an ArgumentParser for the repod-file script
+        """Create an ArgumentParser for the repod-file script.
 
         Returns
         -------
         ArgumentParser
             An ArgumentParser instance specific for the repod-file script
         """
-
         instance = cls(description="File actions for packages, management repository and sync databases.")
         subcommands = instance.parser.add_subparsers(dest="subcommand")
 
@@ -250,7 +259,7 @@ class ArgParseFactory:
 
     @classmethod
     def string_to_writable_file_path(cls, input_: str) -> Path:
-        """Convert an input string into a Path to a file
+        """Convert an input string into a Path to a file.
 
         This method checks whether an (existing) file is writable. If the file does not exist the parent directory is
         checked for existence and whether it is writable.
@@ -270,7 +279,6 @@ class ArgParseFactory:
         Path
             A Path instance created from input_
         """
-
         path = Path(input_)
         if path.exists():
             if not path.is_file():
@@ -288,7 +296,7 @@ class ArgParseFactory:
 
     @classmethod
     def string_to_file_path(cls, input_: str) -> Path:
-        """Convert an input string into a Path to a file
+        """Convert an input string into a Path to a file.
 
         Parameters
         ----------
@@ -305,7 +313,6 @@ class ArgParseFactory:
         Path
             A Path instance created from input_
         """
-
         path = Path(input_)
         if not path.exists():
             raise ArgumentTypeError(f"the file '{input_}' does not exist")
@@ -315,7 +322,7 @@ class ArgParseFactory:
 
     @classmethod
     def string_to_dir_path(cls, input_: str) -> Path:
-        """Convert an input string into a Path to a directory
+        """Convert an input string into a Path to a directory.
 
         Parameters
         ----------
@@ -332,7 +339,6 @@ class ArgParseFactory:
         Path
             A Path instance created from input_
         """
-
         path = Path(input_)
         if not path.exists():
             raise ArgumentTypeError(f"the directory '{input_}' does not exist")
@@ -342,7 +348,7 @@ class ArgParseFactory:
 
     @classmethod
     def string_to_tuple(cls, input_: str) -> tuple[str, AnyUrl]:
-        """Convert an input string into a tuple of string and AnyUrl
+        """Convert an input string into a tuple of string and AnyUrl.
 
         The input string is expected to be delimited by at least one "=" character to split on.
 
@@ -363,11 +369,10 @@ class ArgParseFactory:
         tuple[str, AnyUrl]
             A tuple denoting a word and an instance of AnyUrl
         """
-
         try:
             pkgbase, url_str = [str_.strip() for str_ in input_.split(sep="=", maxsplit=1)]
         except ValueError:
-            raise ArgumentTypeError(f"There is no '=' in '{input_}'!")
+            raise ArgumentTypeError(f"There is no '=' in '{input_}'!") from None
 
         if " " in pkgbase:
             raise ArgumentTypeError(f"The string left of the '=' in '{input_}' must be a single word!")
@@ -375,9 +380,9 @@ class ArgParseFactory:
         try:
             url = parse_obj_as(AnyUrl, url_str)
         except ValidationError:
-            raise ArgumentTypeError(f"The URL string '{url_str}' found in '{input_}' is invalid!")
+            raise ArgumentTypeError(f"The URL string '{url_str}' found in '{input_}' is invalid!") from None
 
-        return tuple([pkgbase, url])  # type: ignore[return-value]
+        return (pkgbase, url)
 
 
 def sphinx_repod_file() -> ArgumentParser:

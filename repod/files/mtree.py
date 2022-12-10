@@ -1,3 +1,4 @@
+"""Handling of .MTREE files."""
 from __future__ import annotations
 
 import io
@@ -20,7 +21,7 @@ from repod.errors import RepoManagementValidationError
 
 
 class SystemGID(BaseModel):
-    """The group ID of a system group
+    """The group ID of a system group.
 
     Attributes
     ----------
@@ -32,7 +33,7 @@ class SystemGID(BaseModel):
 
 
 class LinkTarget(BaseModel):
-    """The target location of a symlink
+    """The target location of a symlink.
 
     Attributes
     ----------
@@ -40,11 +41,13 @@ class LinkTarget(BaseModel):
         An optional string representing a relative or absolute file
     """
 
-    link: constr(regex=rf"^({RELATIVE_MTREE_PATH}|{ABSOLUTE_MTREE_PATH})$") | None  # type: ignore[valid-type]  # noqa: F722,E501
+    link: constr(  # type: ignore[valid-type]
+        regex=rf"^({RELATIVE_MTREE_PATH}|{ABSOLUTE_MTREE_PATH})$"  # noqa: F722
+    ) | None
 
 
 class Md5(BaseModel):
-    """An MD5 checksum
+    """An MD5 checksum.
 
     Attributes
     ----------
@@ -56,7 +59,7 @@ class Md5(BaseModel):
 
 
 class FileMode(BaseModel):
-    """A numeric unix file mode
+    """A numeric unix file mode.
 
     Attributes
     ----------
@@ -68,7 +71,7 @@ class FileMode(BaseModel):
 
 
 class MTreeEntryName(BaseModel):
-    """A file name in mtree representation
+    """A file name in mtree representation.
 
     The mtree format allows for encoding characters using a block of backslash and three octal digits (see
     https://man.archlinux.org/man/mtree.5#General_Format).
@@ -83,7 +86,7 @@ class MTreeEntryName(BaseModel):
 
 
 class Sha256(BaseModel):
-    """A SHA-256 checksum
+    """A SHA-256 checksum.
 
     Attributes
     ----------
@@ -95,7 +98,7 @@ class Sha256(BaseModel):
 
 
 class FileSize(BaseModel):
-    """A file size in bytes
+    """A file size in bytes.
 
     Attributes
     ----------
@@ -107,7 +110,7 @@ class FileSize(BaseModel):
 
 
 class UnixTime(BaseModel):
-    """A timestamp in seconds since the epoch
+    """A timestamp in seconds since the epoch.
 
     Attributes
     ----------
@@ -119,7 +122,7 @@ class UnixTime(BaseModel):
 
 
 class MTreeEntryType(BaseModel):
-    """A file type for mtree entries (see https://man.archlinux.org/man/mtree.5#Keywords)
+    """A file type for mtree entries (see https://man.archlinux.org/man/mtree.5#Keywords).
 
     Attributes
     ----------
@@ -131,7 +134,7 @@ class MTreeEntryType(BaseModel):
 
 
 class SystemUID(BaseModel):
-    """The user ID of a system user
+    """The user ID of a system user.
 
     Attributes
     ----------
@@ -143,13 +146,13 @@ class SystemUID(BaseModel):
 
 
 class MTreeEntry(BaseModel):
-    """An entry in an MTree
+    """An entry in an MTree.
 
     This is a template class and should not be used directly. Instead instantiate one of the classes derived from it.
     """
 
     def get_file_path(self) -> Path:
-        """Return the file name as a Path
+        """Return the file name as a Path.
 
         The mtree format allows for encoding characters using a block of backslash and three octal digits (see
         https://man.archlinux.org/man/mtree.5#General_Format).
@@ -165,7 +168,6 @@ class MTreeEntry(BaseModel):
         Path
             The Path representation of name
         """
-
         if not hasattr(self, "name"):
             raise RuntimeError("It is not possible to retrieve a file path from the template class MTreeEntry!")
 
@@ -178,7 +180,7 @@ class MTreeEntry(BaseModel):
         return Path(output_name)
 
     def get_link_path(self, resolve: bool = False) -> Path | None:
-        """Return the link as a Path
+        """Return the link as a Path.
 
         The mtree format allows for encoding characters using a block of backslash and three octal digits (see
         https://man.archlinux.org/man/mtree.5#General_Format).
@@ -200,7 +202,6 @@ class MTreeEntry(BaseModel):
         Path | None
             The Path representation of link, or None if there is None
         """
-
         if not hasattr(self, "link"):
             raise RuntimeError("It is not possible to retrieve a file path from the template class MTreeEntry!")
 
@@ -223,7 +224,7 @@ class MTreeEntry(BaseModel):
                 return (self.get_file_path() / ".." / output_path).resolve()
 
     def get_type(self) -> str:
-        """Return the type as a string
+        """Return the type as a string.
 
         Raises
         ------
@@ -235,7 +236,6 @@ class MTreeEntry(BaseModel):
         str
             The type of the MTreeEntry
         """
-
         if not hasattr(self, "type_"):
             raise RuntimeError("It is not possible to retrieve a type from the template class MTreeEntry!")
 
@@ -256,7 +256,7 @@ class MTreeEntryV1(
     SystemGID,
     SystemUID,
 ):
-    """An entry in an MTree (version 1)
+    """An entry in an MTree (version 1).
 
     Attributes
     ----------
@@ -288,7 +288,7 @@ class MTreeEntryV1(
 
 
 class MTree(BaseModel):
-    """A class to describe an mtree file
+    """A class to describe an mtree file.
 
     Attributes
     ----------
@@ -300,7 +300,7 @@ class MTree(BaseModel):
 
     @classmethod
     def from_file(cls, data: io.StringIO) -> MTree:
-        """Create an instance of MTree from an io.StringIO representing the contents of an mtree file
+        """Create an instance of MTree from an io.StringIO representing the contents of an mtree file.
 
         Parameters
         ----------
@@ -322,7 +322,7 @@ class MTree(BaseModel):
             settings_list: list[list[str]],
             settings_dict: dict[str, float | int | str],
         ) -> None:
-            """Sanitize mtree pairs in a list and add them to a dict
+            """Sanitize mtree pairs in a list and add them to a dict.
 
             Parameters
             ----------
@@ -331,7 +331,6 @@ class MTree(BaseModel):
             settings_dict: dict[str, float | int | str]
                 A dict to which sanitized mtree key-value pairs are added
             """
-
             for setting in settings_list:
                 settings_key = setting[0]
                 setting_value = setting[1].strip("\n")
@@ -396,7 +395,7 @@ class MTree(BaseModel):
         return MTree(entries=entries)
 
     def get_paths(self, show_all: bool = False) -> list[Path]:
-        """Return the list of Paths described by the entries of the MTree
+        """Return the list of Paths described by the entries of the MTree.
 
         Parameters
         ----------
@@ -408,7 +407,6 @@ class MTree(BaseModel):
         list[Path]
             A list of Paths
         """
-
         path_list: list[Path] = []
 
         for entry in self.entries:
@@ -422,7 +420,7 @@ class MTree(BaseModel):
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema of selected pydantic models to an output directory
+    """Export the JSON schema of selected pydantic models to an output directory.
 
     Parameters
     ----------
@@ -434,7 +432,6 @@ def export_schemas(output: Path | str) -> None:
     RuntimeError
         If output is not an existing directory
     """
-
     classes = [MTreeEntryV1]
 
     if isinstance(output, str):

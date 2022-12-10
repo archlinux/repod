@@ -1,3 +1,4 @@
+"""Tests for repod.action.task."""
 from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
 from logging import DEBUG
@@ -49,6 +50,7 @@ def test_read_build_requirements_from_archive_dir(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.read_build_requirements_from_archive_dir."""
     caplog.set_level(DEBUG)
 
     pkgs_in_archive: set[str] = set()
@@ -76,7 +78,7 @@ def test_read_build_requirements_from_archive_dir(
             archive_dir=archive_dir,
             pkgs_in_archive=pkgs_in_archive,
         )
-        assert return_value == pkgs_in_archive
+        assert return_value == pkgs_in_archive  # nosec: B101
 
 
 @mark.parametrize(
@@ -101,6 +103,7 @@ def test_read_build_requirements_from_management_repo_dirs(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.read_build_requirements_from_management_repo_dirs."""
     caplog.set_level(DEBUG)
 
     pkgs_in_repo: set[str] = set()
@@ -147,7 +150,7 @@ def test_read_build_requirements_from_management_repo_dirs(
                 management_directories=management_dirs,
                 pkgs_in_repo=pkgs_in_repo,
             )
-            assert return_value == pkgs_in_repo
+            assert return_value == pkgs_in_repo  # nosec: B101
 
 
 @mark.parametrize(
@@ -171,7 +174,7 @@ def test_read_pkgbases_from_stability_layers(
     outputpackagebasev1_json_files_in_dir: Path,
     tmp_path: Path,
 ) -> None:
-
+    """Tests for repod.action.task.read_pkgbases_from_stability_layers."""
     current_pkgbases: list[OutputPackageBase] = []
     current_filenames: list[str] = []
     current_package_names: list[str] = []
@@ -202,6 +205,7 @@ def test_read_pkgbases_from_stability_layers(
     ],
 )
 def test_sourcedestination_validate_source(path: Path, expectation: ContextManager[str]) -> None:
+    """Tests for repod.action.task.SourceDestination.validate_source."""
     with expectation:
         task.SourceDestination(source=path, destination=Path("/foo"), destination_backup=Path("/foo.bkp"))
 
@@ -216,6 +220,7 @@ def test_sourcedestination_validate_source(path: Path, expectation: ContextManag
     ],
 )
 def test_sourcedestination_validate_destination(path: Path, expectation: ContextManager[str]) -> None:
+    """Tests for repod.action.task.SourceDestination.validate_destination."""
     with expectation:
         task.SourceDestination(source=Path("/foo.tmp"), destination=path, destination_backup=Path("/foo.bkp"))
 
@@ -229,6 +234,7 @@ def test_sourcedestination_validate_destination(path: Path, expectation: Context
     ],
 )
 def test_sourcedestination_validate_destination_backup(path: Path, expectation: ContextManager[str]) -> None:
+    """Tests for repod.action.task.SourceDestination.validate_destination_backup."""
     with expectation:
         task.SourceDestination(source=Path("/foo.tmp"), destination=Path("/foo"), destination_backup=path)
 
@@ -253,6 +259,7 @@ def test_createoutputpackagebasestask(
     default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.CreateOutputPackageBasesTask."""
     caplog.set_level(DEBUG)
 
     dependencies = [Mock()]
@@ -273,10 +280,10 @@ def test_createoutputpackagebasestask(
             if isinstance(check, PacmanKeyPackagesSignatureVerificationCheck):
                 found_check = True
 
-        assert found_check
+        assert found_check  # nosec: B101
 
     if add_dependencies:
-        assert task_.dependencies == dependencies
+        assert task_.dependencies == dependencies  # nosec: B101
 
 
 @mark.parametrize(
@@ -298,6 +305,7 @@ def test_createoutputpackagebasestask_do(
     default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.CreateOutputPackageBasesTask.do."""
     caplog.set_level(DEBUG)
 
     task_ = task.CreateOutputPackageBasesTask(
@@ -311,21 +319,22 @@ def test_createoutputpackagebasestask_do(
 
     if package_from_file_raises:
         with patch("repod.action.task.Package.from_file", side_effect=RepoManagementFileError):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
     elif outputpackagebase_from_package_raises:
         with patch("repod.action.task.OutputPackageBase.from_package", side_effect=ValueError):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
     else:
-        assert task_.do() == return_value
+        assert task_.do() == return_value  # nosec: B101
 
     if return_value == ActionStateEnum.SUCCESS_TASK:
-        assert isinstance(task_.pkgbases[0], OutputPackageBase)
+        assert isinstance(task_.pkgbases[0], OutputPackageBase)  # nosec: B101
 
 
 def test_createoutputpackagebasestask_undo(
     default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.CreateOutputPackageBasesTask.undo."""
     caplog.set_level(DEBUG)
 
     task_ = task.CreateOutputPackageBasesTask(
@@ -338,10 +347,10 @@ def test_createoutputpackagebasestask_undo(
     )
 
     task_.do()
-    assert isinstance(task_.pkgbases[0], OutputPackageBase)
+    assert isinstance(task_.pkgbases[0], OutputPackageBase)  # nosec: B101
 
-    assert task_.undo() == ActionStateEnum.NOT_STARTED
-    assert task_.pkgbases == []
+    assert task_.undo() == ActionStateEnum.NOT_STARTED  # nosec: B101
+    assert task_.pkgbases == []  # nosec: B101
 
 
 @mark.parametrize(
@@ -359,6 +368,7 @@ def test_printoutputpackagebasestask(
     outputpackagebasev1: OutputPackageBase,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.PrintOutputPackageBasesTask."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -375,17 +385,17 @@ def test_printoutputpackagebasestask(
         )
 
     if expectation is does_not_raise():  # type: ignore[comparison-overlap]
-        assert task_.dumps_option == 0
+        assert task_.dumps_option == 0  # nosec: B101
 
         if add_pkgbases and not add_dependencies:
-            assert task_.pkgbases == [outputpackagebasev1]
-            assert not task_.input_from_dependency
-            assert not task_.dependencies
+            assert task_.pkgbases == [outputpackagebasev1]  # nosec: B101
+            assert not task_.input_from_dependency  # nosec: B101
+            assert not task_.dependencies  # nosec: B101
 
         if add_dependencies:
-            assert task_.dependencies == dependencies
-            assert task_.pkgbases == []
-            assert task_.input_from_dependency
+            assert task_.dependencies == dependencies  # nosec: B101
+            assert task_.pkgbases == []  # nosec: B101
+            assert task_.input_from_dependency  # nosec: B101
 
 
 @mark.parametrize(
@@ -409,6 +419,7 @@ def test_printoutputpackagebasestask_do(
     outputpackagebasev1: OutputPackageBase,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.PrintOutputPackageBasesTask.do."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -428,9 +439,9 @@ def test_printoutputpackagebasestask_do(
     )
     if dumps_raises:
         with patch("repod.action.task.dumps", side_effect=JSONEncodeError):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
     else:
-        assert task_.do() == return_value
+        assert task_.do() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -451,6 +462,7 @@ def test_printoutputpackagebasestask_undo(
     outputpackagebasev1: OutputPackageBase,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.PrintOutputPackageBasesTask.undo."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -469,15 +481,15 @@ def test_printoutputpackagebasestask_undo(
     )
 
     if do:
-        assert task_.do() == ActionStateEnum.SUCCESS_TASK
+        assert task_.do() == ActionStateEnum.SUCCESS_TASK  # nosec: B101
 
-    assert task_.undo() == ActionStateEnum.NOT_STARTED
+    assert task_.undo() == ActionStateEnum.NOT_STARTED  # nosec: B101
 
     if add_pkgbases and not add_dependencies:
-        assert task_.pkgbases == [outputpackagebasev1]
+        assert task_.pkgbases == [outputpackagebasev1]  # nosec: B101
 
     if add_dependencies:
-        assert task_.pkgbases == []
+        assert task_.pkgbases == []  # nosec: B101
 
 
 @mark.parametrize(
@@ -497,6 +509,7 @@ def test_writeoutputpackagebasestotmpfileindirtask(
     caplog: LogCaptureFixture,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.WriteOutputPackageBasesToTmpFileInDirTask."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -511,14 +524,14 @@ def test_writeoutputpackagebasestotmpfileindirtask(
             pkgbases=[outputpackagebasev1] if add_pkgbases else None,
             dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
-        assert task_.directory == tmp_path
-        assert not task_.filenames
+        assert task_.directory == tmp_path  # nosec: B101
+        assert not task_.filenames  # nosec: B101
 
         if add_dependencies:
-            assert task_.dependencies == dependencies
-            assert task_.pkgbases == []
+            assert task_.dependencies == dependencies  # nosec: B101
+            assert task_.pkgbases == []  # nosec: B101
         else:
-            assert task_.pkgbases == [outputpackagebasev1]
+            assert task_.pkgbases == [outputpackagebasev1]  # nosec: B101
 
 
 @mark.parametrize(
@@ -544,6 +557,7 @@ def test_writeoutputpackagebasestotmpfileindirtask_do(
     caplog: LogCaptureFixture,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.WriteOutputPackageBasesToTmpFileInDirTask.do."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -562,16 +576,16 @@ def test_writeoutputpackagebasestotmpfileindirtask_do(
     )
     if dumps_raises:
         with patch("repod.action.task.dumps", side_effect=JSONEncodeError):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
     else:
-        assert task_.do() == return_value
+        assert task_.do() == return_value  # nosec: B101
         if return_value == ActionStateEnum.SUCCESS_TASK:
-            assert task_.filenames[0] == (
+            assert task_.filenames[0] == (  # nosec: B101
                 tmp_path / Path(f"{outputpackagebasev1.base}.json.tmp")  # type: ignore[attr-defined]
             )
-            assert (tmp_path / task_.filenames[0]).exists()
+            assert (tmp_path / task_.filenames[0]).exists()  # nosec: B101
         else:
-            assert task_.filenames == []
+            assert task_.filenames == []  # nosec: B101
 
 
 @mark.parametrize(
@@ -594,6 +608,7 @@ def test_writeoutputpackagebasestotmpfileindirtask_undo(
     caplog: LogCaptureFixture,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.WriteOutputPackageBasesToTmpFileInDirTask.undo."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -616,10 +631,10 @@ def test_writeoutputpackagebasestotmpfileindirtask_undo(
             for filename in task_.filenames:
                 (tmp_path / filename).unlink()
 
-    assert task_.undo() == return_value
+    assert task_.undo() == return_value  # nosec: B101
 
     if add_dependencies:
-        assert task_.pkgbases == []
+        assert task_.pkgbases == []  # nosec: B101
 
 
 @mark.parametrize(
@@ -641,6 +656,7 @@ def test_movetmpfilestask(
     caplog: LogCaptureFixture,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.MoveTmpFilesTask."""
     caplog.set_level(DEBUG)
 
     source = tmp_path / "foo.tmp"
@@ -671,9 +687,9 @@ def test_movetmpfilestask(
         )
 
     if add_paths and correct_path_length and not add_dependencies:
-        assert task_.paths == source_destination
+        assert task_.paths == source_destination  # nosec: B101
     if add_dependencies:
-        assert task_.paths == []
+        assert task_.paths == []  # nosec: B101
 
 
 @mark.parametrize(
@@ -754,6 +770,7 @@ def test_movetmpfilestask_do(
     caplog: LogCaptureFixture,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.MoveTmpFilesTask.do."""
     caplog.set_level(DEBUG)
 
     default_db = tmp_path / "default.db.tar.gz.tmp"
@@ -813,47 +830,47 @@ def test_movetmpfilestask_do(
 
     match (destination_exists, copy2_raises, rename_raises):
         case (True, False, False):
-            assert task_.do() == return_value
-            assert not task_.paths[0].source.exists()
-            assert task_.paths[0].destination.exists()
-            assert task_.paths[0].destination_backup.exists()
-            assert task_.paths[0].backup_done
+            assert task_.do() == return_value  # nosec: B101
+            assert not task_.paths[0].source.exists()  # nosec: B101
+            assert task_.paths[0].destination.exists()  # nosec: B101
+            assert task_.paths[0].destination_backup.exists()  # nosec: B101
+            assert task_.paths[0].backup_done  # nosec: B101
         case (True, True, False):
             with patch("repod.action.task.copy2", side_effect=Exception("ERROR")):
-                assert task_.do() == return_value
-            assert task_.paths[0].source.exists()
-            assert task_.paths[0].destination.exists()
-            assert not task_.paths[0].destination_backup.exists()
-            assert not task_.paths[0].backup_done
+                assert task_.do() == return_value  # nosec: B101
+            assert task_.paths[0].source.exists()  # nosec: B101
+            assert task_.paths[0].destination.exists()  # nosec: B101
+            assert not task_.paths[0].destination_backup.exists()  # nosec: B101
+            assert not task_.paths[0].backup_done  # nosec: B101
         case (True, False, True):
             with patch("repod.action.task.Path.rename", side_effect=Exception("ERROR")):
-                assert task_.do() == return_value
-            assert task_.paths[0].source.exists()
-            assert task_.paths[0].destination.exists()
-            assert task_.paths[0].destination_backup.exists()
-            assert task_.paths[0].backup_done
+                assert task_.do() == return_value  # nosec: B101
+            assert task_.paths[0].source.exists()  # nosec: B101
+            assert task_.paths[0].destination.exists()  # nosec: B101
+            assert task_.paths[0].destination_backup.exists()  # nosec: B101
+            assert task_.paths[0].backup_done  # nosec: B101
         case (False, False, False):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
             if task_.state == ActionStateEnum.SUCCESS:
-                assert not task_.paths[0].source.exists()
-                assert task_.paths[0].destination.exists()
-                assert not task_.paths[0].destination_backup.exists()
-                assert not task_.paths[0].backup_done
+                assert not task_.paths[0].source.exists()  # nosec: B101
+                assert task_.paths[0].destination.exists()  # nosec: B101
+                assert not task_.paths[0].destination_backup.exists()  # nosec: B101
+                assert not task_.paths[0].backup_done  # nosec: B101
         case (False, True, False):
             with patch("repod.action.task.copy2", side_effect=Exception("ERROR")):
-                assert task_.do() == return_value
-            assert not task_.paths[0].source.exists()
-            assert task_.paths[0].destination.exists()
-            assert not task_.paths[0].destination_backup.exists()
-            assert not task_.paths[0].backup_done
+                assert task_.do() == return_value  # nosec: B101
+            assert not task_.paths[0].source.exists()  # nosec: B101
+            assert task_.paths[0].destination.exists()  # nosec: B101
+            assert not task_.paths[0].destination_backup.exists()  # nosec: B101
+            assert not task_.paths[0].backup_done  # nosec: B101
         case (False, False, True):
             with patch("repod.action.task.Path.rename", side_effect=Exception("ERROR")):
-                assert task_.do() == return_value
+                assert task_.do() == return_value  # nosec: B101
             if not (not dependency_absolute and add_dependencies and pkgbases_dep):
-                assert task_.paths[0].source.exists()
-                assert not task_.paths[0].destination.exists()
-                assert not task_.paths[0].destination_backup.exists()
-                assert not task_.paths[0].backup_done
+                assert task_.paths[0].source.exists()  # nosec: B101
+                assert not task_.paths[0].destination.exists()  # nosec: B101
+                assert not task_.paths[0].destination_backup.exists()  # nosec: B101
+                assert not task_.paths[0].backup_done  # nosec: B101
 
 
 @mark.parametrize(
@@ -878,6 +895,7 @@ def test_movetmpfilestask_undo(
     caplog: LogCaptureFixture,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.MoveTmpFilesTask.undo."""
     caplog.set_level(DEBUG)
 
     source = tmp_path / "foo.tmp"
@@ -901,7 +919,7 @@ def test_movetmpfilestask_undo(
     if remove_backup:
         task_.paths[0].destination_backup.unlink()
 
-    assert task_.undo() == return_value
+    assert task_.undo() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -920,6 +938,7 @@ def test_filestorepodirtask(
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.FilesToRepoDirTask."""
     caplog.set_level(DEBUG)
 
     dependencies = [Mock()]
@@ -935,11 +954,11 @@ def test_filestorepodirtask(
         dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
 
-    assert task_.files == [file]
-    assert task_.repo_files == []
+    assert task_.files == [file]  # nosec: B101
+    assert task_.repo_files == []  # nosec: B101
 
     if add_dependencies:
-        assert task_.dependencies == dependencies
+        assert task_.dependencies == dependencies  # nosec: B101
 
 
 @mark.parametrize(
@@ -964,6 +983,7 @@ def test_filestorepodirtask_do(
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.FilesToRepoDirTask.do."""
     caplog.set_level(DEBUG)
 
     file = default_package_file[0] if file_type == RepoFileEnum.PACKAGE else default_package_file[1]
@@ -979,15 +999,15 @@ def test_filestorepodirtask_do(
 
     if get_repo_path_raises:
         with patch("repod.action.task.UserSettings.get_repo_path", side_effect=RuntimeError):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
     elif repofile_copy_from_raises:
         with patch("repod.action.task.RepoFile.copy_from", side_effect=RepoManagementFileError):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
     else:
-        assert task_.do() == return_value
+        assert task_.do() == return_value  # nosec: B101
         if isinstance(file_type, RepoFileEnum):
-            assert task_.repo_files[0].file_path.exists()
-            assert task_.repo_files[0].symlink_path.exists()
+            assert task_.repo_files[0].file_path.exists()  # nosec: B101
+            assert task_.repo_files[0].symlink_path.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -1006,6 +1026,7 @@ def test_filestorepodirtask_undo(
     usersettings: UserSettings,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.FilesToRepoDirTask.undo."""
     caplog.set_level(DEBUG)
 
     files_to_check: list[Path] = []
@@ -1022,32 +1043,32 @@ def test_filestorepodirtask_undo(
     )
 
     if do:
-        assert task_.do() == ActionStateEnum.SUCCESS_TASK
-        assert task_.repo_files[0].file_path.exists()
+        assert task_.do() == ActionStateEnum.SUCCESS_TASK  # nosec: B101
+        assert task_.repo_files[0].file_path.exists()  # nosec: B101
         files_to_check.append(task_.repo_files[0].file_path)
-        assert task_.repo_files[0].symlink_path.exists()
+        assert task_.repo_files[0].symlink_path.exists()  # nosec: B101
         files_to_check.append(task_.repo_files[0].symlink_path)
 
-    assert task_.undo() == ActionStateEnum.NOT_STARTED
+    assert task_.undo() == ActionStateEnum.NOT_STARTED  # nosec: B101
     for path in files_to_check:
-        assert not path.exists()
+        assert not path.exists()  # nosec: B101
 
 
 def test_addtorepotask() -> None:
-
-    assert task.AddToRepoTask(dependencies=[])
+    """Tests for repod.action.task.AddToRepoTask."""
+    assert task.AddToRepoTask(dependencies=[])  # nosec: B101
 
 
 def test_addtorepotask_do() -> None:
-
-    assert task.AddToRepoTask(dependencies=[]).do() == ActionStateEnum.SUCCESS_TASK
+    """Tests for repod.action.task.AddToRepoTask.do."""
+    assert task.AddToRepoTask(dependencies=[]).do() == ActionStateEnum.SUCCESS_TASK  # nosec: B101
 
 
 def test_addtorepotask_undo() -> None:
-
+    """Tests for repod.action.task.AddToRepoTask.undo."""
     task_ = task.AddToRepoTask(dependencies=[])
-    assert task_.do() == ActionStateEnum.SUCCESS_TASK
-    assert task_.undo() == ActionStateEnum.NOT_STARTED
+    assert task_.do() == ActionStateEnum.SUCCESS_TASK  # nosec: B101
+    assert task_.undo() == ActionStateEnum.NOT_STARTED  # nosec: B101
 
 
 @mark.parametrize(
@@ -1066,6 +1087,7 @@ def test_writesyncdbstotmpfilesindirtask(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.WriteSyncDbsToTmpFilesInDirTask."""
     caplog.set_level(DEBUG)
 
     dependencies = [Mock()]
@@ -1079,10 +1101,10 @@ def test_writesyncdbstotmpfilesindirtask(
     )
 
     if add_dependencies:
-        assert task_.dependencies == dependencies
+        assert task_.dependencies == dependencies  # nosec: B101
 
-    assert task_.default_syncdb_path.suffix == ".tmp"
-    assert task_.files_syncdb_path.suffix == ".tmp"
+    assert task_.default_syncdb_path.suffix == ".tmp"  # nosec: B101
+    assert task_.files_syncdb_path.suffix == ".tmp"  # nosec: B101
 
 
 @mark.parametrize(
@@ -1156,6 +1178,7 @@ def test_writesyncdbstotmpfilesindirtask_do(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.WriteSyncDbsToTmpFilesInDirTask.do."""
     caplog.set_level(DEBUG)
 
     if json_files_exist:
@@ -1177,10 +1200,10 @@ def test_writesyncdbstotmpfilesindirtask_do(
         task_.default_syncdb_path.mkdir(parents=True)
         task_.files_syncdb_path.mkdir(parents=True)
 
-    assert task_.do() == return_value
+    assert task_.do() == return_value  # nosec: B101
     if json_files_exist and not target_is_dir and isinstance(desc_version, PackageDescVersionEnum):
-        assert task_.default_syncdb_path.exists()
-        assert task_.files_syncdb_path.exists()
+        assert task_.default_syncdb_path.exists()  # nosec: B101
+        assert task_.files_syncdb_path.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -1205,6 +1228,7 @@ def test_writesyncdbstotmpfilesindirtask_undo(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.WriteSyncDbsToTmpFilesInDirTask.undo."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -1223,9 +1247,9 @@ def test_writesyncdbstotmpfilesindirtask_undo(
     )
 
     if do:
-        assert task_.do()
-        assert task_.default_syncdb_path.exists()
-        assert task_.files_syncdb_path.exists()
+        assert task_.do()  # nosec: B101
+        assert task_.default_syncdb_path.exists()  # nosec: B101
+        assert task_.files_syncdb_path.exists()  # nosec: B101
 
     if target_is_dir:
         if do:
@@ -1235,7 +1259,7 @@ def test_writesyncdbstotmpfilesindirtask_undo(
         task_.default_syncdb_path.mkdir(parents=True, exist_ok=True)
         task_.files_syncdb_path.mkdir(parents=True, exist_ok=True)
 
-    assert task_.undo() == return_value
+    assert task_.undo() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -1252,6 +1276,7 @@ def test_removebackupfilestask(
     add_dependencies: bool,
     expectation: ContextManager[str],
 ) -> None:
+    """Tests for repod.action.task.RemoveBackupFilesTask."""
     path = Path("foo.bkp")
     paths = [path]
     dependencies = [
@@ -1269,12 +1294,12 @@ def test_removebackupfilestask(
         )
 
     if add_dependencies:
-        assert task_.input_from_dependency
-        assert task_.paths == []
+        assert task_.input_from_dependency  # nosec: B101
+        assert task_.paths == []  # nosec: B101
     else:
         if add_paths:
-            assert not task_.input_from_dependency
-            assert task_.paths == [path]
+            assert not task_.input_from_dependency  # nosec: B101
+            assert task_.paths == [path]  # nosec: B101
 
 
 @mark.parametrize(
@@ -1294,6 +1319,7 @@ def test_removebackupfilestask_do(
     return_value: ActionStateEnum,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.RemoveBackupFilesTask.do."""
     path = tmp_path / Path("foo.bkp")
     path.touch()
     paths = [path]
@@ -1313,12 +1339,12 @@ def test_removebackupfilestask_do(
         paths=paths if add_paths else None,
         dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
-    assert task_.do() == return_value
+    assert task_.do() == return_value  # nosec: B101
 
     if dep_state != ActionStateEnum.SUCCESS and add_dependencies and add_move_dep:
-        assert path.exists()
+        assert path.exists()  # nosec: B101
     else:
-        assert not path.exists()
+        assert not path.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -1337,6 +1363,7 @@ def test_removebackupfilestask_undo(
     return_value: ActionStateEnum,
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.action.task.RemoveBackupFilesTask.undo."""
     path = tmp_path / Path("foo.bkp")
     path.touch()
     paths = [path]
@@ -1359,7 +1386,7 @@ def test_removebackupfilestask_undo(
     if do:
         task_.do()
 
-    assert task_.undo() == return_value
+    assert task_.undo() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -1383,6 +1410,7 @@ def test_consolidateoutputpackagebasestask(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.ConsolidateOutputPackageBasesTask."""
     caplog.set_level(DEBUG)
 
     directory = tmp_path / "foo"
@@ -1409,12 +1437,12 @@ def test_consolidateoutputpackagebasestask(
 
     if dir_exists and add_dir:
         if add_dependencies:
-            assert task_.input_from_dependency
-            assert task_.pkgbases == []
+            assert task_.input_from_dependency  # nosec: B101
+            assert task_.pkgbases == []  # nosec: B101
         else:
             if add_pkgbases:
-                assert not task_.input_from_dependency
-                assert task_.pkgbases == pkgbases
+                assert not task_.input_from_dependency  # nosec: B101
+                assert task_.pkgbases == pkgbases  # nosec: B101
 
 
 @mark.parametrize(
@@ -1448,6 +1476,7 @@ def test_consolidateoutputpackagebasestask_do(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.ConsolidateOutputPackageBasesTask.do."""
     caplog.set_level(DEBUG)
 
     pkgbases = [outputpackagebasev1]
@@ -1476,9 +1505,9 @@ def test_consolidateoutputpackagebasestask_do(
     )
     if from_file_raises:
         with patch("repod.action.task.OutputPackageBase.from_file", side_effect=RepoManagementFileError):
-            assert task_.do() == return_value
+            assert task_.do() == return_value  # nosec: B101
     else:
-        assert task_.do() == return_value
+        assert task_.do() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -1501,6 +1530,7 @@ def test_consolidateoutputpackagebasestask_undo(
     outputpackagebasev1_json_files_in_dir: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.ConsolidateOutputPackageBasesTask.undo."""
     caplog.set_level(DEBUG)
 
     pkgbases = [outputpackagebasev1]
@@ -1527,7 +1557,7 @@ def test_consolidateoutputpackagebasestask_undo(
     if do:
         task_.do()
 
-    assert task_.undo() == return_value
+    assert task_.undo() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -1550,6 +1580,7 @@ def test_removemanagementreposymlinkstask(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RemoveManagementRepoSymlinksTask."""
     caplog.set_level(DEBUG)
 
     names = ["foo"]
@@ -1570,15 +1601,15 @@ def test_removemanagementreposymlinkstask(
             names=names if add_names else None,
             dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
-        assert task_.directory == tmp_path
+        assert task_.directory == tmp_path  # nosec: B101
 
         if add_dependencies:
-            assert task_.dependencies == dependencies
-            assert task_.input_from_dependency
-            assert not task_.names
+            assert task_.dependencies == dependencies  # nosec: B101
+            assert task_.input_from_dependency  # nosec: B101
+            assert not task_.names  # nosec: B101
         else:
-            assert task_.names == names
-            assert not task_.input_from_dependency
+            assert task_.names == names  # nosec: B101
+            assert not task_.input_from_dependency  # nosec: B101
 
 
 @mark.parametrize(
@@ -1599,6 +1630,7 @@ def test_removemanagementreposymlinkstask_do(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RemoveManagementRepoSymlinksTask.do."""
     caplog.set_level(DEBUG)
 
     (tmp_path / "pkgnames").mkdir()
@@ -1625,9 +1657,9 @@ def test_removemanagementreposymlinkstask_do(
     task_.do() == return_value
 
     if (add_dependencies and dependency_state == ActionStateEnum.SUCCESS) or add_names:
-        assert not file.exists()
+        assert not file.exists()  # nosec: B101
     else:
-        assert file.exists()
+        assert file.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -1648,6 +1680,7 @@ def test_removemanagementreposymlinkstask_undo(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RemoveManagementRepoSymlinksTask.undo."""
     caplog.set_level(DEBUG)
 
     (tmp_path / "pkgnames").mkdir()
@@ -1678,7 +1711,7 @@ def test_removemanagementreposymlinkstask_undo(
     task_.undo() == ActionStateEnum.NOT_STARTED
 
     if add_dependencies and do:
-        assert not task_.names
+        assert not task_.names  # nosec: B101
 
 
 @mark.parametrize(
@@ -1701,6 +1734,7 @@ def test_removepackagereposymlinkstask(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RemovePackageRepoSymlinksTask."""
     caplog.set_level(DEBUG)
 
     filenames = ["foo-1.0.0-1-x86_64.pkg.tar.zst"]
@@ -1720,15 +1754,15 @@ def test_removepackagereposymlinkstask(
             filenames=filenames if add_filenames else None,
             dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
-        assert task_.directory == tmp_path
+        assert task_.directory == tmp_path  # nosec: B101
 
         if add_dependencies:
-            assert task_.dependencies == dependencies
-            assert task_.input_from_dependency
-            assert not task_.filenames
+            assert task_.dependencies == dependencies  # nosec: B101
+            assert task_.input_from_dependency  # nosec: B101
+            assert not task_.filenames  # nosec: B101
         else:
-            assert task_.filenames == filenames
-            assert not task_.input_from_dependency
+            assert task_.filenames == filenames  # nosec: B101
+            assert not task_.input_from_dependency  # nosec: B101
 
 
 @mark.parametrize(
@@ -1749,6 +1783,7 @@ def test_removepackagereposymlinkstask_do(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RemovePackageRepoSymlinksTask.do."""
     caplog.set_level(DEBUG)
 
     filenames = ["foo-1.0.0-1-x86_64.pkg.tar.zst"]
@@ -1775,11 +1810,11 @@ def test_removepackagereposymlinkstask_do(
     task_.do() == return_value
 
     if (add_dependencies and dependency_state == ActionStateEnum.SUCCESS) or add_filenames:
-        assert not package_file.exists()
-        assert not signature_file.exists()
+        assert not package_file.exists()  # nosec: B101
+        assert not signature_file.exists()  # nosec: B101
     else:
-        assert package_file.exists()
-        assert signature_file.exists()
+        assert package_file.exists()  # nosec: B101
+        assert signature_file.exists()  # nosec: B101
 
 
 @mark.parametrize(
@@ -1800,6 +1835,7 @@ def test_removepackagereposymlinkstask_undo(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RemovePackageRepoSymlinksTask.undo."""
     caplog.set_level(DEBUG)
 
     filenames = ["foo-1.0.0-1-x86_64.pkg.tar.zst"]
@@ -1831,24 +1867,24 @@ def test_removepackagereposymlinkstask_undo(
     task_.undo() == ActionStateEnum.NOT_STARTED
 
     if add_dependencies and do:
-        assert not task_.filenames
+        assert not task_.filenames  # nosec: B101
 
 
 def test_cleanuprepotask() -> None:
-
-    assert task.CleanupRepoTask(dependencies=[])
+    """Tests for repod.action.task.CleanupRepoTask."""
+    assert task.CleanupRepoTask(dependencies=[])  # nosec: B101
 
 
 def test_cleanuprepotask_do() -> None:
-
-    assert task.CleanupRepoTask(dependencies=[]).do() == ActionStateEnum.SUCCESS_TASK
+    """Tests for repod.action.task.CleanupRepoTask.do."""
+    assert task.CleanupRepoTask(dependencies=[]).do() == ActionStateEnum.SUCCESS_TASK  # nosec: B101
 
 
 def test_cleanuprepotask_undo() -> None:
-
+    """Tests for repod.action.task.CleanupRepoTask.undo."""
     task_ = task.CleanupRepoTask(dependencies=[])
-    assert task_.do() == ActionStateEnum.SUCCESS_TASK
-    assert task_.undo() == ActionStateEnum.NOT_STARTED
+    assert task_.do() == ActionStateEnum.SUCCESS_TASK  # nosec: B101
+    assert task_.undo() == ActionStateEnum.NOT_STARTED  # nosec: B101
 
 
 @mark.parametrize(
@@ -1871,6 +1907,7 @@ def test_addtoarchivetask(
     default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.AddToArchiveTask."""
     caplog.set_level(DEBUG)
 
     archive_dir = None
@@ -1920,6 +1957,7 @@ def test_addtoarchivetask_do(
     default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.AddToArchiveTask.do."""
     caplog.set_level(DEBUG)
 
     archive_dir = None
@@ -1948,7 +1986,7 @@ def test_addtoarchivetask_do(
         filenames=filenames,
         dependencies=dependencies,  # type: ignore[arg-type]
     )
-    assert task_.do() == return_value
+    assert task_.do() == return_value  # nosec: B101
 
 
 @mark.parametrize(
@@ -1972,6 +2010,7 @@ def test_addtoarchivetask_undo(
     default_package_file: tuple[Path, ...],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.AddToArchiveTask.undo."""
     caplog.set_level(DEBUG)
 
     archive_dir = None
@@ -2002,11 +2041,11 @@ def test_addtoarchivetask_undo(
     if do:
         task_.do()
         if add_dependencies:
-            assert task_.files
-    assert task_.undo() == ActionStateEnum.NOT_STARTED
+            assert task_.files  # nosec: B101
+    assert task_.undo() == ActionStateEnum.NOT_STARTED  # nosec: B101
 
     if add_dependencies and do:
-        assert not task_.files
+        assert not task_.files  # nosec: B101
 
 
 @mark.parametrize(
@@ -2045,6 +2084,7 @@ def test_reproduciblebuildenvironmenttask(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.ReproducibleBuildEnvironmentTask."""
     caplog.set_level(DEBUG)
 
     archive_dir = None
@@ -2069,7 +2109,7 @@ def test_reproduciblebuildenvironmenttask(
             dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
         if add_dependencies:
-            assert task_.dependencies == dependencies
+            assert task_.dependencies == dependencies  # nosec: B101
 
 
 @mark.parametrize(
@@ -2151,6 +2191,7 @@ def test_reproduciblebuildenvironmenttask_do(  # noqa: C901
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.ReproducibleBuildEnvironmentTask.do."""
     caplog.set_level(DEBUG)
 
     pkgs_in_archive: set[str] = set()
@@ -2201,19 +2242,19 @@ def test_reproduciblebuildenvironmenttask_do(  # noqa: C901
 
     if read_from_mgmt_repo_raises:
         with patch("repod.action.task.read_build_requirements_from_management_repo_dirs", side_effect=TaskError):
-            assert return_value == task_.do()
+            assert return_value == task_.do()  # nosec: B101
     elif read_from_archive_dir_raises:
         with patch("repod.action.task.read_build_requirements_from_archive_dir", side_effect=TaskError):
-            assert return_value == task_.do()
+            assert return_value == task_.do()  # nosec: B101
     else:
-        assert return_value == task_.do()
+        assert return_value == task_.do()  # nosec: B101
 
     if deps_in_archive and return_value == ActionStateEnum.SUCCESS_TASK:
-        assert pkgs_in_archive == task_.pkgs_in_archive
+        assert pkgs_in_archive == task_.pkgs_in_archive  # nosec: B101
     if deps_in_repo and return_value == ActionStateEnum.SUCCESS_TASK:
-        assert pkgs_in_repo == task_.pkgs_in_repo
+        assert pkgs_in_repo == task_.pkgs_in_repo  # nosec: B101
     if deps_in_transaction and return_value == ActionStateEnum.SUCCESS_TASK:
-        assert pkgs_in_transaction == task_.pkgs_in_transaction
+        assert pkgs_in_transaction == task_.pkgs_in_transaction  # nosec: B101
 
 
 @mark.parametrize("do, input_from_dep", [(True, False), (True, True), (False, False), (False, True)])
@@ -2223,7 +2264,7 @@ def test_reproduciblebuildenvironmenttask_undo(
     outputpackagebasev1: OutputPackageBase,
     outputpackagebasev1_json_files_in_dir: Path,
 ) -> None:
-
+    """Tests for repod.action.task.ReproducibleBuildEnvironmentTask.undo."""
     task_ = task.ReproducibleBuildEnvironmentTask(
         archive_dir=None,
         management_directories=[outputpackagebasev1_json_files_in_dir],
@@ -2241,12 +2282,12 @@ def test_reproduciblebuildenvironmenttask_undo(
         if not do:
             task_.pkgbases.clear()
 
-    assert ActionStateEnum.NOT_STARTED == task_.undo()
-    assert not task_.pkgs_in_archive
-    assert not task_.pkgs_in_repo
-    assert not task_.pkgs_in_transaction
+    assert ActionStateEnum.NOT_STARTED == task_.undo()  # nosec: B101
+    assert not task_.pkgs_in_archive  # nosec: B101
+    assert not task_.pkgs_in_repo  # nosec: B101
+    assert not task_.pkgs_in_transaction  # nosec: B101
     if input_from_dep:
-        assert not task_.pkgbases
+        assert not task_.pkgbases  # nosec: B101
 
 
 @mark.parametrize(
@@ -2269,6 +2310,7 @@ def test_repogrouptask(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RepoGroupTask."""
     caplog.set_level(DEBUG)
 
     dependencies = [Mock()]
@@ -2282,7 +2324,7 @@ def test_repogrouptask(
             dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
         )
         if add_dependencies:
-            assert task_.dependencies == dependencies
+            assert task_.dependencies == dependencies  # nosec: B101
 
 
 @mark.parametrize(
@@ -2306,6 +2348,7 @@ def test_repogrouptask_do(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RepoGroupTask.do."""
     caplog.set_level(DEBUG)
 
     dependencies = [Mock()]
@@ -2323,15 +2366,15 @@ def test_repogrouptask_do(
         pkgbases=[outputpackagebasev1] if add_pkgbases else [],
         dependencies=dependencies if add_dependencies else None,  # type: ignore[arg-type]
     )
-    assert return_value == task_.do()
+    assert return_value == task_.do()  # nosec: B101
     if ActionStateEnum.FAILED == dependency_state:
-        assert not task_.pkgbase_names
-        assert not task_.package_names
-        assert not task_.repo_management_dirs
+        assert not task_.pkgbase_names  # nosec: B101
+        assert not task_.package_names  # nosec: B101
+        assert not task_.repo_management_dirs  # nosec: B101
     else:
-        assert task_.pkgbase_names
-        assert task_.package_names
-        assert task_.repo_management_dirs
+        assert task_.pkgbase_names  # nosec: B101
+        assert task_.package_names  # nosec: B101
+        assert task_.repo_management_dirs  # nosec: B101
 
 
 @mark.parametrize(
@@ -2352,6 +2395,7 @@ def test_repogrouptask_undo(
     tmp_path: Path,
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.action.task.RepoGroupTask.undo."""
     caplog.set_level(DEBUG)
 
     dependencies = [
@@ -2371,7 +2415,7 @@ def test_repogrouptask_undo(
     if do:
         task_.do()
 
-    assert ActionStateEnum.NOT_STARTED == task_.undo()
-    assert not task_.pkgbase_names
-    assert not task_.package_names
-    assert not task_.repo_management_dirs
+    assert ActionStateEnum.NOT_STARTED == task_.undo()  # nosec: B101
+    assert not task_.pkgbase_names  # nosec: B101
+    assert not task_.package_names  # nosec: B101
+    assert not task_.repo_management_dirs  # nosec: B101

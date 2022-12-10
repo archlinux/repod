@@ -1,10 +1,11 @@
+"""Enums used through repod."""
 from __future__ import annotations
 
 from enum import Enum, IntEnum, IntFlag, auto
 
 
 class ArchitectureEnum(Enum):
-    """An Enum to distinguish different CPU architectures
+    """An Enum to distinguish different CPU architectures.
 
     Attributes
     ----------
@@ -55,19 +56,18 @@ class ArchitectureEnum(Enum):
 
     @classmethod
     def as_or_regex(cls) -> str:
-        """Return the members of ArchitectureEnum formatted as an "or" concatenated string
+        """Return the members of ArchitectureEnum formatted as an "or" concatenated string.
 
         Returns
         -------
         str
             The members of ArchitectureEnum formatted as an "or" concatenated string
         """
-
         return r"|".join(arch.value for arch in cls)
 
 
 class FieldTypeEnum(IntEnum):
-    """An IntEnum to distinguish the different types of entries in a file
+    """An IntEnum to distinguish the different types of entries in a file.
 
     Attributes
     ----------
@@ -86,7 +86,7 @@ class FieldTypeEnum(IntEnum):
 
 
 class CompressionTypeEnum(Enum):
-    """An Enum to distinguish different compression types of a tar file
+    """An Enum to distinguish different compression types of a tar file.
 
     The member values represents the name of possible file suffixes (without leading dot)
 
@@ -112,7 +112,7 @@ class CompressionTypeEnum(Enum):
 
     @classmethod
     def from_string(cls, input_: str) -> CompressionTypeEnum:
-        """Return a CompressionTypeEnum member based on an input string
+        """Return a CompressionTypeEnum member based on an input string.
 
         Parameters
         ----------
@@ -130,7 +130,6 @@ class CompressionTypeEnum(Enum):
         CompressionTypeEnum
             A CompressionTypeEnum member that matches input_
         """
-
         match input_:
             case "none":
                 return CompressionTypeEnum.NONE
@@ -147,8 +146,7 @@ class CompressionTypeEnum(Enum):
 
     @classmethod
     def db_tar_suffix(cls, compression_type: CompressionTypeEnum, files: bool = False) -> str:
-        """Return a member of CompressionTypeEnum formated as the file suffix for a default or files repository sync
-        database
+        """Return a member formated as the file suffix for a default or files repository sync database.
 
         Parameters
         ----------
@@ -162,7 +160,6 @@ class CompressionTypeEnum(Enum):
         str
             A member of CompressionTypeEnum formated as the file suffix for a default repository sync database
         """
-
         return (
             f".{'files' if files else 'db'}.tar." + compression_type.value
             if len(compression_type.value) > 0
@@ -171,8 +168,7 @@ class CompressionTypeEnum(Enum):
 
     @classmethod
     def as_db_file_suffixes(cls) -> list[str]:
-        """Return the members of CompressionTypeEnum formated in a list of strings reprenting all possible suffix
-        permutations for a default repository sync database
+        """Return members as list of strings representing all permutations for a default repository sync database.
 
         Returns
         -------
@@ -180,13 +176,11 @@ class CompressionTypeEnum(Enum):
             A list of strings representing all possible permutations of file suffixes for a default repository sync
             database
         """
-
         return [".db", ".db.tar"] + [".db.tar." + name.value for name in cls if len(name.value) > 0]
 
     @classmethod
     def as_files_file_suffixes(cls) -> list[str]:
-        """Return the members of CompressionTypeEnum formated in a list of strings reprenting all possible suffix
-        permutations for a files repository sync database
+        """Return members as list of strings representing all permutations for a files repository sync database.
 
         Returns
         -------
@@ -194,12 +188,11 @@ class CompressionTypeEnum(Enum):
             A list of strings representing all possible permutations of file suffixes for a files repository sync
             database
         """
-
         return [".files", ".files.tar"] + [".files.tar." + name.value for name in cls if len(name.value) > 0]
 
 
 class FilesVersionEnum(IntEnum):
-    """An IntEnum to distinguish different version of Files
+    """An IntEnum to distinguish different version of Files.
 
     Attributes
     ----------
@@ -214,7 +207,7 @@ class FilesVersionEnum(IntEnum):
 
 
 class OutputPackageVersionEnum(IntEnum):
-    """An IntEnum to distinguish different version of OutputPackage
+    """An IntEnum to distinguish different version of OutputPackage.
 
     Attributes
     ----------
@@ -229,7 +222,7 @@ class OutputPackageVersionEnum(IntEnum):
 
 
 class PackageDescVersionEnum(IntEnum):
-    """An IntEnum to distinguish different version of PackageDesc
+    """An IntEnum to distinguish different version of PackageDesc.
 
     Attributes
     ----------
@@ -247,7 +240,7 @@ class PackageDescVersionEnum(IntEnum):
 
 
 class PkgVerificationTypeEnum(Enum):
-    """An Enum to distinguish different package signature verification implementations
+    """An Enum to distinguish different package signature verification implementations.
 
     Attributes
     ----------
@@ -259,7 +252,7 @@ class PkgVerificationTypeEnum(Enum):
 
 
 class PkgTypeEnum(Enum):
-    """An Enum to distinguish different package types
+    """An Enum to distinguish different package types.
 
     The member values represents the name of a possible repod.files.pkginfo.PkgType value
 
@@ -282,7 +275,7 @@ class PkgTypeEnum(Enum):
 
 
 class RepoFileEnum(IntEnum):
-    """An Enum to distinguish different types of RepoFiles
+    """An Enum to distinguish different types of RepoFiles.
 
     Attributes
     ----------
@@ -297,7 +290,7 @@ class RepoFileEnum(IntEnum):
 
 
 class RepoDirTypeEnum(Enum):
-    """An Enum to distinguish different types of repository directories
+    """An Enum to distinguish different types of repository directories.
 
     Attributes
     ----------
@@ -315,7 +308,7 @@ class RepoDirTypeEnum(Enum):
 
 
 class RepoTypeEnum(Enum):
-    """An Enum to distinguish different types of repositories
+    """An Enum to distinguish different types of repositories.
 
     Attributes
     ----------
@@ -342,7 +335,7 @@ class RepoTypeEnum(Enum):
 
     @classmethod
     def from_bool(cls, debug: bool, staging: bool, testing: bool) -> RepoTypeEnum:
-        """Return a member of RepoTypeEnum by providing boolean values
+        """Return a member of RepoTypeEnum by providing boolean values.
 
         Parameters
         ----------
@@ -363,7 +356,6 @@ class RepoTypeEnum(Enum):
         RepoTypeEnum
             A member of RepoTypeEnum matching the provided boolean values
         """
-
         match debug, staging, testing:
             case False, False, False:
                 return cls.STABLE
@@ -384,7 +376,7 @@ class RepoTypeEnum(Enum):
 
 
 class SettingsTypeEnum(Enum):
-    """An Enum to distinguish different Settings types
+    """An Enum to distinguish different Settings types.
 
     Attributes
     ----------
@@ -399,7 +391,7 @@ class SettingsTypeEnum(Enum):
 
 
 def tar_compression_types_for_filename_regex() -> str:
-    """Return the members of CompressionTypeEnum formatted for use in the FILENAME regular expression
+    """Return the members of CompressionTypeEnum formatted for use in the FILENAME regular expression.
 
     Returns
     -------
@@ -407,12 +399,11 @@ def tar_compression_types_for_filename_regex() -> str:
         The members of CompressionTypeEnum formatted as an "or" concatenated string (including a leading empty match for
         no compression)
     """
-
     return r"|".join([type_.value for type_ in CompressionTypeEnum]).replace("|", r"|\.")
 
 
 class ActionStateEnum(IntFlag):
-    """An Enum to distinguish different states in Checks and Tasks
+    """An Enum to distinguish different states in Checks and Tasks.
 
     Attributes
     ----------

@@ -1,3 +1,4 @@
+"""Workflows describing common repository actions."""
 from logging import debug
 from pathlib import Path
 from sys import exit, stderr
@@ -33,14 +34,13 @@ from repod.config.settings import ArchiveSettings, SystemSettings, UserSettings
 
 
 def exit_on_error(message: str) -> None:
-    """Print a message to stderr, optionally print argparse help and exit with return code 1
+    """Print a message to stderr, optionally print argparse help and exit with return code 1.
 
     Parameters
     ----------
     message: str
         A message to print to stderr
     """
-
     print(message, file=stderr)
     stderr.write(message)
     exit(1)
@@ -55,7 +55,7 @@ def add_packages_dryrun(
     with_signature: bool,
     pkgbase_urls: dict[str, AnyUrl] | None,
 ) -> None:
-    """Print output of package representation in the management repository if packages were added
+    """Print output of package representation in the management repository if packages were added.
 
     Parameters
     ----------
@@ -74,7 +74,6 @@ def add_packages_dryrun(
     pkgbase_urls: dict[str, AnyUrl] | None
         An optional dict, providing pkgbases and their source URLs
     """
-
     debug(f"Adding packages in a dry-run: {files}")
     print_task = PrintOutputPackageBasesTask(
         dumps_option=settings.get_repo_management_repo(
@@ -110,7 +109,7 @@ def add_packages(
     with_signature: bool,
     pkgbase_urls: dict[str, AnyUrl] | None,
 ) -> None:
-    """Add packages to a repository
+    """Add packages to a repository.
 
     Parameters
     ----------
@@ -133,7 +132,6 @@ def add_packages(
     pkgbase_urls: dict[str, AnyUrl] | None
         An optional dict, providing pkgbases and their source URLs
     """
-
     debug(f"Adding packages: {files}")
     debug(f"Provided urls: {pkgbase_urls}")
 
@@ -313,7 +311,7 @@ def write_sync_databases(
     staging_repo: bool,
     testing_repo: bool,
 ) -> None:
-    """Write the sync databases of a repository
+    """Write the sync databases of a repository.
 
     Parameters
     ----------
@@ -330,7 +328,6 @@ def write_sync_databases(
     testing_repo: bool
         A boolean value indicating whether to target a testing repository
     """
-
     movetmpfilestask = MoveTmpFilesTask(
         dependencies=[
             WriteSyncDbsToTmpFilesInDirTask(

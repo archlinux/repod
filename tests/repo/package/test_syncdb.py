@@ -1,3 +1,4 @@
+"""Tests for repod.repo.package.syncdb."""
 from contextlib import nullcontext as does_not_raise
 from io import StringIO
 from logging import DEBUG
@@ -35,40 +36,40 @@ from tests.conftest import (
 
 
 def test_get_desc_json_name() -> None:
-
-    for identifier in syncdb.DESC_JSON.keys():
+    """Tests for repod.repo.package.syncdb.get_desc_json_name."""
+    for identifier in syncdb.DESC_JSON:
         with does_not_raise():
-            assert syncdb.get_desc_json_name(key=identifier) == syncdb.DESC_JSON[identifier][0]
+            assert syncdb.get_desc_json_name(key=identifier) == syncdb.DESC_JSON[identifier][0]  # nosec: B101
 
     with raises(RepoManagementFileError):
         syncdb.get_desc_json_name(key="%FOO%")
 
 
 def test_get_desc_json_field_type() -> None:
-
-    for identifier in syncdb.DESC_JSON.keys():
+    """Tests for repod.repo.package.syncdb.get_desc_json_field_type."""
+    for identifier in syncdb.DESC_JSON:
         with does_not_raise():
-            assert syncdb.get_desc_json_field_type(key=identifier) == syncdb.DESC_JSON[identifier][1]
+            assert syncdb.get_desc_json_field_type(key=identifier) == syncdb.DESC_JSON[identifier][1]  # nosec: B101
 
     with raises(RepoManagementFileError):
         syncdb.get_desc_json_field_type(key="%FOO%")
 
 
 def test_get_files_json_name() -> None:
-
-    for identifier in syncdb.FILES_JSON.keys():
+    """Tests for repod.repo.package.syncdb.get_files_json_name."""
+    for identifier in syncdb.FILES_JSON:
         with does_not_raise():
-            assert syncdb.get_files_json_name(key=identifier) == syncdb.FILES_JSON[identifier][0]
+            assert syncdb.get_files_json_name(key=identifier) == syncdb.FILES_JSON[identifier][0]  # nosec: B101
 
     with raises(RepoManagementFileError):
         syncdb.get_files_json_name(key="%FOO%")
 
 
 def test_get_files_json_field_type() -> None:
-
-    for identifier in syncdb.FILES_JSON.keys():
+    """Tests for repod.repo.package.syncdb.get_files_json_field_type."""
+    for identifier in syncdb.FILES_JSON:
         with does_not_raise():
-            assert syncdb.get_files_json_field_type(key=identifier) == syncdb.FILES_JSON[identifier][1]
+            assert syncdb.get_files_json_field_type(key=identifier) == syncdb.FILES_JSON[identifier][1]  # nosec: B101
 
     with raises(RepoManagementFileError):
         syncdb.get_files_json_field_type(key="%FOO%")
@@ -76,19 +77,22 @@ def test_get_files_json_field_type() -> None:
 
 @mark.asyncio
 async def test_files_render(filesv1: syncdb.Files) -> None:
+    """Tests for repod.repo.package.syncdb.FilesV1.render."""
     output = StringIO()
     await filesv1.render(output=output)
-    assert output.getvalue()
+    assert output.getvalue()  # nosec: B101
 
 
 @mark.asyncio
 async def test_files_render_raise_on_missing_template() -> None:
+    """Tests for repod.repo.package.syncdb.FilesV1.render."""
     output = StringIO()
     with raises(RepoManagementFileNotFoundError):
         await FilesV9999().render(output=output)
 
 
 def test_files_get_schema_version() -> None:
+    """Tests for repod.repo.package.syncdb.Files.get_schema_version."""
     model = syncdb.Files()
     with raises(RuntimeError):
         model.get_schema_version()
@@ -116,6 +120,7 @@ def test_files_get_schema_version() -> None:
     ],
 )
 def test_files_from_dict(data: dict[str, Any], expectation: ContextManager[str]) -> None:
+    """Tests for repod.repo.package.syncdb.Files.from_dict."""
     with expectation:
         syncdb.Files.from_dict(data=data)
 
@@ -164,9 +169,12 @@ def test_files_from_dict(data: dict[str, Any], expectation: ContextManager[str])
 )
 @mark.asyncio
 async def test_files_from_stream(data: str, expectation: ContextManager[str], caplog: LogCaptureFixture) -> None:
+    """Tests for repod.repo.package.syncdb.Files.from_stream."""
     caplog.set_level(DEBUG)
     with expectation:
-        assert await syncdb.Files.from_stream(data=StringIO("\n".join([m.strip() for m in dedent(data).split("\n")])))
+        assert await syncdb.Files.from_stream(  # nosec: B101
+            data=StringIO("\n".join([m.strip() for m in dedent(data).split("\n")]))
+        )
 
 
 @mark.parametrize(
@@ -203,6 +211,7 @@ def test_files_from_dict_derive_file_version(
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.repo.package.syncdb.Files.from_dict deriving file version."""
     caplog.set_level(DEBUG)
     with expectation:
         with patch("repod.repo.package.syncdb.warning") as logging_warning_mock:
@@ -409,6 +418,7 @@ def test_package_desc_from_dict_derive_file_version(
     expectation: ContextManager[str],
     caplog: LogCaptureFixture,
 ) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.from_dict deriving file version."""
     caplog.set_level(DEBUG)
     with expectation:
         with patch("repod.repo.package.syncdb.warning") as logging_warning_mock:
@@ -897,9 +907,10 @@ def test_package_desc_from_dict_derive_file_version(
 )
 @mark.asyncio
 async def test_packagedesc_from_stream(data: str, expectation: ContextManager[str], caplog: LogCaptureFixture) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.from_stream."""
     caplog.set_level(DEBUG)
     with expectation:
-        assert await syncdb.PackageDesc.from_stream(
+        assert await syncdb.PackageDesc.from_stream(  # nosec: B101
             data=StringIO("\n".join([m.strip() for m in dedent(data).split("\n")]))
         )
 
@@ -920,6 +931,7 @@ def test_package_desc_v1_get_output_package_v1(
     invalid_packagedesc_version: bool,
     expectation: ContextManager[str],
 ) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.get_output_package."""
     output_package = outputpackagev1
     package_desc = packagedescv1
     files = filesv1
@@ -930,10 +942,11 @@ def test_package_desc_v1_get_output_package_v1(
         package_desc = PackageDescV9999()
 
     with expectation:
-        assert output_package == package_desc.get_output_package(files)
+        assert output_package == package_desc.get_output_package(files)  # nosec: B101
 
 
 def test_package_desc_get_output_package_inconsistent_schema_config(packagedescv1: syncdb.PackageDesc) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDescV1.get_output_package with inconsistent schema config."""
     with patch("repod.repo.package.syncdb.PACKAGE_DESC_VERSIONS", {1: {"output_package_version": 9999}}):
         with raises(RuntimeError):
             packagedescv1.get_output_package(files=None)
@@ -956,6 +969,7 @@ def test_package_desc_v1_get_output_package_base_v1(
     invalid_package_desc: bool,
     expectation: ContextManager[str],
 ) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDescV1.get_output_package_base."""
     output_package_base = outputpackagebasev1
     package_desc = packagedescv1
     files = filesv1
@@ -971,12 +985,13 @@ def test_package_desc_v1_get_output_package_base_v1(
         package_desc = PackageDescV9999()
 
     with expectation:
-        assert output_package_base == package_desc.get_output_package_base(files)
+        assert output_package_base == package_desc.get_output_package_base(files)  # nosec: B101
 
 
 def test_package_desc_get_output_package_base_inconsistent_schema_config(
     packagedescv1: syncdb.PackageDesc,
 ) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDescV1.get_output_package_base with inconsistent schema config."""
     with patch("repod.repo.package.syncdb.PACKAGE_DESC_VERSIONS", {1: {"output_package_base_version": 9999}}):
         with raises(RuntimeError):
             packagedescv1.get_output_package_base(files=None)
@@ -984,37 +999,43 @@ def test_package_desc_get_output_package_base_inconsistent_schema_config(
 
 @mark.asyncio
 async def test_packagedesc_render(packagedescv1: syncdb.PackageDesc) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDescV1.render."""
     output = StringIO()
     await packagedescv1.render(output=output)
-    assert output.getvalue()
+    assert output.getvalue()  # nosec: B101
 
 
 @mark.asyncio
 async def test_packagedesc_render_raise_on_missing_template() -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.render raising Exception."""
     output = StringIO()
     with raises(RepoManagementFileNotFoundError):
         await PackageDescV9999().render(output=output)
 
 
 def test_packagedesc_get_base() -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.get_base."""
     model = syncdb.PackageDesc()
     with raises(RuntimeError):
         model.get_base()
 
 
 def test_packagedesc_get_name() -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.get_name."""
     model = syncdb.PackageDesc()
     with raises(RuntimeError):
         model.get_name()
 
 
 def test_packagedesc_get_schema_version() -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.get_schema_version."""
     model = syncdb.PackageDesc()
     with raises(RuntimeError):
         model.get_schema_version()
 
 
 def test_packagedesc_get_output_package() -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.get_output_package."""
     files = syncdb.FilesV1(files=["foo", "bar", "baz"])
     model = syncdb.PackageDesc()
     with raises(RuntimeError):
@@ -1022,6 +1043,7 @@ def test_packagedesc_get_output_package() -> None:
 
 
 def test_packagedesc_get_output_package_base() -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.get_output_package_base."""
     files = syncdb.FilesV1(files=["foo", "bar", "baz"])
     model = syncdb.PackageDesc()
     with raises(RuntimeError):
@@ -1099,11 +1121,13 @@ def test_packagedesc_get_output_package_base() -> None:
     ],
 )
 def test_packagedesc_from_dict(data: dict[str, int | str | list[str]], expectation: ContextManager[str]) -> None:
+    """Tests for repod.repo.package.syncdb.PackageDesc.from_dict."""
     with expectation:
         syncdb.PackageDesc.from_dict(data=data)
 
 
 def test_export_schemas(tmp_path: Path) -> None:
+    """Tests for repod.repo.package.syncdb.export_schemas."""
     syncdb.export_schemas(output=str(tmp_path))
     syncdb.export_schemas(output=tmp_path)
 
@@ -1122,12 +1146,13 @@ async def test_syncdatabase_outputpackagebase_to_tarfile(
     tmp_path: Path,
     outputpackagebasev1: OutputPackageBase,
 ) -> None:
+    """Tests for repod.repo.package.syncdb.SyncDatabase.outputpackagebase_to_tarfile."""
     caplog.set_level(DEBUG)
     database = tmp_path / "tarfile"
     with open_tarfile(path=database, mode="w", compression=CompressionTypeEnum.GZIP) as tar_file:
         await syncdb.SyncDatabase.outputpackagebase_to_tarfile(
             tarfile=tar_file,
-            database_type=syncdb.RepoDbTypeEnum.DEFAULT,
+            database_type=database_type,
             model=outputpackagebasev1,
             packagedesc_version=PackageDescVersionEnum.DEFAULT,
             files_version=FilesVersionEnum.DEFAULT,
@@ -1142,6 +1167,7 @@ async def test_syncdatabase_add(
     default_sync_db_file: tuple[Path, Path],
     outputpackagebasev1: OutputPackageBase,
 ) -> None:
+    """Tests for repod.repo.package.syncdb.SyncDatabase.add."""
     caplog.set_level(DEBUG)
     await syncdb.SyncDatabase(
         database=default_sync_db_file[0],
@@ -1160,6 +1186,7 @@ async def test_syncdatabase_stream_management_repo(
     default_sync_db_file: tuple[Path, Path],
     outputpackagebasev1_json_files_in_dir: Path,
 ) -> None:
+    """Tests for repod.repo.package.syncdb.SyncDatabase.stream_management_repo."""
     caplog.set_level(DEBUG)
     await syncdb.SyncDatabase(
         database=default_sync_db_file[0],
@@ -1178,6 +1205,7 @@ async def test_syncdatabase_stream_management_repo_empty_dir(
     default_sync_db_file: tuple[Path, Path],
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.repo.package.syncdb.SyncDatabase.stream_management_repo from empty directory."""
     caplog.set_level(DEBUG)
     await syncdb.SyncDatabase(
         database=default_sync_db_file[0],
@@ -1190,10 +1218,11 @@ async def test_syncdatabase_stream_management_repo_empty_dir(
 
 @mark.asyncio
 async def test_syncdatabase_outputpackagebases(files_sync_db_file: tuple[Path, Path]) -> None:
+    """Tests for repod.repo.package.syncdb.SyncDatabase.outputpackagebases."""
     for (name, model) in await syncdb.SyncDatabase(
         database=files_sync_db_file[0],
         desc_version=PackageDescVersionEnum.DEFAULT,
         files_version=FilesVersionEnum.DEFAULT,
     ).outputpackagebases():
-        assert isinstance(name, str)
-        assert isinstance(model, OutputPackageBase)
+        assert isinstance(name, str)  # nosec: B101
+        assert isinstance(model, OutputPackageBase)  # nosec: B101

@@ -1,3 +1,4 @@
+"""Sync database handling."""
 from __future__ import annotations
 
 import io
@@ -180,7 +181,7 @@ class RepoDbMemberTypeEnum(IntEnum):
 
 
 class RepoDbTypeEnum(IntEnum):
-    """An IntEnum to distinguish types of binary repository database files
+    """An IntEnum to distinguish types of binary repository database files.
 
     Attributes
     ----------
@@ -195,19 +196,18 @@ class RepoDbTypeEnum(IntEnum):
 
 
 def get_desc_json_keys() -> set[str]:
-    """Get the keys of repod.models.repo.DESC_JSON
+    """Get the keys of repod.models.repo.DESC_JSON.
 
     Returns
     -------
     set[str]
         A set of strings representing the keys of repod.models.repo.DESC_JSON
     """
-
     return set(DESC_JSON.keys())
 
 
 def get_desc_json_name(key: str) -> str:
-    """Get the JSON name of a given key from the definition in repod.models.repo.DESC_JSON
+    """Get the JSON name of a given key from the definition in repod.models.repo.DESC_JSON.
 
     Parameters
     ----------
@@ -224,7 +224,6 @@ def get_desc_json_name(key: str) -> str:
     str
         The JSON name of a given 'desc' file identifier provided by key
     """
-
     try:
         return DESC_JSON[key][0]
     except KeyError:
@@ -232,7 +231,7 @@ def get_desc_json_name(key: str) -> str:
 
 
 def get_desc_json_field_type(key: str) -> FieldTypeEnum:
-    """Get the FieldTypeEnum of a given key from the definition in repod.models.repo.DESC_JSON
+    """Get the FieldTypeEnum of a given key from the definition in repod.models.repo.DESC_JSON.
 
     Parameters
     ----------
@@ -249,7 +248,6 @@ def get_desc_json_field_type(key: str) -> FieldTypeEnum:
     str
         The FieldTypeEnum of a given 'desc' file identifier provided by key
     """
-
     try:
         return DESC_JSON[key][1]
     except KeyError:
@@ -257,19 +255,18 @@ def get_desc_json_field_type(key: str) -> FieldTypeEnum:
 
 
 def get_files_json_keys() -> set[str]:
-    """Get the keys of repod.models.repo.FILES_JSON
+    """Get the keys of repod.models.repo.FILES_JSON.
 
     Returns
     -------
     set[str]
         A set of strings representing the keys of repod.models.repo.FILES_JSON
     """
-
     return set(FILES_JSON.keys())
 
 
 def get_files_json_name(key: str) -> str:
-    """Get the JSON name of a given key from the definition in repod.models.repo.FILES_JSON
+    """Get the JSON name of a given key from the definition in repod.models.repo.FILES_JSON.
 
     Parameters
     ----------
@@ -286,7 +283,6 @@ def get_files_json_name(key: str) -> str:
     str
         The JSON name of a given 'files' file identifier provided by key
     """
-
     try:
         return FILES_JSON[key][0]
     except KeyError:
@@ -294,7 +290,7 @@ def get_files_json_name(key: str) -> str:
 
 
 def get_files_json_field_type(key: str) -> FieldTypeEnum:
-    """Get the FieldTypeEnum of a given key from the definition in repod.models.repo.FILES_JSON
+    """Get the FieldTypeEnum of a given key from the definition in repod.models.repo.FILES_JSON.
 
     Parameters
     ----------
@@ -311,7 +307,6 @@ def get_files_json_field_type(key: str) -> FieldTypeEnum:
     str
         The FieldTypeEnum of a given 'desc' file identifier provided by key
     """
-
     try:
         return FILES_JSON[key][1]
     except KeyError:
@@ -319,7 +314,7 @@ def get_files_json_field_type(key: str) -> FieldTypeEnum:
 
 
 class SyncDatabase(BaseModel):
-    """A model describing a repository sync database
+    """A model describing a repository sync database.
 
     Attributes
     ----------
@@ -346,7 +341,7 @@ class SyncDatabase(BaseModel):
         packagedesc_version: PackageDescVersionEnum,
         files_version: FilesVersionEnum,
     ) -> None:
-        """Stream descriptor files derived from an OutputPackageBase to a TarFile
+        """Stream descriptor files derived from an OutputPackageBase to a TarFile.
 
         Allows streaming to a default repository database or a files database
 
@@ -363,7 +358,6 @@ class SyncDatabase(BaseModel):
         files_version: FilesVersionEnum
             The version of Files to use
         """
-
         for (desc_model, files_model) in await model.get_packages_as_models(
             packagedesc_version=packagedesc_version,
             files_version=files_version,
@@ -399,14 +393,13 @@ class SyncDatabase(BaseModel):
                 tarfile.addfile(files_file, io.BytesIO(files_content.getvalue().encode()))
 
     async def add(self, model: outputpackage.OutputPackageBase) -> None:
-        """Write descriptor files for packages of a single pkgbase to the repository sync database
+        """Write descriptor files for packages of a single pkgbase to the repository sync database.
 
         Parameters
         ----------
         model: OutputPackageBase
             The model to use for streaming descriptor files to the repository database
         """
-
         debug(f"Opening file {self.database} for writing...")
 
         with open_tarfile(
@@ -423,15 +416,13 @@ class SyncDatabase(BaseModel):
             )
 
     async def outputpackagebases(self) -> list[tuple[str, outputpackage.OutputPackageBase]]:
-        """Read a repository database and yield the name of each pkgbase and the respective data (represented as an
-        instance of OutputPackageBase) in a tuple.
+        """Read a repo sync database and return the name of each pkgbase and respective data.
 
         Returns
         -------
-        Iterator[tuple[str, OutputPackageBase]]:
+        list[tuple[str, OutputPackageBase]]:
             A tuple holding the name of a pkgbase and its accompanying data in an instance of OutputPackageBase
         """
-
         packages: dict[str, outputpackage.OutputPackageBase] = {}
         package_descs: dict[str, PackageDesc] = {}
         package_files: dict[str, Files] = {}
@@ -491,14 +482,13 @@ class SyncDatabase(BaseModel):
         return list(packages.items())
 
     async def stream_management_repo(self, path: Path) -> None:
-        """Stream descriptor files read from the JSON files of a management repository to the repository sync database
+        """Stream descriptor files read from JSON files of a management repository to the repository sync database.
 
         Parameters
         ----------
         path: Path
             The directory containing the files of the management repository
         """
-
         file_list = sorted(path.glob("*.json"))
         if not file_list:
             debug(f"There are no JSON files in {path}! Creating empty sync db.")
@@ -515,7 +505,7 @@ class SyncDatabase(BaseModel):
 
 
 class PackageDesc(BaseModel):
-    """A template class with helper methods to create instances of one of its (versioned) subclasses
+    """A template class with helper methods to create instances of one of its (versioned) subclasses.
 
     This class should not be instantiated directly, as it only provides generic instance methods for its subclasses.
 
@@ -524,7 +514,7 @@ class PackageDesc(BaseModel):
 
     @classmethod
     def from_dict(cls, data: dict[str, int | str | list[str]]) -> PackageDesc:
-        """Create an instance of one of PackageDesc's subclasses from a dict
+        """Create an instance of one of PackageDesc's subclasses from a dict.
 
         This method should be used with data derived from reading a 'desc' file from a repository sync database.
 
@@ -546,7 +536,7 @@ class PackageDesc(BaseModel):
         """
 
         def derive_package_desc_version(data: set[str]) -> int | None:
-            """Derive which PackageDesc subclass to instantiate
+            """Derive which PackageDesc subclass to instantiate.
 
             Parameters
             ----------
@@ -558,7 +548,6 @@ class PackageDesc(BaseModel):
             int | None
                 The integer representing the version of the PackageDesc subclass, else None
             """
-
             for version, config in sorted(PACKAGE_DESC_VERSIONS.items(), reverse=True):
 
                 debug(f"Comparing 'desc' data to schema version {version}")
@@ -613,7 +602,7 @@ class PackageDesc(BaseModel):
 
     @classmethod
     async def from_stream(cls, data: io.StringIO) -> PackageDesc:
-        """Initialize a PackageDesc from an input stream
+        """Initialize a PackageDesc from an input stream.
 
         Parameters
         ----------
@@ -631,7 +620,6 @@ class PackageDesc(BaseModel):
         PackageDesc
             A PackageDesc instance based on data
         """
-
         current_header = ""
         current_type: FieldTypeEnum
         int_types: dict[str, int] = {}
@@ -647,8 +635,8 @@ class PackageDesc(BaseModel):
             if line in keys:
                 current_header = get_desc_json_name(key=line)
                 current_type = get_desc_json_field_type(line)
-                # FIXME: find better way to provide a default (None or empty list for STRING_LIST as they all are
-                # list[str] | None
+                # FIXME: find better way to provide a default
+                # (None or empty list for STRING_LIST as they all are list[str] | None)
                 if current_header and current_type == FieldTypeEnum.STRING_LIST:
                     string_list_types[current_header] = []
 
@@ -680,7 +668,7 @@ class PackageDesc(BaseModel):
             )
 
     async def render(self, output: io.StringIO) -> None:
-        """Use a 'desc' jinja template to write the PackageDesc contents to an output stream
+        """Use a 'desc' jinja template to write the PackageDesc contents to an output stream.
 
         Parameters
         ----------
@@ -692,8 +680,10 @@ class PackageDesc(BaseModel):
         RepoManagementFileNotFoundError
             If no matching template can be found
         """
-
-        env = Environment(
+        # NOTE: We are not rendering HTML and need special characters, hence we are not affected by XSS problems and set
+        # autoescape=False
+        env = Environment(  # nosec: B701
+            autoescape=False,
             loader=PackageLoader("repod", "templates"),
             trim_blocks=True,
             lstrip_blocks=True,
@@ -710,7 +700,7 @@ class PackageDesc(BaseModel):
         output.write(await template.render_async(self.dict()))
 
     def get_output_package(self, files: Files | None) -> outputpackage.OutputPackage:
-        """Transform the PackageDesc model and an optional Files model into an OutputPackage model
+        """Transform the PackageDesc model and an optional Files model into an OutputPackage model.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
         The PackageDesc class does not do that!
@@ -734,7 +724,6 @@ class PackageDesc(BaseModel):
         OutputPackage
             A pydantic model, that describes a package and its list of files
         """
-
         schema_version = self.get_schema_version()
         schema_config = PACKAGE_DESC_VERSIONS.get(schema_version)
         desc_dict = self.dict()
@@ -757,7 +746,7 @@ class PackageDesc(BaseModel):
             )
 
     def get_output_package_base(self, files: Files | None) -> outputpackage.OutputPackageBase:
-        """Transform the PackageDesc model and an Files model into an OutputPackageBase model
+        """Transform the PackageDesc model and an Files model into an OutputPackageBase model.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the required fields!
         The PackageDesc class does not do that!
@@ -781,7 +770,6 @@ class PackageDesc(BaseModel):
         OutputPackageBase
             A pydantic model, that describes a package base and one of it's split packages
         """
-
         schema_version = self.get_schema_version()
         schema_config = PACKAGE_DESC_VERSIONS.get(schema_version)
         desc_dict = self.dict()
@@ -802,7 +790,7 @@ class PackageDesc(BaseModel):
             )
 
     def get_base(self) -> str:
-        """Get the base attribute of the PackageDesc instance
+        """Get the base attribute of the PackageDesc instance.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the `base` field! The
         PackageDesc class does not do that!
@@ -817,7 +805,6 @@ class PackageDesc(BaseModel):
         str
             The base attribute of a PackageDesc subclass
         """
-
         if hasattr(self, "base"):
             return str(self.base)
         else:
@@ -826,7 +813,7 @@ class PackageDesc(BaseModel):
             )
 
     def get_name(self) -> str:
-        """Get the name attribute of the PackageDesc instance
+        """Get the name attribute of the PackageDesc instance.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the `name` field! The
         PackageDesc class does not do that!
@@ -841,7 +828,6 @@ class PackageDesc(BaseModel):
         str
             The name attribute of a PackageDesc subclass
         """
-
         if hasattr(self, "name"):
             return str(self.name)
         else:
@@ -850,7 +836,7 @@ class PackageDesc(BaseModel):
             )
 
     def get_schema_version(self) -> int:
-        """Get the schema_version attribute of the PackageDesc instance
+        """Get the schema_version attribute of the PackageDesc instance.
 
         NOTE: This method only successfully returns if the instance of the class using it defines the `schema_version`
         field! The PackageDesc class does not do that!
@@ -865,7 +851,6 @@ class PackageDesc(BaseModel):
         int
             The schema_version attribute of a PackageDesc subclass
         """
-
         if hasattr(self, "schema_version"):
             return int(self.schema_version)
         else:
@@ -875,7 +860,7 @@ class PackageDesc(BaseModel):
 
 
 class Files(BaseModel):
-    """A template class to describe files in the context of 'files' files in a repository sync database
+    """A template class to describe files in the context of 'files' files in a repository sync database.
 
     This class should not be instantiated directly, as it only provides generic instance methods for its subclasses.
 
@@ -884,7 +869,7 @@ class Files(BaseModel):
 
     @classmethod
     def from_dict(cls, data: dict[str, list[str]]) -> Files:
-        """Class method to create one of Files' subclasses from a dict
+        """Class method to create one of Files' subclasses from a dict.
 
         This method is supposed to be called with data derived from a 'files' file.
 
@@ -906,7 +891,7 @@ class Files(BaseModel):
         """
 
         def derive_files_version(data: set[str]) -> int | None:
-            """Derive which Files subclass to instantiate
+            """Derive which Files subclass to instantiate.
 
             Parameters
             ----------
@@ -918,7 +903,6 @@ class Files(BaseModel):
             int | None
                 The integer representing the schema version of the Files subclass, else None
             """
-
             for version, config in sorted(FILES_VERSIONS.items(), reverse=True):
 
                 debug(f"Comparing 'files' data to schema version {version}")
@@ -966,7 +950,7 @@ class Files(BaseModel):
 
     @classmethod
     async def from_stream(cls, data: io.StringIO) -> Files:
-        """Initialize a Files from an input stream
+        """Initialize a Files from an input stream.
 
         Parameters
         ----------
@@ -983,7 +967,6 @@ class Files(BaseModel):
         Files
             A Files instance based on data
         """
-
         current_header = ""
         current_type: FieldTypeEnum
         string_list_types: dict[str, list[str]] = {}
@@ -1013,7 +996,7 @@ class Files(BaseModel):
             )
 
     async def render(self, output: io.StringIO) -> None:
-        """Use a 'files' jinja template to write the Files contents to an output stream
+        """Use a 'files' jinja template to write the Files contents to an output stream.
 
         Parameters
         ----------
@@ -1025,8 +1008,9 @@ class Files(BaseModel):
         RepoManagementFileNotFoundError
             If no matching template can be found
         """
-
-        env = Environment(
+        # NOTE: We are not rendering HTML and need special characters, hence we are not affected by XSS problems and set
+        # autoescape=False
+        env = Environment(  # nosec: B701
             loader=PackageLoader("repod", "templates"),
             trim_blocks=True,
             lstrip_blocks=True,
@@ -1043,7 +1027,7 @@ class Files(BaseModel):
         output.write(await template.render_async(self.dict()))
 
     def get_schema_version(self) -> int:
-        """Get the schema_version of the Files instance
+        """Get the schema_version of the Files instance.
 
         NOTE: This method only successfully returns if the instance of the class using it actually defines the
         `schema_version` field!
@@ -1058,7 +1042,6 @@ class Files(BaseModel):
         int
             The schema_version attribute of a Files subclass
         """
-
         if hasattr(self, "schema_version"):
             return int(self.schema_version)
         else:
@@ -1068,7 +1051,7 @@ class Files(BaseModel):
 
 
 class FilesV1(Files, FileList, SchemaVersionV1):
-    """A pydantic model to describe files in the context of 'files' files in a repository sync database (version 1)
+    """A pydantic model to describe files in the context of 'files' files in a repository sync database (version 1).
 
     Attributes
     ----------
@@ -1108,7 +1091,7 @@ class PackageDescV1(
     Url,
     Version,
 ):
-    """A model describing all identifiers in a 'desc' file (version 1)
+    """A model describing all identifiers in a 'desc' file (version 1).
 
     Attributes
     ----------
@@ -1216,7 +1199,7 @@ class PackageDescV2(
     Url,
     Version,
 ):
-    """A model describing all identifiers in a 'desc' file (version 1)
+    """A model describing all identifiers in a 'desc' file (version 1).
 
     Attributes
     ----------
@@ -1295,7 +1278,7 @@ class PackageDescV2(
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema of selected pydantic models to an output directory
+    """Export the JSON schema of selected pydantic models to an output directory.
 
     Parameters
     ----------
@@ -1307,7 +1290,6 @@ def export_schemas(output: Path | str) -> None:
     RuntimeError
         If output is not an existing directory
     """
-
     classes = [FilesV1, PackageDescV1, PackageDescV2]
 
     if isinstance(output, str):

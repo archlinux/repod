@@ -1,3 +1,4 @@
+"""Handling of .BUILDINFO files."""
 from __future__ import annotations
 
 from io import StringIO
@@ -47,7 +48,7 @@ BUILDINFO_ASSIGNMENTS: dict[str, tuple[str, FieldTypeEnum]] = {
 
 
 class BuildDate(BaseModel):
-    """A build date in seconds since the epoch
+    """A build date in seconds since the epoch.
 
     Attributes
     ----------
@@ -59,7 +60,7 @@ class BuildDate(BaseModel):
 
 
 class BuildDir(BaseModel):
-    """An absolute build directory
+    """An absolute build directory.
 
     Attributes
     ----------
@@ -71,7 +72,7 @@ class BuildDir(BaseModel):
 
     @validator("builddir")
     def validate_builddir(cls, builddir: str) -> str:
-        """Validate the builddir attribute
+        """Validate the builddir attribute.
 
         The builddir attribute may not contain strings that represent absolute Paths or Paths in the home directory
 
@@ -85,7 +86,6 @@ class BuildDir(BaseModel):
         str
             A validated string, representing an absolute Path
         """
-
         path = Path(builddir)
         if not path.is_absolute():
             raise ValueError(f"A relative path as builddir is not valid: {path}")
@@ -94,7 +94,7 @@ class BuildDir(BaseModel):
 
 
 class BuildEnv(BaseModel):
-    """A list of build environment options
+    """A list of build environment options.
 
     For valid values refer to BUILDENV in https://man.archlinux.org/man/makepkg.conf.5#OPTIONS
 
@@ -108,7 +108,7 @@ class BuildEnv(BaseModel):
 
 
 class BuildTool(BaseModel):
-    """The build tool used to create a package
+    """The build tool used to create a package.
 
     Attributes
     ----------
@@ -120,7 +120,7 @@ class BuildTool(BaseModel):
 
 
 class BuildToolVer(BaseModel):
-    """The package version of the build tool used to create a package
+    """The package version of the build tool used to create a package.
 
     Attributes
     ----------
@@ -132,7 +132,7 @@ class BuildToolVer(BaseModel):
 
 
 class Installed(BaseModel):
-    """A list of package names and versions installed during the creation of a package
+    """A list of package names and versions installed during the creation of a package.
 
     Attributes
     ----------
@@ -147,7 +147,7 @@ class Installed(BaseModel):
 
     @classmethod
     def as_models(cls, installed: list[str]) -> list[tuple[PkgName, PkgVer, ArchitectureEnum]]:
-        """Return a list of installed dependencies as models
+        """Return a list of installed dependencies as models.
 
         Parameters
         ----------
@@ -164,7 +164,6 @@ class Installed(BaseModel):
         list[tuple[PkgName, PkgVer, ArchitectureEnum]]
             A list of PkgName, PkgVer and ArchitectureEnum tuples, which describe each entry in installed
         """
-
         return [
             (
                 PkgName(pkgname="-".join(dep.split("-")[0:-3])),
@@ -176,7 +175,7 @@ class Installed(BaseModel):
 
 
 class PkgArch(BaseModel):
-    """A CPU architecture for a package
+    """A CPU architecture for a package.
 
     Refer to the arch subsection in https://man.archlinux.org/man/PKGBUILD.5.en#OPTIONS_AND_DIRECTIVES for details
 
@@ -190,7 +189,7 @@ class PkgArch(BaseModel):
 
 
 class PkgBuildSha256Sum(BaseModel):
-    """A SHA-256 checksum for a PKGBUILD file of a package
+    """A SHA-256 checksum for a PKGBUILD file of a package.
 
     Attributes
     ----------
@@ -198,11 +197,11 @@ class PkgBuildSha256Sum(BaseModel):
         A string representing a SHA-256 checksum for a PKGBUILD of a package
     """
 
-    pkgbuild_sha256sum: constr(regex=rf"{SHA256}")  # type: ignore[valid-type]  # noqa: F722
+    pkgbuild_sha256sum: constr(regex=rf"{SHA256}")  # type: ignore[valid-type]
 
 
 class PkgVer(BaseModel):
-    """A version string for a package, consisting of epoch, pkgver and pkgrel
+    """A version string for a package, consisting of epoch, pkgver and pkgrel.
 
     Refer to the epoch, pkgrel and pkgver sections in https://man.archlinux.org/man/PKGBUILD.5.en#OPTIONS_AND_DIRECTIVES
     for details
@@ -217,7 +216,7 @@ class PkgVer(BaseModel):
 
 
 class StartDir(BaseModel):
-    """An absolute directory used as startdir for a package
+    """An absolute directory used as startdir for a package.
 
     Refer to the startdir subsection in https://man.archlinux.org/man/PKGBUILD.5.en#PACKAGING_FUNCTIONS
 
@@ -231,7 +230,7 @@ class StartDir(BaseModel):
 
     @validator("startdir")
     def validate_startdir(cls, startdir: str) -> str:
-        """Validate the startdir attribute
+        """Validate the startdir attribute.
 
         The startdir attribute may not contain strings that represent absolute Paths or Paths in the home directory
 
@@ -245,7 +244,6 @@ class StartDir(BaseModel):
         str
             A validated string, representing an absolute Path
         """
-
         path = Path(startdir)
         if not path.is_absolute():
             raise ValueError(f"A relative path as startdir is not valid: {path}")
@@ -254,14 +252,14 @@ class StartDir(BaseModel):
 
 
 class BuildInfo(BaseModel):
-    """The representation of a .BUILDINFO file
+    """The representation of a .BUILDINFO file.
 
     This is a template class and should not be used directly. Instead instantiate one of the classes derived from it.
     """
 
     @classmethod
     def from_file(cls, data: StringIO) -> BuildInfo:
-        """Create an instance of BuildInfo from an io.StringIO representing the contents of a BUILDINFO file
+        """Create an instance of BuildInfo from an io.StringIO representing the contents of a BUILDINFO file.
 
         Parameters
         ----------
@@ -273,7 +271,6 @@ class BuildInfo(BaseModel):
         BuildInfo
             An instance of BuildInfo
         """
-
         entries: dict[str, int | str | list[str]] = {}
 
         for line in data:
@@ -322,7 +319,7 @@ class BuildInfoV1(
     PkgVer,
     SchemaVersionV1,
 ):
-    """The representation of a .BUILDINFO file (version 1)
+    """The representation of a .BUILDINFO file (version 1).
 
     Attributes
     ----------
@@ -374,7 +371,7 @@ class BuildInfoV2(
     SchemaVersionV2,
     StartDir,
 ):
-    """The representation of a .BUILDINFO file (version 2)
+    """The representation of a .BUILDINFO file (version 2).
 
     Attributes
     ----------
@@ -413,7 +410,7 @@ class BuildInfoV2(
 
     @root_validator
     def validate_devtools_version(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """A root validator that ensures the use of a valid version string when devtools is the buildtool
+        """Validate the use of a valid version string when devtools is the buildtool.
 
         Parameters
         ----------
@@ -431,7 +428,6 @@ class BuildInfoV2(
         values: dict[str, Any]
             The unmodified dict with all values of a BuildInfoV2 instance
         """
-
         buildtool, buildtoolver = str(values.get("buildtool")), str(values.get("buildtoolver"))
         if buildtool == "devtools" and not fullmatch(rf"^({EPOCH}|){VERSION}-{PKGREL}-{ARCHITECTURE}$", buildtoolver):
             raise ValueError(
@@ -443,7 +439,7 @@ class BuildInfoV2(
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema of selected pydantic models to an output directory
+    """Export the JSON schema of selected pydantic models to an output directory.
 
     Parameters
     ----------
@@ -455,7 +451,6 @@ def export_schemas(output: Path | str) -> None:
     RuntimeError
         If output is not an existing directory
     """
-
     classes = [BuildInfoV1, BuildInfoV2]
 
     if isinstance(output, str):

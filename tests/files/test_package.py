@@ -1,3 +1,4 @@
+"""Tests for repod.files.package."""
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG
 from pathlib import Path
@@ -27,6 +28,7 @@ async def test_package_from_file(
     default_package_file: tuple[Path, ...],
     default_sync_db_file: tuple[Path],
 ) -> None:
+    """Tests for repod.files.package.Package.from_file."""
     caplog.set_level(DEBUG)
 
     signature = default_package_file[1]
@@ -38,7 +40,7 @@ async def test_package_from_file(
         signature = Path("foo")
 
     with expectation:
-        assert isinstance(
+        assert isinstance(  # nosec: B101
             await package.Package.from_file(
                 package=default_package_file[0],
                 signature=signature if add_sig else None,
@@ -54,15 +56,17 @@ async def test_packagev1_top_level_dict(
     caplog: LogCaptureFixture,
     packagev1: package.PackageV1,
 ) -> None:
+    """Tests for repod.files.package.Package.top_level_dict."""
     caplog.set_level(DEBUG)
     keys = set(packagev1.top_level_dict().keys())
-    assert len(packagev1.buildinfo.dict().keys() - keys) == 0
-    assert len(packagev1.mtree.dict().keys() - keys) == 0
-    assert len(packagev1.pkginfo.dict().keys() - keys) == 0
-    assert len({"csize", "filename", "md5sum", "pgpsig", "sha256sum"} - keys) == 0
+    assert len(packagev1.buildinfo.dict().keys() - keys) == 0  # nosec: B101
+    assert len(packagev1.mtree.dict().keys() - keys) == 0  # nosec: B101
+    assert len(packagev1.pkginfo.dict().keys() - keys) == 0  # nosec: B101
+    assert len({"csize", "filename", "md5sum", "pgpsig", "sha256sum"} - keys) == 0  # nosec: B101
 
 
 def test_export_schemas(tmp_path: Path) -> None:
+    """Tests for repod.files.package.export_schemas."""
     package.export_schemas(output=str(tmp_path))
     package.export_schemas(output=tmp_path)
 

@@ -1,5 +1,8 @@
+"""Checks for various circumstances."""
+from __future__ import annotations
+
 import asyncio
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from logging import debug, info
 from pathlib import Path
@@ -17,8 +20,8 @@ from repod.verification import PacmanKeyVerifier
 from repod.version.alpm import pkg_vercmp
 
 
-class Check(metaclass=ABCMeta):
-    """An abstract base class to describe a check
+class Check(ABC):
+    """An abstract base class to describe a check.
 
     Checks are Callables, that run a check (e.g. on an input) and must not alter data.
 
@@ -33,7 +36,7 @@ class Check(metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self) -> ActionStateEnum:  # pragma: no cover
-        """The call method of a Check
+        """Call a Check.
 
         The method is expected to set the Check's state property to ActionStateEnum.STARTED, run a check
         operation, set the state property to either ActionStateEnum.SUCCESS or to ActionStateEnum.FAILED (depending on
@@ -45,12 +48,11 @@ class Check(metaclass=ABCMeta):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         pass
 
 
 class PacmanKeyPackagesSignatureVerificationCheck(Check):
-    """Verify a list of package signatures using pacman-key
+    """Verify a list of package signatures using pacman-key.
 
     This Check fails if any package can not be verified with its corresponding signature or if any of the
     package/signature lists is not of length two.
@@ -61,19 +63,18 @@ class PacmanKeyPackagesSignatureVerificationCheck(Check):
         A list of Path lists, that should contain a package and a corresponding signature Path each
     """
 
-    def __init__(self, packages: list[list[Path]]):
-        """Initialize an instance of PacmanKeyPackagesSignatureVerificationCheck
+    def __init__(self, packages: list[list[Path]]) -> None:
+        """Initialize an instance of PacmanKeyPackagesSignatureVerificationCheck.
 
         Parameters
         ----------
         package: list[list[Path]]
             A list of lists, containing up to two Paths each
         """
-
         self.packages = packages
 
     def __call__(self) -> ActionStateEnum:
-        """Use an instance of PacmanKeyVerifier to verify a package and its signature
+        """Use an instance of PacmanKeyVerifier to verify a package and its signature.
 
         Returns
         -------
@@ -81,7 +82,6 @@ class PacmanKeyPackagesSignatureVerificationCheck(Check):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         if not all(len(package_list) == 2 for package_list in self.packages):
@@ -110,7 +110,7 @@ class PacmanKeyPackagesSignatureVerificationCheck(Check):
 
 
 class DebugPackagesCheck(Check):
-    """A Check to evaluate whether all instances in a list of packages are either debug or not debug packages
+    """A Check to evaluate whether all instances in a list of packages are either debug or not debug packages.
 
     This Check currently only works successfully with packages that use PkgInfoV2, as before that PkgInfo
     implementation, figuring out whether a package is a debug package is merely guess work.
@@ -124,8 +124,8 @@ class DebugPackagesCheck(Check):
         A boolean value indicating whether all Package instances should be debug packages or not
     """
 
-    def __init__(self, packages: list[Package], debug: bool):
-        """Initialize an instance of DebugPackagesCheck
+    def __init__(self, packages: list[Package], debug: bool) -> None:
+        """Initialize an instance of DebugPackagesCheck.
 
         Parameters
         ----------
@@ -134,12 +134,11 @@ class DebugPackagesCheck(Check):
         debug: bool
             A boolean value indicating whether all Package instances should be either debug packages or not
         """
-
         self.packages = packages
         self.debug = debug
 
     def __call__(self) -> ActionStateEnum:
-        """Check whether all instances of self.packages are supposed to be debug packages or not
+        """Check whether all instances of self.packages are supposed to be debug packages or not.
 
         Returns
         -------
@@ -147,7 +146,6 @@ class DebugPackagesCheck(Check):
             ActionStateEnum.SUCCESS if the check is successful,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         debug(f"Testing whether all packages are either default or debug packages: {self.packages}")
@@ -187,7 +185,7 @@ class DebugPackagesCheck(Check):
 
 
 class MatchingArchitectureCheck(Check):
-    """A Check to ensure that a list of packages match a target CPU architecture
+    """A Check to ensure that a list of packages match a target CPU architecture.
 
     Attributes
     ----------
@@ -197,8 +195,8 @@ class MatchingArchitectureCheck(Check):
         A list of Package instances to check
     """
 
-    def __init__(self, architecture: ArchitectureEnum, packages: list[Package]):
-        """Initialize an instance of MatchingArchitectureCheck
+    def __init__(self, architecture: ArchitectureEnum, packages: list[Package]) -> None:
+        """Initialize an instance of MatchingArchitectureCheck.
 
         Parameters
         ----------
@@ -207,12 +205,11 @@ class MatchingArchitectureCheck(Check):
         packages: list[Package]
             A list of Package instances to check
         """
-
         self.architecture = architecture
         self.packages = packages
 
     def __call__(self) -> ActionStateEnum:
-        """Check whether all instances of self.packages are supposed to be debug packages or not
+        """Check whether all instances of self.packages are supposed to be debug packages or not.
 
         Returns
         -------
@@ -220,7 +217,6 @@ class MatchingArchitectureCheck(Check):
             ActionStateEnum.SUCCESS if the check is successful,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         debug("Running check to test whether all packages match the target architecture...")
@@ -255,15 +251,14 @@ class MatchingFilenameCheck(Check):
         A list of tuples of Package instances and Path instances to check
     """
 
-    def __init__(self, packages_and_paths: list[tuple[Package, Path]]):
-        """Initialize an instance of MatchingFilenameCheck
+    def __init__(self, packages_and_paths: list[tuple[Package, Path]]) -> None:
+        """Initialize an instance of MatchingFilenameCheck.
 
         Parameters
         ----------
         packages_and_paths: list[tuple[Package, Path]]
             A list of tuples of Package instances and Path instances to check
         """
-
         self.packages_and_paths = packages_and_paths
 
     def __call__(self) -> ActionStateEnum:
@@ -275,7 +270,6 @@ class MatchingFilenameCheck(Check):
             ActionStateEnum.SUCCESS if the check is successful,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         debug("Running check to test whether package metadata and package filenames match...")
@@ -304,7 +298,7 @@ class MatchingFilenameCheck(Check):
 
 
 class PkgbasesVersionUpdateCheck(Check):
-    """A Check to ensure, that pkgbases are updated, not downgraded
+    """A Check to ensure, that pkgbases are updated, not downgraded.
 
     Attributes
     ----------
@@ -314,8 +308,12 @@ class PkgbasesVersionUpdateCheck(Check):
         A list of current OutputPackageBase instances
     """
 
-    def __init__(self, new_pkgbases: list[OutputPackageBase], current_pkgbases: list[OutputPackageBase]):
-        """Initialize an instance of PkgbasesVersionUpdateCheck
+    def __init__(
+        self,
+        new_pkgbases: list[OutputPackageBase],
+        current_pkgbases: list[OutputPackageBase],
+    ) -> None:
+        """Initialize an instance of PkgbasesVersionUpdateCheck.
 
         Parameters
         ----------
@@ -324,12 +322,11 @@ class PkgbasesVersionUpdateCheck(Check):
         current_pkgbases: list[OutputPackageBase]
             A list of current OutputPackageBase instances
         """
-
         self.new_pkgbases = new_pkgbases
         self.current_pkgbases = current_pkgbases
 
     def __call__(self) -> ActionStateEnum:
-        """Check, that pkgbases are updated, not downgraded
+        """Check, that pkgbases are updated, not downgraded.
 
         Returns
         -------
@@ -337,7 +334,6 @@ class PkgbasesVersionUpdateCheck(Check):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         debug("Running check to test whether all pkgbases are being upgraded, not downgraded...")
@@ -373,7 +369,7 @@ class PkgbasesVersionUpdateCheck(Check):
 
 
 class PackagesNewOrUpdatedCheck(Check):
-    """A Check to ensure, that packages are new or updated
+    """A Check to ensure, that packages are new or updated.
 
     Attributes
     ----------
@@ -390,8 +386,8 @@ class PackagesNewOrUpdatedCheck(Check):
         directory: Path,
         new_pkgbases: list[OutputPackageBase],
         current_pkgbases: list[OutputPackageBase],
-    ):
-        """Initialize an instance of PackagesNewOrUpdatedCheck
+    ) -> None:
+        """Initialize an instance of PackagesNewOrUpdatedCheck.
 
         Parameters
         ----------
@@ -402,13 +398,12 @@ class PackagesNewOrUpdatedCheck(Check):
         current_pkgbases: list[OutputPackageBase]
             A list of current OutputPackageBase instances
         """
-
         self.directory = directory
         self.new_pkgbases = new_pkgbases
         self.current_pkgbases = current_pkgbases
 
     def __call__(self) -> ActionStateEnum:
-        """Check, that packages are new or updated
+        """Check, that packages are new or updated.
 
         Returns
         -------
@@ -416,7 +411,6 @@ class PackagesNewOrUpdatedCheck(Check):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         debug("Running check to test that all packages are either new or updated...")
@@ -505,7 +499,7 @@ class PackagesNewOrUpdatedCheck(Check):
 
 
 class SourceUrlCheck(Check):
-    """Check that pkgbases have a source url, if their repository validation settings require it
+    """Check that pkgbases have a source url, if their repository validation settings require it.
 
     Attributes
     ----------
@@ -522,8 +516,8 @@ class SourceUrlCheck(Check):
         new_pkgbases: list[OutputPackageBase],
         current_pkgbases: list[OutputPackageBase],
         url_validation_settings: UrlValidationSettings | None,
-    ):
-        """Initialize an instance of SourceUrlCheck
+    ) -> None:
+        """Initialize an instance of SourceUrlCheck.
 
         Parameters
         ----------
@@ -534,20 +528,16 @@ class SourceUrlCheck(Check):
         url_validation_settings: UrlValidationSettings | None
             An optional UrlValidationSettings instance with which to validate source URLs of the provided new_pkgbases
         """
-
-        self.new_pkgbase_urls: dict[str, HttpUrl | None] = dict(
-            [tuple([pkgbase.base, pkgbase.source_url]) for pkgbase in new_pkgbases]  # type: ignore[attr-defined,misc]
-        )
-        self.current_pkgbase_urls: dict[str, HttpUrl | None] = dict(
-            [
-                tuple([pkgbase.base, pkgbase.source_url])  # type: ignore[attr-defined,misc]
-                for pkgbase in current_pkgbases
-            ]
-        )
+        self.new_pkgbase_urls: dict[str, HttpUrl | None] = {
+            pkgbase.base: pkgbase.source_url for pkgbase in new_pkgbases  # type: ignore[attr-defined]
+        }
+        self.current_pkgbase_urls: dict[str, HttpUrl | None] = {
+            pkgbase.base: pkgbase.source_url for pkgbase in current_pkgbases  # type: ignore[attr-defined]
+        }
         self.url_validation_settings = url_validation_settings
 
     def __call__(self) -> ActionStateEnum:
-        """Check that pkgbases have a source url, if their repository validation settings require it
+        """Check that pkgbases have a source url, if their repository validation settings require it.
 
         Returns
         -------
@@ -555,7 +545,6 @@ class SourceUrlCheck(Check):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         debug("Running check to validate the URLs of pkgbases... ")
@@ -572,21 +561,21 @@ class SourceUrlCheck(Check):
                 info(f"The pkgbase {pkgbase} does neither already have a source URL set nor is one provided for it!")
                 self.state = ActionStateEnum.FAILED
                 return self.state
-            else:
-                if not self.url_validation_settings.validate_url(url=url):
-                    info(
-                        f"The source URL of the pkgbase {pkgbase} ({url}) does not validate "
-                        "against the repository's settings!"
-                    )
-                    self.state = ActionStateEnum.FAILED
-                    return self.state
+
+            if not self.url_validation_settings.validate_url(url=url):
+                info(
+                    f"The source URL of the pkgbase {pkgbase} ({url}) does not validate "
+                    "against the repository's settings!"
+                )
+                self.state = ActionStateEnum.FAILED
+                return self.state
 
         self.state = ActionStateEnum.SUCCESS
         return self.state
 
 
 class StabilityLayerCheck(Check):
-    """A Check to compare the versions of pkgbases in the stability layers above and below them
+    """A Check to compare the versions of pkgbases in the stability layers above and below them.
 
     Attributes
     ----------
@@ -603,8 +592,8 @@ class StabilityLayerCheck(Check):
         pkgbases: list[OutputPackageBase],
         pkgbases_above: list[OutputPackageBase],
         pkgbases_below: list[OutputPackageBase],
-    ):
-        """Initialize an instance of StabilityLayerCheck
+    ) -> None:
+        """Initialize an instance of StabilityLayerCheck.
 
         Parameters
         ----------
@@ -615,13 +604,12 @@ class StabilityLayerCheck(Check):
         pkgbases_below: list[OutputPackageBase]
             A list of OutputPackageBase objects, that represent the pkgbases in stability layers below those in pkgbases
         """
-
         self.pkgbases = pkgbases
         self.pkgbases_above = pkgbases_above
         self.pkgbases_below = pkgbases_below
 
     def __call__(self) -> ActionStateEnum:
-        """Check that pkgbases are not newer than pkgbases_above and not older than pkgbases_below
+        """Check that pkgbases are not newer than pkgbases_above and not older than pkgbases_below.
 
         Returns
         -------
@@ -629,7 +617,6 @@ class StabilityLayerCheck(Check):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         for pkgbase in self.pkgbases:
@@ -668,8 +655,7 @@ class StabilityLayerCheck(Check):
 
 
 class ReproducibleBuildEnvironmentCheck(Check):
-    """A Check to ensure that all build requirements of OutputPackageBases can be met according to a provided set of
-    available requirements
+    """A Check ensuring all build requirements of OutputPackageBases can covered by a set of available requirements.
 
     Attributes
     ----------
@@ -684,8 +670,8 @@ class ReproducibleBuildEnvironmentCheck(Check):
         self,
         pkgbases: list[OutputPackageBase],
         available_requirements: set[str],
-    ):
-        """Initialize an instance of ReproducibleBuildEnvironmentCheck
+    ) -> None:
+        """Initialize an instance of ReproducibleBuildEnvironmentCheck.
 
         Parameters
         ----------
@@ -695,13 +681,11 @@ class ReproducibleBuildEnvironmentCheck(Check):
             A set of package information strings (name, version, architecture), which are matched against the build
             requirements of pkgbases
         """
-
         self.pkgbases = pkgbases
         self.available_requirements = available_requirements
 
     def __call__(self) -> ActionStateEnum:
-        """Check that all build requirements of OutputPackageBases can be met according to a provided set of available
-        requirements
+        """Check all build requirements of OutputPackageBases can be met by a set of available requirements.
 
         Returns
         -------
@@ -709,7 +693,6 @@ class ReproducibleBuildEnvironmentCheck(Check):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         missing_requirements: dict[str, list[str]] = defaultdict(list)
@@ -733,8 +716,7 @@ class ReproducibleBuildEnvironmentCheck(Check):
 
 
 class UniqueInRepoGroupCheck(Check):
-    """A Check to ensure, that lists of pkgbase and package names are unique among a group of management repository
-    directories
+    """A Check ensuring unique lists of pkgbase and package names among a group of management repository directories.
 
     Attributes
     ----------
@@ -751,8 +733,8 @@ class UniqueInRepoGroupCheck(Check):
         pkgbase_names: list[str],
         package_names: list[str],
         repo_management_dirs: dict[Path, list[Path]],
-    ):
-        """Initialize an instance of UniqueInRepoGroupCheck
+    ) -> None:
+        """Initialize an instance of UniqueInRepoGroupCheck.
 
         Parameters
         ----------
@@ -763,13 +745,12 @@ class UniqueInRepoGroupCheck(Check):
         repo_management_dirs: dict[Path, list[Path]]
             A dict describing a repository name and all of its management repository directories
         """
-
         self.pkgbase_names = pkgbase_names
         self.package_names = package_names
         self.repo_management_dirs = repo_management_dirs
 
     def __call__(self) -> ActionStateEnum:
-        """Check, that lists of pkgbase and package names are unique among a group of management repository directories
+        """Check, that lists of pkgbase and package names are unique among a group of management repository directories.
 
         Returns
         -------
@@ -777,7 +758,6 @@ class UniqueInRepoGroupCheck(Check):
             ActionStateEnum.SUCCESS if the check passed successfully,
             ActionStateEnum.FAILED otherwise
         """
-
         self.state = ActionStateEnum.STARTED
 
         existing_pkgbases: dict[str, list[str]] = defaultdict(list)

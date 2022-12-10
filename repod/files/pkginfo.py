@@ -1,3 +1,4 @@
+"""Handling of .PKGINFO files."""
 from __future__ import annotations
 
 from io import StringIO
@@ -121,7 +122,7 @@ PKGINFO_VERSIONS: dict[int, dict[str, set[str]]] = {
 
 
 def parse_pairs(line: str, separator: str = " = ") -> tuple[str, str, FieldTypeEnum]:
-    """Parse key-value pairs from a line of text
+    """Parse key-value pairs from a line of text.
 
     The line of text represents the data contained in a .PKGINFO file.
     All known key-value pairs are understood and also identifiers added in comment sections are extracted.
@@ -146,7 +147,6 @@ def parse_pairs(line: str, separator: str = " = ") -> tuple[str, str, FieldTypeE
         A tuple of two strings and a member of FieldTypeEnum, which represent key, value and field type extracted from
         the line of text
     """
-
     debug(f"Parsing: {line}")
     if line.startswith("#"):
         for keyword in PKGINFO_COMMENT_ASSIGNMENTS.keys():
@@ -173,7 +173,7 @@ def parse_pairs(line: str, separator: str = " = ") -> tuple[str, str, FieldTypeE
 
 
 def pairs_to_entries(key: str, value: str, field_type: FieldTypeEnum, entries: dict[str, Any]) -> None:
-    """Append key value-pairs to a dict
+    """Append key value-pairs to a dict.
 
     Values are cast based on their provided field types.
     Nested values for xdata are understood and are initialized as their target types (e.g. PkgType).
@@ -194,7 +194,6 @@ def pairs_to_entries(key: str, value: str, field_type: FieldTypeEnum, entries: d
     RuntimeError
         If an invalid key/ field type combination is encountered
     """
-
     debug(f"Attempting to add key {key} and value {value} of field type {field_type} to {entries}")
     match key, field_type:
         case "pkgtype", FieldTypeEnum.STRING:
@@ -226,7 +225,7 @@ def pairs_to_entries(key: str, value: str, field_type: FieldTypeEnum, entries: d
 
 
 class FakerootVersion(BaseModel):
-    """A version of fakeroot
+    """A version of fakeroot.
 
     Attributes
     ----------
@@ -238,7 +237,7 @@ class FakerootVersion(BaseModel):
 
 
 class MakepkgVersion(BaseModel):
-    """A version of makepkg
+    """A version of makepkg.
 
     Attributes
     ----------
@@ -250,7 +249,7 @@ class MakepkgVersion(BaseModel):
 
 
 class PkgType(BaseModel):
-    """A package type
+    """A package type.
 
     Attributes
     ----------
@@ -262,7 +261,7 @@ class PkgType(BaseModel):
 
 
 class XData(BaseModel):
-    """An optional list of extra data
+    """An optional list of extra data.
 
     Attributes
     ----------
@@ -274,14 +273,14 @@ class XData(BaseModel):
 
 
 class PkgInfo(BaseModel):
-    """The representation of a .PKGINFO file
+    """The representation of a .PKGINFO file.
 
     This is a template class and should not be used directly. Instead instatiate one of the classes derived from it.
     """
 
     @classmethod
     def from_file(cls, data: StringIO) -> PkgInfo:
-        """Create an instance of PkgInfo from an io.StringIO representing the contents of a PKGINFO file
+        """Create an instance of PkgInfo from an io.StringIO representing the contents of a PKGINFO file.
 
         Parameters
         ----------
@@ -293,7 +292,6 @@ class PkgInfo(BaseModel):
         PkgInfo
             An instance of PkgInfo
         """
-
         pkg_info_version = 0
         entries: dict[str, int | str | list[str | dict[str, Any]]] = {}
 
@@ -344,7 +342,7 @@ class PkgInfoV1(
     Url,
     Version,
 ):
-    """A PkgInfo version 1
+    """A PkgInfo version 1.
 
     Attributes
     ----------
@@ -421,7 +419,7 @@ class PkgInfoV2(
     Version,
     XData,
 ):
-    """A PkgInfo version 2
+    """A PkgInfo version 2.
 
     Attributes
     ----------
@@ -475,7 +473,7 @@ class PkgInfoV2(
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema of selected pydantic models to an output directory
+    """Export the JSON schema of selected pydantic models to an output directory.
 
     Parameters
     ----------
@@ -487,7 +485,6 @@ def export_schemas(output: Path | str) -> None:
     RuntimeError
         If output is not an existing directory
     """
-
     classes = [PkgInfoV1, PkgInfoV2]
 
     if isinstance(output, str):

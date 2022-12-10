@@ -1,3 +1,4 @@
+"""Handling of package files and their contents."""
 from __future__ import annotations
 
 from base64 import b64encode
@@ -11,11 +12,7 @@ from pydantic import BaseModel
 from repod.common.models import CSize, FileName, Md5Sum, PgpSig, Sha256Sum
 from repod.errors import RepoManagementFileError
 from repod.files.buildinfo import BuildInfo
-from repod.files.common import (  # noqa: F401
-    extract_file_from_tarfile,
-    names_in_tarfile,
-    open_tarfile,
-)
+from repod.files.common import extract_file_from_tarfile, names_in_tarfile, open_tarfile
 from repod.files.mtree import MTree
 from repod.files.pkginfo import PkgInfo
 
@@ -27,7 +24,7 @@ PACKAGE_VERSIONS = {
 
 
 class Package(BaseModel):
-    """Package representation
+    """Package representation.
 
     This is a template class and (apart from its class methods) should not be used directly. Instead instatiate one of
     the classes derived from it.
@@ -35,7 +32,7 @@ class Package(BaseModel):
 
     @classmethod
     async def from_file(cls, package: Path, signature: Path | None = None) -> Package:
-        """Create a Package from a package file and an optional signature
+        """Create a Package from a package file and an optional signature.
 
         Parameters
         ----------
@@ -55,7 +52,6 @@ class Package(BaseModel):
         Package
             A Package representing the metadata contained in package and the optional signature file
         """
-
         package_version = 0
         package_md5sum = ""
         package_sha256sum = ""
@@ -79,7 +75,8 @@ class Package(BaseModel):
         debug(f"Creating checksums for package {package}...")
         with open(package, "rb") as package_file:
             package_bytes = package_file.read()
-            package_md5sum = md5(package_bytes).hexdigest()
+            # NOTE: MD5 sums are still part of the PackageV1 API
+            package_md5sum = md5(package_bytes).hexdigest()  # nosec: B324
             package_sha256sum = sha256(package_bytes).hexdigest()
 
         debug(f"Opening package file {package} for reading...")
@@ -128,7 +125,7 @@ class Package(BaseModel):
                     )
 
     def top_level_dict(self) -> dict[str, Any]:
-        """Flatten the keys and values tracked by Package (one level deep) and return them in a dict
+        """Flatten the keys and values tracked by Package (one level deep) and return them in a dict.
 
         NOTE: Duplicate entries are merged!
 
@@ -137,7 +134,6 @@ class Package(BaseModel):
         dict[str, Any]
             A flattened dict representation of Package
         """
-
         top_level: dict[str, Any] = {}
         for key, value in self.dict().items():
             if isinstance(value, dict):
@@ -149,7 +145,7 @@ class Package(BaseModel):
 
 
 class PackageV1(CSize, FileName, Md5Sum, Package, PgpSig, Sha256Sum):
-    """Package representation version 1
+    """Package representation version 1.
 
     Attributes
     ----------
@@ -177,7 +173,7 @@ class PackageV1(CSize, FileName, Md5Sum, Package, PgpSig, Sha256Sum):
 
 
 def export_schemas(output: Path | str) -> None:
-    """Export the JSON schema of selected pydantic models to an output directory
+    """Export the JSON schema of selected pydantic models to an output directory.
 
     Parameters
     ----------
@@ -189,7 +185,6 @@ def export_schemas(output: Path | str) -> None:
     RuntimeError
         If output is not an existing directory
     """
-
     classes = [PackageV1]
 
     if isinstance(output, str):

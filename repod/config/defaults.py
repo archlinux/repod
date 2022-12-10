@@ -1,3 +1,8 @@
+"""Module with configuration defaults for settings.
+
+The defaults for locations and directories are provided as dicts which use SettingsTypeEnum as keys to distinguish
+between different ways of running repod.
+"""
 from pathlib import Path
 
 from orjson import OPT_APPEND_NEWLINE, OPT_INDENT_2, OPT_SORT_KEYS

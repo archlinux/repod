@@ -1,3 +1,4 @@
+"""Tests for repod.archive.archive."""
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import ContextManager
@@ -19,6 +20,7 @@ from repod.errors import RepoManagementValidationError
     ],
 )
 def test_copysourcedestination(source: Path, destination: Path, expectation: ContextManager[str]) -> None:
+    """Tests for repod.archive.archive.CopySourceDestination."""
     with expectation:
         archive.CopySourceDestination(source=source, destination=destination)
 
@@ -40,6 +42,7 @@ def test_copysourcedestination_from_archive_dir(
     expectation: ContextManager[str],
     tmp_path: Path,
 ) -> None:
+    """Tests for repod.archive.archive.CopySourceDestination.from_archive_dir."""
     with expectation:
         archive.CopySourceDestination.from_archive_dir(
             source=source,
@@ -50,11 +53,12 @@ def test_copysourcedestination_from_archive_dir(
 def test_copysourcedestination_copy_file(
     text_file: Path,
 ) -> None:
+    """Tests for repod.archive.archive.CopySourceDestination.copy_file."""
     source = text_file
     destination = text_file.parent / "foo" / text_file.name
 
-    assert source.exists()
-    assert not destination.exists()
+    assert source.exists()  # nosec: B101
+    assert not destination.exists()  # nosec: B101
 
     obj = archive.CopySourceDestination(
         source=source,
@@ -62,18 +66,19 @@ def test_copysourcedestination_copy_file(
     )
     obj.copy_file()
 
-    assert source.exists()
-    assert destination.exists()
+    assert source.exists()  # nosec: B101
+    assert destination.exists()  # nosec: B101
 
 
 def test_copysourcedestination_remove_destination(
     text_file: Path,
 ) -> None:
+    """Tests for repod.archive.archive.CopySourceDestination.remove_destination."""
     source = text_file
     destination = text_file.parent / "foo" / text_file.name
 
-    assert source.exists()
-    assert not destination.exists()
+    assert source.exists()  # nosec: B101
+    assert not destination.exists()  # nosec: B101
 
     obj = archive.CopySourceDestination(
         source=source,
@@ -81,11 +86,11 @@ def test_copysourcedestination_remove_destination(
     )
     obj.copy_file()
 
-    assert source.exists()
-    assert destination.exists()
+    assert source.exists()  # nosec: B101
+    assert destination.exists()  # nosec: B101
 
     obj.remove_destination()
 
-    assert source.exists()
-    assert not destination.exists()
-    assert destination.parent.exists()
+    assert source.exists()  # nosec: B101
+    assert not destination.exists()  # nosec: B101
+    assert destination.parent.exists()  # nosec: B101
