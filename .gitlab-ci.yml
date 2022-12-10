@@ -4,6 +4,9 @@
 
 default:
   image: "archlinux:latest"
+  interruptible: true
+  artifacts:
+    expire_in: 2 weeks
 
 stages:
   - check
