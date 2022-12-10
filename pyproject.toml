@@ -192,6 +192,58 @@ warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
 
+[tool.ruff]
+line-length = 120
+extend-select = [
+    "A",
+    "ARG",
+    "ANN",
+    "B",
+    "BLE",
+    "C",
+    "D",
+    "E",
+    "EM",
+    "ERA",
+    "F",
+    "I",
+    "ICN",
+    "N",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "Q",
+    "RET",
+    "RUF",
+    "S",
+    "SIM",
+    "T10",
+    "UP",
+    "W",
+    "YTT",
+]
+extend-exclude = [
+    ".idea",
+    "dbscripts",
+]
+extend-ignore = [
+    "D107",
+    "D203",
+    "D212",
+    "D213",
+    "D402",
+    "D413",
+    "D415",
+    "D416",
+    "D417",
+    "E501",
+    "EM102",  # misdetects f-strings in Exceptions
+]
+
+[tool.ruff.isort]
+known-first-party = ["repod", "tests"]
+
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]
 build-backend = "pdm.pep517.api"
