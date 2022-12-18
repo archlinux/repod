@@ -107,6 +107,18 @@ source-includes = [
 markers = ["integration", "regex"]
 asyncio_mode = "auto"
 
+[tool.bandit]
+targets = ["docs", "repod", "tests"]
+exclude_dirs = [
+    ".git/",
+    ".idea/",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+]
+
 [tool.black]
 line-length = 120
 exclude = '''
