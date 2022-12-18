@@ -83,6 +83,7 @@ dev = [
     "tox>=3.26.0",
     "vulture>=2.6",
     "pydocstyle>=6.1.1",
+    "bandit>=1.7.4",
 ]
 
 [tool.pdm.build]
