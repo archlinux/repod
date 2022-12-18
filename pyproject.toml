@@ -82,6 +82,7 @@ dev = [
     "sphinxcontrib-programoutput>=0.17",
     "tox>=3.26.0",
     "vulture>=2.6",
+    "pydocstyle>=6.1.1",
 ]
 
 [tool.pdm.build]
