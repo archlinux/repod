@@ -64,6 +64,9 @@ Added
 * A parser for ``.SRCINFO`` files can now be used to retrieve and validate data
   of these files. This is useful when validating data of packages against the
   data from their source repositories.
+* Documentation for tests now provide more context about the various helper
+  functions and fixtures. A ``pydocstyle`` based linting of in-code
+  documentation now ensures, that documentation follows a common style.
 
 Changed
 ^^^^^^^
