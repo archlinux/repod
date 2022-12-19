@@ -37,5 +37,7 @@ documentation.
 ## License
 
 Repod's code is licensed under the terms of the **GPL-3.0-or-later** (see the
-top-level *LICENSE* file) and its documentation is licensed under the terms of
-the **GFDL-1.3-or-later** (see the *docs/LICENSE* file).
+top-level *LICENSE* file), its documentation is licensed under the terms of the
+**GFDL-1.3-or-later** (see the *docs/LICENSE* file) and its artwork (created by
+Safi @ [betriebsbuero](http://betriebsbuero.com)) is licensed under the terms
+of the **CC-BY-SA-4.0** (see the *docs/artwork/LICENSE* file).
