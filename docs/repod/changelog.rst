@@ -67,6 +67,8 @@ Added
 * Documentation for tests now provide more context about the various helper
   functions and fixtures. A ``pydocstyle`` based linting of in-code
   documentation now ensures, that documentation follows a common style.
+* A logo for repod has been created by Safi @ http://betriebsbuero.com, which
+  is licensed under the terms of the CC-BY-SA-4.0.
 
 Changed
 ^^^^^^^
