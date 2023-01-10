@@ -25,7 +25,7 @@ instructions](https://repod.archlinux.page/repod/installation.html).
 ## Usage
 
 Please refer to the [usage
-information](https://repod.archlinux.page/usage.html) in the official
+information](https://repod.archlinux.page/repod/usage.html) in the official
 documentation to learn how to use repod.
 
 ## Contributing
